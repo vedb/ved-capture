@@ -2,7 +2,7 @@
 import os
 import subprocess
 import argparse
-import urllib
+import urllib.request
 
 
 def show_welcome_message(yes=False):
