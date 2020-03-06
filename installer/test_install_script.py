@@ -1,12 +1,13 @@
+import os
 import shutil
 
 import pytest
 
-from installer.install_ved_capture import *
+from install_ved_capture import *
 
 
 @pytest.fixture()
-def base_folder():
+def output_folder():
     """"""
     folder = os.path.join(os.getcwd(), "out")
     yield folder
@@ -20,14 +21,19 @@ class TestMethods:
         assert check_ssh_pubkey() is not None
         assert check_ssh_pubkey("not_a_key") is None
 
-    def test_get_repo_folder(self, base_folder):
+    def test_get_repo_folder(self, output_folder):
         """"""
         assert get_repo_folder(
-            base_folder, "ssh://git@github.com/vedb/ved-capture"
+            output_folder, "ssh://git@github.com/vedb/ved-capture"
         ).endswith("ved-capture")
 
-    def test_clone_repo(self, base_folder):
+    def test_clone_repo(self, output_folder):
         """"""
         assert not clone_repo(
-            base_folder, "ssh://git@github.com/vedb/wrong_repo"
+            output_folder, "ssh://git@github.com/vedb/wrong_repo"
         )[0]
+
+    def test_install_miniconda(self, output_folder):
+        """"""
+        install_miniconda(prefix=output_folder)
+        assert os.path.exists(os.path.join(output_folder, "bin", "conda"))
