@@ -17,4 +17,4 @@ jobs:
       with:
         python-version: 3.6
     - name: Run installer
-      run: python installer/install_ved_capture.py -y
+      run: python installer/install_ved_capture.py -y --no_ssh
