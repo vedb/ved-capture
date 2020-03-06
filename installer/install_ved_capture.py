@@ -34,6 +34,7 @@ def show_welcome_message(yes=False):
 
 def check_ssh_pubkey(filename="id_ecdsa.pub"):
     """"""
+    # TODO also check for private key
     filepath = os.path.join(os.path.expanduser("~/.ssh"), filename)
     if os.path.exists(filepath):
         with open(filepath) as f:
@@ -123,6 +124,11 @@ if __name__ == "__main__":
         help="set this flag to install non-interactively"
     )
     parser.add_argument(
+        "--no_ssh",
+        action="store_true",
+        help="set this flag disable check for ECDSA key"
+    )
+    parser.add_argument(
         "-f",
         "--folder",
         default="~/vedb",
@@ -151,7 +157,7 @@ if __name__ == "__main__":
 
     # Check SSH key
     ssh_key = check_ssh_pubkey()
-    if ssh_key is None:
+    if ssh_key is None and not args.no_ssh:
         print("Generating ECDSA key...")
         ssh_key = generate_ssh_keypair()
         show_github_ssh_instructions(ssh_key)
