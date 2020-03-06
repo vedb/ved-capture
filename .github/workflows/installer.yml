@@ -1,0 +1,20 @@
+name: test_installer
+
+on: push
+
+jobs:
+  test:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v1
+    - uses: webfactory/ssh-agent@v0.2.0
+      with:
+        ssh-private-key: |
+          ${{ secrets.ECDSA_PRIVATE_KEY }}
+          ${{ secrets.PRI_PRIVATE_KEY }}
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.6
+    - name: Run installer
+      run: python installer/install_ved_capture.py -y
