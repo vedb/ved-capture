@@ -2,8 +2,7 @@
 import os
 import subprocess
 import argparse
-import requests
-import tempfile
+import urllib
 
 
 def show_welcome_message(yes=False):
@@ -105,15 +104,11 @@ def install_miniconda(prefix="~/miniconda3"):
     """"""
     prefix = os.path.expanduser(prefix)
 
-    file_handle = requests.get(
+    filename, _ = urllib.request.urlretrieve(
         "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"
     )
 
-    with tempfile.NamedTemporaryFile(delete=False) as f:
-        f.write(file_handle.content)
-        filename = f.name
-
-        cmd = ["bash", filename, "-b", "-p", prefix]
+    cmd = ["bash", filename, "-b", "-p", prefix]
     subprocess.run(cmd, stdout=subprocess.DEVNULL)
 
 
@@ -189,9 +184,10 @@ if __name__ == "__main__":
     if not os.path.exists(conda_binary):
         install_miniconda(miniconda_prefix)
 
-    # Create environment
-    os.chdir(vedc_repo_folder)
-    subprocess.run([conda_binary, "env", "create"], check=True)
+    # Create environment if necessary
+    if not os.path.exists(os.path.join(miniconda_prefix, "envs", "vedc")):
+        os.chdir(vedc_repo_folder)
+        subprocess.run([conda_binary, "env", "create"], check=True)
 
     # Success
     print("Installation successful. Congratulations!🎉🎉🎉🎉")
