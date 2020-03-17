@@ -2,6 +2,7 @@ name: vedc
 channels:
   - conda-forge
   - eyeware
+  - phausamann
 dependencies:
   - python=3.7
   - pip
@@ -16,6 +17,7 @@ dependencies:
   - netcdf4
   - msgpack-python=0.6.2
   - tqdm
+  - libuvc=0.0.7
   - pip:
     - pyrealsense2
     - git+https://github.com/pupil-labs/pyuvc.git
