@@ -43,13 +43,13 @@ def check_ssh_pubkey(filename="id_ecdsa.pub"):
         return None
 
 
-def generate_ssh_keypair(spec="-b 512 -t ecdsa", filename="id_ecdsa"):
+def generate_ssh_keypair(spec="-b 521 -t ecdsa", filename="id_ecdsa"):
     """"""
     filepath = os.path.join(os.path.expanduser("~/.ssh"), filename)
 
     try:
         subprocess.run(
-            "ssh-keygen -q -N \"\" -f ".split() + [filepath] + spec.split(),
+            "ssh-keygen -q -P".split() + ["", "-f", filepath] + spec.split(),
             check=True,
         )
         return check_ssh_pubkey(filename + ".pub")
@@ -185,6 +185,7 @@ if __name__ == "__main__":
                 f"ERROR: Could not update {vedc_repo_folder}: {error_message}"
                 f"You might need to delete the folder and try again."
             )
+            exit(1)
 
     # Install miniconda if necessary
     if not os.path.exists(conda_binary):
