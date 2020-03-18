@@ -201,9 +201,10 @@ if __name__ == "__main__":
 
     # Install pyuvc separately
     subprocess.run(
-        ["/bin/sh", conda_script] +
-        "&& conda activate vedc && pip install "
-        "git+https://github.com/pupil-labs/pyuvc.git".split(),
+        ". " + conda_script +
+        "&& conda activate vedc"
+        "&& pip install git+https://github.com/pupil-labs/pyuvc.git",
+        shell=True,
         check=True,
     )
 
