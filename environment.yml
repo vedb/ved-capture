@@ -21,4 +21,3 @@ dependencies:
   - tqdm
   - pip:
     - pyrealsense2
-    - git+https://github.com/pupil-labs/pyuvc.git

@@ -196,5 +196,12 @@ if __name__ == "__main__":
         os.chdir(vedc_repo_folder)
         subprocess.run([conda_binary, "env", "create"], check=True)
 
+    # Install pyuvc separately
+    subprocess.run(
+        [conda_binary] + "activate vedc && pip install "
+                         "git+https://github.com/pupil-labs/pyuvc.git".split(),
+        check=True,
+    )
+
     # Success
     print("Installation successful. Congratulations!🎉🎉🎉🎉")
