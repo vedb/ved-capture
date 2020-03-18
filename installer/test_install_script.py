@@ -24,13 +24,13 @@ class TestMethods:
     def test_get_repo_folder(self, output_folder):
         """"""
         assert get_repo_folder(
-            output_folder, "ssh://git@github.com/vedb/ved-capture"
+            output_folder, "ssh://git@github.com/vedb/ved-capture",
         ).endswith("ved-capture")
 
     def test_clone_repo(self, output_folder):
         """"""
         assert not clone_repo(
-            output_folder, "ssh://git@github.com/vedb/wrong_repo"
+            output_folder, "ssh://git@github.com/vedb/wrong_repo",
         )[0]
 
     def test_install_miniconda(self, output_folder):

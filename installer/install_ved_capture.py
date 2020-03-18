@@ -147,6 +147,9 @@ if __name__ == "__main__":
     vedc_repo_folder = get_repo_folder(base_folder, vedc_repo_url)
     miniconda_prefix = os.path.expanduser(args.miniconda_prefix)
     conda_binary = os.path.join(miniconda_prefix, "bin", "conda")
+    conda_script = os.path.join(
+        miniconda_prefix, "etc", "profile.d", "conda.sh"
+    )
 
     # Welcome message
     if not show_welcome_message(args.yes):
@@ -198,8 +201,9 @@ if __name__ == "__main__":
 
     # Install pyuvc separately
     subprocess.run(
-        [conda_binary] + "activate vedc && pip install "
-                         "git+https://github.com/pupil-labs/pyuvc.git".split(),
+        ["/bin/sh", conda_script] +
+        "&& conda activate vedc && pip install "
+        "git+https://github.com/pupil-labs/pyuvc.git".split(),
         check=True,
     )
 
