@@ -16,8 +16,9 @@ dependencies:
   - opencv=4.1.0
   - netcdf4
   - msgpack-python=0.6.2
-  - tqdm
   - libuvc=0.0.7
+  - libjpeg-turbo
+  - tqdm
   - pip:
     - pyrealsense2
     - git+https://github.com/pupil-labs/pyuvc.git
