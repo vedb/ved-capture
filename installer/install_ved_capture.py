@@ -1,5 +1,6 @@
 """"""
 import os
+import time
 import subprocess
 import argparse
 import urllib.request
@@ -7,29 +8,40 @@ import urllib.request
 
 def show_welcome_message(yes=False):
     """"""
-    print(
-        "###################################################\n"
-        "# Welcome to the VED capture installation script. #\n"
-        "###################################################\n"
-        "\n"
-        "This script will guide you through the setup process for VED "
-        "capture.\n"
-        "\n"
-        "You need an account at https://www.github.com for this script to "
-        "work. Your account also needs to be a member of the VEDB GitHub "
-        "organization."
-        "\n"
-    )
-
     if yes:
+        print(
+            "###################################################\n"
+            "#      VED capture installation - auto-mode.      #\n"
+            "###################################################"
+        )
         return True
+
     else:
+        print(
+            "###################################################\n"
+            "# Welcome to the VED capture installation script. #\n"
+            "###################################################\n"
+            "\n"
+            "This script will guide you through the setup process for VED "
+            "capture.\n"
+            "\n"
+            "You need an account at https://www.github.com for this script to "
+            "work. Your account also needs to be a member of the VEDB GitHub "
+            "organization."
+            "\n"
+        )
         answer = input(
             "Do you have a GitHub account that is member of the "
-            "VEDB organization? [y/n]:"
+            "VEDB organization? [y/n]: "
         )
         print("")
         return answer == "y"
+
+
+def show_header(message, timeout=0.1):
+    """"""
+    print("\n" + message + "\n" + "-" * len(message))
+    time.sleep(timeout)
 
 
 def check_ssh_pubkey(filename="id_ecdsa.pub"):
@@ -113,6 +125,12 @@ def install_miniconda(prefix="~/miniconda3"):
     subprocess.run(cmd, stdout=subprocess.DEVNULL)
 
 
+def abort(initial_folder, exit_code=1):
+    """"""
+    os.chdir(initial_folder)
+    exit(exit_code)
+
+
 if __name__ == "__main__":
 
     # Parse command line arguments
@@ -136,43 +154,49 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--miniconda_prefix",
-        default="~/miniconda3",
+        default="{base_folder}/miniconda3",
         help="prefix for miniconda installation",
     )
     args = parser.parse_args()
 
-    # Config
+    # Set up paths
     base_folder = os.path.expanduser(args.folder)
     vedc_repo_url = "ssh://git@github.com/vedb/ved-capture"
     vedc_repo_folder = get_repo_folder(base_folder, vedc_repo_url)
-    miniconda_prefix = os.path.expanduser(args.miniconda_prefix)
+
+    miniconda_prefix = os.path.expanduser(
+        args.miniconda_prefix.format(base_folder=base_folder),
+    )
     conda_binary = os.path.join(miniconda_prefix, "bin", "conda")
     conda_script = os.path.join(
-        miniconda_prefix, "etc", "profile.d", "conda.sh"
+        miniconda_prefix, "etc", "profile.d", "conda.sh",
     )
+
+    initial_folder = os.getcwd()
 
     # Welcome message
     if not show_welcome_message(args.yes):
         print(
             "Please contact someone from the VEDB team to give you access."
         )
-        exit(1)
+        abort(initial_folder)
 
     # Check SSH key
     ssh_key = check_ssh_pubkey()
     if ssh_key is None and not args.no_ssh:
-        print("Generating ECDSA key...")
+        show_header("Generating ECDSA key")
         ssh_key = generate_ssh_keypair()
         show_github_ssh_instructions(ssh_key)
         if args.yes:
             print("When you're done, run this script again.")
-            exit(1)
+            abort(initial_folder)
         else:
             input("When you're done, press Enter.")
             print("")
 
     # Clone or update repository
     if not os.path.exists(vedc_repo_folder):
+        show_header("Cloning repository")
         clone_success, _ = clone_repo(base_folder, vedc_repo_url)
         if not clone_success:
             print(
@@ -180,33 +204,32 @@ if __name__ == "__main__":
                 "SSH key?"
             )
             show_github_ssh_instructions(ssh_key)
-            exit(1)
+            abort(initial_folder)
     else:
+        show_header("Updating repository")
         update_success, error_message = update_repo(vedc_repo_folder)
         if not update_success:
             print(
                 f"ERROR: Could not update {vedc_repo_folder}: {error_message}"
                 f"You might need to delete the folder and try again."
             )
-            exit(1)
+            abort(initial_folder)
+
+    os.chdir(vedc_repo_folder)
 
     # Install miniconda if necessary
     if not os.path.exists(conda_binary):
+        show_header("Installing miniconda")
         install_miniconda(miniconda_prefix)
 
-    # Create environment if necessary
+    # Create or update environment
     if not os.path.exists(os.path.join(miniconda_prefix, "envs", "vedc")):
-        os.chdir(vedc_repo_folder)
+        show_header("Creating environment")
         subprocess.run([conda_binary, "env", "create"], check=True)
-
-    # Install pyuvc separately
-    # subprocess.run(
-    #     ". " + conda_script +
-    #     "&& conda activate vedc"
-    #     "&& pip install git+https://github.com/pupil-labs/pyuvc.git",
-    #     shell=True,
-    #     check=True,
-    # )
+    else:
+        show_header("Updating environment")
+        subprocess.run([conda_binary, "env", "update"], check=True)
 
     # Success
-    print("Installation successful. Congratulations!🎉🎉🎉🎉")
+    os.chdir(initial_folder)
+    print("Installation successful. Congratulations! 🎉🎉🎉")

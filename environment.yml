@@ -1,26 +1,34 @@
 name: vedc
 channels:
   - conda-forge
-  - eyeware
   - phausamann
 dependencies:
   - python=3.7
   - pip
+  # scientific stack
   - numpy
   - scipy
   - pandas
   - xarray
-  - librealsense2
+  - netcdf4
+  # video
   - ffmpeg=4.1.3
   - x264=1!152.20180806
   - opencv=4.1.0
-  - netcdf4
-  - msgpack-python=0.6.2
+  # pupil
   - c-compiler
-  - libusb
+  - libusb=1.0.23
   - libuvc=0.0.7
-  - libjpeg-turbo
+  - libjpeg-turbo=2.0.3
+  - msgpack-python=0.6.2
+  # realsense
+  - librealsense2=2.32.1
+  # flir
+  - pyspin=1.27.0.48
+  # other
   - tqdm
+  # pip
   - pip:
-    - pyrealsense2
+    - pyrealsense2==2.32.1.1346
     - git+https://github.com/pupil-labs/pyuvc.git
+    - git+ssh://git@github.com/vedb/pupil_recording_interface.git
