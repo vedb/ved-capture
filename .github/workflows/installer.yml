@@ -9,9 +9,7 @@ jobs:
     - uses: actions/checkout@v1
     - uses: webfactory/ssh-agent@v0.2.0
       with:
-        ssh-private-key: |
-          ${{ secrets.PRI_PRIVATE_KEY }}
-          ${{ secrets.VEDC_PRIVATE_KEY }}
+        ssh-private-key: ${{ secrets.VEDC_PRIVATE_KEY }}
     - name: Set up Python 3.6
       uses: actions/setup-python@v1
       with:
