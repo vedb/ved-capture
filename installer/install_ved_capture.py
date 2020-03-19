@@ -134,9 +134,11 @@ def install_spinnaker_sdk(folder, password):
     """"""
     if password is None:
         # TODO pipe stdout to logger
-        subprocess.run(['sudo', 'dkpg', '-i', os.path.join(folder, '*.deb')])
+        subprocess.run(
+            ['sudo', 'dpkg', '-i', os.path.join(folder, '*.deb')], check=True,
+        )
     else:
-        command = ['sudo', '-S', 'dkpg', '-i', os.path.join(folder, '*.deb')]
+        command = ['sudo', '-S', 'dpkg', '-i', os.path.join(folder, '*.deb')]
         # TODO pipe stdout to logger
         process = subprocess.Popen(command, stdin=subprocess.PIPE)
         process.communicate(password + "\n")
@@ -254,6 +256,7 @@ if __name__ == "__main__":
         password = None
 
     # Install Spinnaker SDK
+    show_header("Installing Spinnaker SDK")
     install_spinnaker_sdk(
         os.path.join(
             base_folder, "installer", "spinnaker_sdk_1.27.0.48_amd64",
