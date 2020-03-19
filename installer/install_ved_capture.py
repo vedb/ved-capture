@@ -4,6 +4,7 @@ import time
 import subprocess
 import argparse
 import urllib.request
+from getpass import getpass
 
 
 def show_welcome_message(yes=False):
@@ -91,6 +92,7 @@ def clone_repo(base_folder, repo_url):
     os.chdir(base_folder)
 
     try:
+        # TODO pipe stdout to logger
         subprocess.run(
             ["git", "clone", repo_url], check=True, stdout=subprocess.DEVNULL,
         )
@@ -105,12 +107,39 @@ def update_repo(repo_folder):
     os.chdir(repo_folder)
 
     try:
+        # TODO pipe stdout to logger
         subprocess.run(
             ["git", "pull"], check=True, stdout=subprocess.DEVNULL,
         )
         return True, None
     except subprocess.CalledProcessError as e:
         return True, e.output
+
+
+def password_prompt():
+    """"""
+    show_header("Installing system-wide dependencies")
+    print(
+        "Some dependencies need to be installed system wide. In order for "
+        "this to work, the current user must have root access to the "
+        "machine. You will need to enter your password once. The password "
+        "will not be stored anywhere.\n"
+    )
+    password = getpass("Please enter your password now:")
+
+    return password
+
+
+def install_spinnaker_sdk(folder, password):
+    """"""
+    if password is None:
+        # TODO pipe stdout to logger
+        subprocess.run(['sudo', 'dkpg', '-i', os.path.join(folder, '*.deb')])
+    else:
+        command = ['sudo', '-S', 'dkpg', '-i', os.path.join(folder, '*.deb')]
+        # TODO pipe stdout to logger
+        process = subprocess.Popen(command, stdin=subprocess.PIPE)
+        process.communicate(password + "\n")
 
 
 def install_miniconda(prefix="~/miniconda3"):
@@ -122,6 +151,7 @@ def install_miniconda(prefix="~/miniconda3"):
     )
 
     cmd = ["bash", filename, "-b", "-p", prefix]
+    # TODO pipe stdout to logger
     subprocess.run(cmd, stdout=subprocess.DEVNULL)
 
 
@@ -139,12 +169,12 @@ if __name__ == "__main__":
         "-y",
         "--yes",
         action="store_true",
-        help="set this flag to install non-interactively"
+        help="set this flag to install non-interactively",
     )
     parser.add_argument(
         "--no_ssh",
         action="store_true",
-        help="set this flag disable check for ECDSA key"
+        help="set this flag disable check for ECDSA key",
     )
     parser.add_argument(
         "-f",
@@ -217,6 +247,20 @@ if __name__ == "__main__":
 
     os.chdir(vedc_repo_folder)
 
+    # Get password for sudo stuff
+    if not args.yes:
+        password = password_prompt()
+    else:
+        password = None
+
+    # Install Spinnaker SDK
+    install_spinnaker_sdk(
+        os.path.join(
+            base_folder, "installer", "spinnaker_sdk_1.27.0.48_amd64",
+        ),
+        password,
+    )
+
     # Install miniconda if necessary
     if not os.path.exists(conda_binary):
         show_header("Installing miniconda")
@@ -225,9 +269,11 @@ if __name__ == "__main__":
     # Create or update environment
     if not os.path.exists(os.path.join(miniconda_prefix, "envs", "vedc")):
         show_header("Creating environment")
+        # TODO pipe stdout to logger
         subprocess.run([conda_binary, "env", "create"], check=True)
     else:
         show_header("Updating environment")
+        # TODO pipe stdout to logger
         subprocess.run([conda_binary, "env", "update"], check=True)
 
     # Success
