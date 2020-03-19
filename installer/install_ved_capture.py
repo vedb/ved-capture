@@ -36,7 +36,6 @@ def show_welcome_message(yes=False):
             "Do you have a GitHub account that is member of the "
             "VEDB organization? [y/n]: "
         )
-        print("")
         return answer == "y"
 
 
