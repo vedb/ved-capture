@@ -16,5 +16,7 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: 3.6
+    - name: Check PRI private key
+      run: git clone ssh://git@github.com/vedb/pupil_recording_interface.git
     - name: Run installer
       run: python installer/install_ved_capture.py -y --no_ssh
