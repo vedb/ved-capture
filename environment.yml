@@ -29,6 +29,6 @@ dependencies:
   - tqdm
   # pip
   - pip:
-    - pyrealsense2==2.32.1.1346
-    - git+https://github.com/pupil-labs/pyuvc.git
-    - git+ssh://git@github.com/vedb/pupil_recording_interface.git
+    - --no-deps pyrealsense2==2.32.1.1346
+    - --no-deps git+https://github.com/pupil-labs/pyuvc.git
+    - --no-deps --upgrade git+ssh://git@github.com/vedb/pupil_recording_interface.git

@@ -5,6 +5,7 @@ import subprocess
 import argparse
 import urllib.request
 from getpass import getpass
+from glob import glob
 
 
 def show_welcome_message(yes=False):
@@ -132,16 +133,19 @@ def password_prompt():
 
 def install_spinnaker_sdk(folder, password):
     """"""
+    deb_files = glob(os.path.join(folder, "*.deb"))
     if password is None:
         # TODO pipe stdout to logger
         subprocess.run(
-            ['sudo', 'dpkg', '-i', os.path.join(folder, '*.deb')], check=True,
+            ["sudo", "dpkg", "-i"] + deb_files, check=True,
         )
     else:
-        command = ['sudo', '-S', 'dpkg', '-i', os.path.join(folder, '*.deb')]
+        command = ["sudo", "-S", "dpkg", "-i"] + deb_files
         # TODO pipe stdout to logger
         process = subprocess.Popen(command, stdin=subprocess.PIPE)
-        process.communicate(password + "\n")
+        process.communicate(password.encode("utf-8") + b"\n")
+        if process.returncode != 0:
+            raise subprocess.CalledProcessError(process.returncode, command)
 
 
 def install_miniconda(prefix="~/miniconda3"):
@@ -259,7 +263,7 @@ if __name__ == "__main__":
     show_header("Installing Spinnaker SDK")
     install_spinnaker_sdk(
         os.path.join(
-            base_folder, "installer", "spinnaker_sdk_1.27.0.48_amd64",
+            vedc_repo_folder, "installer", "spinnaker_sdk_1.27.0.48_amd64",
         ),
         password,
     )
