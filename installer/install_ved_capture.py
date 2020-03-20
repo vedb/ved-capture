@@ -155,19 +155,34 @@ def install_spinnaker_sdk(folder, password, groupname="flirimaging"):
     run_as_sudo(["groupadd", "-f", groupname], password)
     run_as_sudo(["usermod", "-a", "-G", groupname, getuser()], password)
 
-    # Create udev rule
+    # Create udev rules
     udev_file = "/etc/udev/rules.d/40-flir-spinnaker.rules"
-    udev_rule = f"SUBSYSTEM==\"usb\", ATTRS{{idVendor}}==\"1e10\", " \
+    udev_rules = f"SUBSYSTEM==\"usb\", ATTRS{{idVendor}}==\"1e10\", " \
                 f"GROUP=\"{groupname}\"\n"
     process = subprocess.Popen(
         ['sudo', '-S', 'dd', 'if=/dev/stdin', f'of={udev_file}',
          'conv=notrunc', 'oflag=append'],
         stdin=subprocess.PIPE,
     )
-    process.communicate(udev_rule.encode("utf-8"))
+    process.communicate(udev_rules.encode("utf-8"))
 
     # Restart udev daemon
     run_as_sudo(["/etc/init.d/udev", "restart"], password)
+
+
+def create_libuvc_udev_rules(password):
+    """"""
+    udev_file = "/etc/udev/rules.d/10-libuvc.rules"
+    udev_rules = "SUBSYSTEM==\"usb\", ENV{DEVTYPE}==\"usb_device\", " \
+                "GROUP=\"plugdev\", MODE=\"0664\"\n"
+    process = subprocess.Popen(
+        ['sudo', '-S', 'dd', 'if=/dev/stdin', f'of={udev_file}',
+         'conv=notrunc', 'oflag=append'],
+        stdin=subprocess.PIPE,
+    )
+    process.communicate(udev_rules.encode("utf-8"))
+
+    run_as_sudo(["udevadm", "trigger"], password)
 
 
 def install_miniconda(prefix="~/miniconda3"):
@@ -289,6 +304,9 @@ if __name__ == "__main__":
         ),
         password,
     )
+
+    # Create udev rules for libuvc
+    create_libuvc_udev_rules(password)
 
     # Install miniconda if necessary
     if not os.path.exists(conda_binary):
