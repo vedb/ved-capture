@@ -158,8 +158,13 @@ def install_spinnaker_sdk(folder, password, groupname="flirimaging"):
     # Create udev rule
     udev_file = "/etc/udev/rules.d/40-flir-spinnaker.rules"
     udev_rule = f"SUBSYSTEM==\"usb\", ATTRS{{idVendor}}==\"1e10\", " \
-                f"GROUP=\"{groupname}\""
-    run_as_sudo(["echo", udev_rule, "1>>" + udev_file], password)
+                f"GROUP=\"{groupname}\"\n"
+    process = subprocess.Popen(
+        ['sudo', '-S', 'dd', 'if=/dev/stdin', f'of={udev_file}',
+         'conv=notrunc', 'oflag=append'],
+        stdin=subprocess.PIPE,
+    )
+    process.communicate(udev_rule.encode("utf-8"))
 
     # Restart udev daemon
     run_as_sudo(["/etc/init.d/udev", "restart"], password)
