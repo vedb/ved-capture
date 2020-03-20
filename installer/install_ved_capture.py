@@ -130,12 +130,12 @@ def password_prompt():
     return password
 
 
-def run_command(command):
+def run_as_sudo(command, password):
     """"""
     if password is not None:
         # TODO pipe stdout to logger
         process = subprocess.Popen(
-            ["sudo", "-S"] + command, stdin=subprocess.PIPE,
+            ["sudo", "-S"] + command, stdin=subprocess.PIPE
         )
         process.communicate(password.encode("utf-8") + b"\n")
         if process.returncode != 0:
@@ -149,20 +149,20 @@ def install_spinnaker_sdk(folder, password, groupname="flirimaging"):
     """"""
     # Install packages
     deb_files = glob(os.path.join(folder, "*.deb"))
-    run_command(["dpkg", "-i"] + deb_files)
+    run_as_sudo(["dpkg", "-i"] + deb_files, password)
 
     # Create flir group
-    run_command(["groupadd", "-f", groupname])
-    run_command(["usermod", "-a", "-G", groupname, getuser()])
+    run_as_sudo(["groupadd", "-f", groupname], password)
+    run_as_sudo(["usermod", "-a", "-G", groupname, getuser()], password)
 
     # Create udev rule
     udev_file = "/etc/udev/rules.d/40-flir-spinnaker.rules"
     udev_rule = f"SUBSYSTEM==\"usb\", ATTRS{{idVendor}}==\"1e10\", " \
                 f"GROUP=\"{groupname}\""
-    run_command(["echo", udev_rule, "1>>" + udev_file])
+    run_as_sudo(["echo", udev_rule, "1>>" + udev_file], password)
 
     # Restart udev daemon
-    run_command(["/etc/init.d/udev", "restart"])
+    run_as_sudo(["/etc/init.d/udev", "restart"], password)
 
 
 def install_miniconda(prefix="~/miniconda3"):
