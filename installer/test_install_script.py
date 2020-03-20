@@ -31,7 +31,7 @@ class TestMethods:
         """"""
         assert not clone_repo(
             output_folder, "ssh://git@github.com/vedb/wrong_repo",
-        )[0]
+        )
 
     def test_install_miniconda(self, output_folder):
         """"""

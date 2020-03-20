@@ -6,20 +6,45 @@ import argparse
 import urllib.request
 from getpass import getuser, getpass
 from glob import glob
+import logging
+from select import select
+
+
+__version = None  # TODO set this once there is a first release
+__maintainer_email = "peter.hausamann@tum.de"
+
+
+# -- LOGGING -- #
+def init_logger(log_folder, name="install_ved_capture"):
+    """"""
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)
+
+    # stream handler
+    stream_formatter = logging.Formatter("%(message)s")
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.INFO)
+    stream_handler.setFormatter(stream_formatter)
+    logger.addHandler(stream_handler)
+
+    # file handler
+    file_formatter = logging.Formatter(
+        "%(asctime)s | %(name)s | %(levelname)s: %(message)s"
+    )
+    log_file_path = os.path.join(log_folder, name + ".log")
+    file_handler = logging.FileHandler(filename=log_file_path)
+    file_handler.setFormatter(file_formatter)
+    file_handler.setLevel(logging.DEBUG)
+    logger.addHandler(file_handler)
+
+    return logger
 
 
 def show_welcome_message(yes=False):
     """"""
-    if yes:
-        print(
-            "###################################################\n"
-            "#      VED capture installation - auto-mode.      #\n"
-            "###################################################"
-        )
-        return True
-
-    else:
-        print(
+    if not yes:
+        logger.info(
+            "\n"
             "###################################################\n"
             "# Welcome to the VED capture installation script. #\n"
             "###################################################\n"
@@ -36,18 +61,92 @@ def show_welcome_message(yes=False):
             "Do you have a GitHub account that is member of the "
             "VEDB organization? [y/n]: "
         )
+        logger.debug(f"GitHub account prompt answer: {answer}")
         return answer == "y"
+
+    else:
+        logger.info(
+            "\n"
+            "###################################################\n"
+            "#      VED capture installation - auto-mode.      #\n"
+            "###################################################"
+        )
+        return True
 
 
 def show_header(message, timeout=0.1):
     """"""
-    print("\n" + message + "\n" + "-" * len(message))
+    logger.info("\n" + message + "\n" + "-" * len(message))
     time.sleep(timeout)
 
 
+# -- COMMAND RUNNERS -- #
+def abort(exit_code=1):
+    """"""
+    os.chdir(initial_folder)
+    exit(exit_code)
+
+
+def handle_process(process, command, error_msg):
+    """"""
+    readable = {
+        process.stdout.fileno(): logger.debug,
+        process.stderr.fileno(): logger.warning,
+    }
+    while readable:
+        for fd in select(readable, [], [])[0]:
+            data = os.read(fd, 1024)  # read available
+            if not data:  # EOF
+                del readable[fd]
+            else:
+                readable[fd](data.decode("utf-8"))
+
+    return_code = process.wait()
+
+    if return_code != 0:
+        if error_msg is None:
+            logger.error(
+                " ".join(command) +
+                f" failed with exit code {return_code}. See the output above "
+                f"for more information. If you don't know how to fix this by "
+                f"yourself, please send an email with the "
+                f"'install_ved_capture.log' file located in {initial_folder} "
+                f"to {__maintainer_email}.",
+            )
+        else:
+            logger.error(error_msg)
+        abort()
+
+
+def run_command(command, error_msg=None):
+    """"""
+    with subprocess.Popen(
+        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+    ) as process:
+        handle_process(process, command, error_msg)
+
+
+def run_as_sudo(command, password, error_message=None):
+    """"""
+    if password is None:
+        return run_command(["sudo"] + command)
+    else:
+        try:
+            with subprocess.Popen(
+                ["sudo", "-S"] + command,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            ) as process:
+                process.stdin.write(password.encode("utf-8") + b"\n")
+                handle_process(process, command, error_message)
+        except BrokenPipeError:
+            pass
+
+
+# -- GIT -- #
 def check_ssh_pubkey(filename="id_ecdsa.pub"):
     """"""
-    # TODO also check for private key
     filepath = os.path.join(os.path.expanduser("~/.ssh"), filename)
     if os.path.exists(filepath):
         with open(filepath) as f:
@@ -59,20 +158,15 @@ def check_ssh_pubkey(filename="id_ecdsa.pub"):
 def generate_ssh_keypair(spec="-b 521 -t ecdsa", filename="id_ecdsa"):
     """"""
     filepath = os.path.join(os.path.expanduser("~/.ssh"), filename)
-
-    try:
-        subprocess.run(
-            "ssh-keygen -q -P".split() + ["", "-f", filepath] + spec.split(),
-            check=True,
-        )
-        return check_ssh_pubkey(filename + ".pub")
-    except subprocess.CalledProcessError:
-        return None
+    run_command(
+        "ssh-keygen -q -P".split() + ["", "-f", filepath] + spec.split(),
+    )
+    return check_ssh_pubkey(filename + ".pub")
 
 
 def show_github_ssh_instructions(ssh_key):
     """"""
-    print(
+    logger.info(
         f"Go to https://github.com/settings/ssh/new and paste this into the "
         f"'Key' field: \n\n"
         f"{ssh_key}\n"
@@ -87,39 +181,29 @@ def get_repo_folder(base_folder, repo_url):
 
 def clone_repo(base_folder, repo_url):
     """"""
-    # Create the base folder for all VEDB software
     os.makedirs(base_folder, exist_ok=True)
     os.chdir(base_folder)
-
-    try:
-        # TODO pipe stdout to logger
-        subprocess.run(
-            ["git", "clone", repo_url], check=True, stdout=subprocess.DEVNULL,
-        )
-        # TODO get from stdout
-        return True, get_repo_folder(base_folder, repo_url)
-    except subprocess.CalledProcessError as e:
-        return False, e.output
+    error_msg = (
+        "Could not clone the repository. Did you set up the SSH key?"
+    )
+    run_command(["git", "clone", repo_url], error_msg=error_msg)
 
 
 def update_repo(repo_folder):
     """"""
     os.chdir(repo_folder)
-
-    try:
-        # TODO pipe stdout to logger
-        subprocess.run(
-            ["git", "pull"], check=True, stdout=subprocess.DEVNULL,
-        )
-        return True, None
-    except subprocess.CalledProcessError as e:
-        return True, e.output
+    error_msg = (
+        f"Could not update {repo_folder}. "
+        f"You might need to delete the folder and try again."
+    )
+    run_command(["git", "pull"], error_msg=error_msg)
 
 
+# -- SYSTEM DEPS -- #
 def password_prompt():
     """"""
     show_header("Installing system-wide dependencies")
-    print(
+    logger.info(
         "Some dependencies need to be installed system wide. In order for "
         "this to work, the current user must have root access to the "
         "machine. You will need to enter your password once. The password "
@@ -128,21 +212,6 @@ def password_prompt():
     password = getpass("Please enter your password now:")
 
     return password
-
-
-def run_as_sudo(command, password):
-    """"""
-    if password is not None:
-        # TODO pipe stdout to logger
-        process = subprocess.Popen(
-            ["sudo", "-S"] + command, stdin=subprocess.PIPE
-        )
-        process.communicate(password.encode("utf-8") + b"\n")
-        if process.returncode != 0:
-            raise subprocess.CalledProcessError(process.returncode, command)
-    else:
-        # TODO pipe stdout to logger
-        subprocess.run(["sudo"] + command, check=True)
 
 
 def install_spinnaker_sdk(folder, password, groupname="flirimaging"):
@@ -158,7 +227,7 @@ def install_spinnaker_sdk(folder, password, groupname="flirimaging"):
     # Create udev rules
     udev_file = "/etc/udev/rules.d/40-flir-spinnaker.rules"
     udev_rules = f"SUBSYSTEM==\"usb\", ATTRS{{idVendor}}==\"1e10\", " \
-                f"GROUP=\"{groupname}\"\n"
+                 f"GROUP=\"{groupname}\"\n"
     process = subprocess.Popen(
         ['sudo', '-S', 'dd', 'if=/dev/stdin', f'of={udev_file}',
          'conv=notrunc', 'oflag=append'],
@@ -185,6 +254,7 @@ def create_libuvc_udev_rules(password):
     run_as_sudo(["udevadm", "trigger"], password)
 
 
+# -- CONDA -- #
 def install_miniconda(prefix="~/miniconda3"):
     """"""
     prefix = os.path.expanduser(prefix)
@@ -196,12 +266,6 @@ def install_miniconda(prefix="~/miniconda3"):
     cmd = ["bash", filename, "-b", "-p", prefix]
     # TODO pipe stdout to logger
     subprocess.run(cmd, stdout=subprocess.DEVNULL)
-
-
-def abort(initial_folder, exit_code=1):
-    """"""
-    os.chdir(initial_folder)
-    exit(exit_code)
 
 
 if __name__ == "__main__":
@@ -217,7 +281,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--no_ssh",
         action="store_true",
-        help="set this flag disable check for ECDSA key",
+        help="set this flag to disable check for ECDSA key",
+    )
+    parser.add_argument(
+        "--no_root",
+        action="store_true",
+        help="set this flag to skip steps that require root access",
     )
     parser.add_argument(
         "-f",
@@ -235,6 +304,8 @@ if __name__ == "__main__":
     # Set up paths
     base_folder = os.path.expanduser(args.folder)
     vedc_repo_url = "ssh://git@github.com/vedb/ved-capture"
+    if __version is not None:
+        vedc_repo_url += f"@v{__version}"
     vedc_repo_folder = get_repo_folder(base_folder, vedc_repo_url)
 
     miniconda_prefix = os.path.expanduser(
@@ -247,66 +318,61 @@ if __name__ == "__main__":
 
     initial_folder = os.getcwd()
 
+    # Set up logger
+    logger = init_logger(os.path.dirname(__file__))
+
     # Welcome message
     if not show_welcome_message(args.yes):
-        print(
-            "Please contact someone from the VEDB team to give you access."
+        logger.info(
+            "Please contact someone from the VEDB team to give you access.",
         )
-        abort(initial_folder)
+        abort()
 
     # Check SSH key
     ssh_key = check_ssh_pubkey()
     if ssh_key is None and not args.no_ssh:
-        show_header("Generating ECDSA key")
+        show_header("Generating SSH keypair")
         ssh_key = generate_ssh_keypair()
+        if ssh_key is None:
+            logger.error("Could not generate SSH keypair")
+            abort()
         show_github_ssh_instructions(ssh_key)
         if args.yes:
-            print("When you're done, run this script again.")
-            abort(initial_folder)
+            logger.info("When you're done, run this script again.")
+            abort()
         else:
             input("When you're done, press Enter.")
-            print("")
+            logger.info("")
 
     # Clone or update repository
     if not os.path.exists(vedc_repo_folder):
         show_header("Cloning repository")
-        clone_success, _ = clone_repo(base_folder, vedc_repo_url)
-        if not clone_success:
-            print(
-                "ERROR: Could not clone the repository. Did you set up the "
-                "SSH key?"
-            )
-            show_github_ssh_instructions(ssh_key)
-            abort(initial_folder)
+        clone_repo(base_folder, vedc_repo_url)
     else:
         show_header("Updating repository")
-        update_success, error_message = update_repo(vedc_repo_folder)
-        if not update_success:
-            print(
-                f"ERROR: Could not update {vedc_repo_folder}: {error_message}"
-                f"You might need to delete the folder and try again."
-            )
-            abort(initial_folder)
+        update_repo(vedc_repo_folder)
 
     os.chdir(vedc_repo_folder)
 
-    # Get password for sudo stuff
-    if not args.yes:
-        password = password_prompt()
-    else:
-        password = None
+    # Steps with root access
+    if not args.no_root:
 
-    # Install Spinnaker SDK
-    show_header("Installing Spinnaker SDK")
-    install_spinnaker_sdk(
-        os.path.join(
+        # Get password for sudo stuff
+        if not args.yes:
+            password = password_prompt()
+        else:
+            password = None
+
+        # Install Spinnaker SDK
+        show_header("Installing Spinnaker SDK")
+        sdk_folder = os.path.join(
             vedc_repo_folder, "installer", "spinnaker_sdk_1.27.0.48_amd64",
-        ),
-        password,
-    )
+        )
+        install_spinnaker_sdk(sdk_folder, password)
 
-    # Create udev rules for libuvc
-    create_libuvc_udev_rules(password)
+        # Create udev rules for libuvc
+        show_header("Creating libuvc udev rules")
+        create_libuvc_udev_rules(password)
 
     # Install miniconda if necessary
     if not os.path.exists(conda_binary):
@@ -316,13 +382,11 @@ if __name__ == "__main__":
     # Create or update environment
     if not os.path.exists(os.path.join(miniconda_prefix, "envs", "vedc")):
         show_header("Creating environment")
-        # TODO pipe stdout to logger
-        subprocess.run([conda_binary, "env", "create"], check=True)
+        run_command([conda_binary, "env", "create"])
     else:
         show_header("Updating environment")
-        # TODO pipe stdout to logger
-        subprocess.run([conda_binary, "env", "update"], check=True)
+        run_command([conda_binary, "env", "update"])
 
     # Success
     os.chdir(initial_folder)
-    print("Installation successful. Congratulations! 🎉🎉🎉")
+    logger.info("\nInstallation successful. Congratulations! 🎉🎉🎉")
