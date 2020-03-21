@@ -16,7 +16,7 @@ __maintainer_email = "peter.hausamann@tum.de"
 
 
 # -- LOGGING -- #
-def init_logger(log_folder, name="install_ved_capture"):
+def init_logger(log_folder, name="install_ved_capture", verbose=False):
     """"""
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
@@ -24,7 +24,10 @@ def init_logger(log_folder, name="install_ved_capture"):
     # stream handler
     stream_formatter = logging.Formatter("%(message)s")
     stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(logging.INFO)
+    if verbose:
+        stream_handler.setLevel(logging.DEBUG)
+    else:
+        stream_handler.setLevel(logging.INFO)
     stream_handler.setFormatter(stream_formatter)
     logger.addHandler(stream_handler)
 
@@ -41,7 +44,7 @@ def init_logger(log_folder, name="install_ved_capture"):
     return logger
 
 
-def show_welcome_message(yes=False, delay=1):
+def show_welcome_message(yes=False):
     """"""
     if not yes:
         logger.info(
@@ -58,7 +61,6 @@ def show_welcome_message(yes=False, delay=1):
             "organization."
             "\n"
         )
-        time.sleep(delay)
         answer = input(
             "Do you have a GitHub account that is member of the "
             "VEDB organization? [y/n]: "
@@ -92,19 +94,47 @@ def abort(exit_code=1):
     exit(exit_code)
 
 
-def handle_process(process, command, error_msg):
+def log_as_warning_or_debug(data):
+    """"""
+    _suppress_if_startswith = (
+        b"[sudo] ",
+        b"Extracting : ",
+        b"==> WARNING: A newer version of conda exists. <==",
+    )
+
+    _suppress_if_endswith = (
+        b"is not a symbolic link",
+    )
+
+    data = data.rstrip(b"\n")
+
+    if (
+        data.startswith(_suppress_if_startswith)
+        or data.endswith(_suppress_if_endswith)
+    ):
+        logger.debug(data.decode("utf-8"))
+    else:
+        logger.warning(data.decode("utf-8"))
+
+
+def log_as_debug(data):
+    """"""
+    logger.debug(data.rstrip(b"\n").decode("utf-8"))
+
+
+def handle_process(process, command, error_msg, n_bytes=4096):
     """"""
     readable = {
-        process.stdout.fileno(): logger.debug,
-        process.stderr.fileno(): logger.warning,
+        process.stdout.fileno(): log_as_debug,
+        process.stderr.fileno(): log_as_warning_or_debug,
     }
     while readable:
         for fd in select(readable, [], [])[0]:
-            data = os.read(fd, 1024)  # read available
+            data = os.read(fd, n_bytes)  # read available
             if not data:  # EOF
                 del readable[fd]
             else:
-                readable[fd](data.decode("utf-8"))
+                readable[fd](data)
 
     return_code = process.wait()
 
@@ -283,6 +313,12 @@ if __name__ == "__main__":
         help="set this flag to install non-interactively",
     )
     parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="set this flag to show debug output",
+    )
+    parser.add_argument(
         "--no_ssh",
         action="store_true",
         help="set this flag to disable check for ECDSA key",
@@ -323,7 +359,7 @@ if __name__ == "__main__":
     initial_folder = os.getcwd()
 
     # Set up logger
-    logger = init_logger(os.path.dirname(__file__))
+    logger = init_logger(os.path.dirname(__file__), verbose=args.verbose)
 
     # Welcome message
     if not show_welcome_message(args.yes):
@@ -391,7 +427,9 @@ if __name__ == "__main__":
 
     # Install miniconda if necessary
     if not os.path.exists(conda_binary):
-        show_header("Installing miniconda")
+        show_header(
+            "Installing miniconda", "This may take a couple of minutes.",
+        )
         install_miniconda(miniconda_prefix)
     else:
         logger.debug(
