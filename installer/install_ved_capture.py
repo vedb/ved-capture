@@ -10,7 +10,8 @@ import logging
 from select import select
 
 
-__version = None  # TODO set this once there is a first release
+__installer_version = "0.1.0"
+__vedc_version = None  # TODO set this once there is a first release
 __maintainer_email = "peter.hausamann@tum.de"
 
 
@@ -40,7 +41,7 @@ def init_logger(log_folder, name="install_ved_capture"):
     return logger
 
 
-def show_welcome_message(yes=False):
+def show_welcome_message(yes=False, delay=1):
     """"""
     if not yes:
         logger.info(
@@ -57,6 +58,7 @@ def show_welcome_message(yes=False):
             "organization."
             "\n"
         )
+        time.sleep(delay)
         answer = input(
             "Do you have a GitHub account that is member of the "
             "VEDB organization? [y/n]: "
@@ -74,10 +76,13 @@ def show_welcome_message(yes=False):
         return True
 
 
-def show_header(message, timeout=0.1):
+def show_header(header, message=None, delay=1):
     """"""
-    logger.info("\n" + message + "\n" + "-" * len(message))
-    time.sleep(timeout)
+    logger.info("\n" + header + "\n" + "-" * len(header))
+    time.sleep(delay)
+
+    if message is not None:
+        logger.info(message)
 
 
 # -- COMMAND RUNNERS -- #
@@ -139,6 +144,7 @@ def run_as_sudo(command, password, error_message=None):
                 stderr=subprocess.PIPE,
             ) as process:
                 process.stdin.write(password.encode("utf-8") + b"\n")
+                process.stdin.flush()
                 handle_process(process, command, error_message)
         except BrokenPipeError:
             pass
@@ -263,9 +269,7 @@ def install_miniconda(prefix="~/miniconda3"):
         "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"
     )
 
-    cmd = ["bash", filename, "-b", "-p", prefix]
-    # TODO pipe stdout to logger
-    subprocess.run(cmd, stdout=subprocess.DEVNULL)
+    run_command(["bash", filename, "-b", "-p", prefix])
 
 
 if __name__ == "__main__":
@@ -304,8 +308,8 @@ if __name__ == "__main__":
     # Set up paths
     base_folder = os.path.expanduser(args.folder)
     vedc_repo_url = "ssh://git@github.com/vedb/ved-capture"
-    if __version is not None:
-        vedc_repo_url += f"@v{__version}"
+    if __vedc_version is not None:
+        vedc_repo_url += f"@v{__vedc_version}"
     vedc_repo_folder = get_repo_folder(base_folder, vedc_repo_url)
 
     miniconda_prefix = os.path.expanduser(
@@ -346,10 +350,16 @@ if __name__ == "__main__":
 
     # Clone or update repository
     if not os.path.exists(vedc_repo_folder):
-        show_header("Cloning repository")
+        show_header(
+            "Cloning repository",
+            f"Retrieving git repository from {vedc_repo_url}"
+        )
         clone_repo(base_folder, vedc_repo_url)
     else:
-        show_header("Updating repository")
+        show_header(
+            "Updating repository",
+            f"Pulling new changes from {vedc_repo_url}"
+        )
         update_repo(vedc_repo_folder)
 
     os.chdir(vedc_repo_folder)
@@ -364,7 +374,9 @@ if __name__ == "__main__":
             password = None
 
         # Install Spinnaker SDK
-        show_header("Installing Spinnaker SDK")
+        show_header(
+            "Installing Spinnaker SDK", "This may take a couple of minutes.",
+        )
         sdk_folder = os.path.join(
             vedc_repo_folder, "installer", "spinnaker_sdk_1.27.0.48_amd64",
         )
@@ -374,17 +386,29 @@ if __name__ == "__main__":
         show_header("Creating libuvc udev rules")
         create_libuvc_udev_rules(password)
 
+    else:
+        logger.debug("Skipping installation of system-wide dependencies.")
+
     # Install miniconda if necessary
     if not os.path.exists(conda_binary):
         show_header("Installing miniconda")
         install_miniconda(miniconda_prefix)
+    else:
+        logger.debug(
+            f"Conda binary found at {conda_binary}. Skipping miniconda "
+            f"install."
+        )
 
     # Create or update environment
     if not os.path.exists(os.path.join(miniconda_prefix, "envs", "vedc")):
-        show_header("Creating environment")
+        show_header(
+            "Creating environment", "This may take a couple of minutes.",
+        )
         run_command([conda_binary, "env", "create"])
     else:
-        show_header("Updating environment")
+        show_header(
+            "Updating environment", "This may take a couple of minutes.",
+        )
         run_command([conda_binary, "env", "update"])
 
     # Success
