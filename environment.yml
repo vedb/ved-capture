@@ -25,6 +25,9 @@ dependencies:
   - librealsense2=2.32.1
   # flir
   - pyspin=1.27.0.48
+  # vedc
+  - confuse=1.0.0
+  - click=7.1.1
   # other
   - tqdm
   # pip
@@ -32,3 +35,4 @@ dependencies:
     - pyrealsense2==2.32.1.1346
     - git+https://github.com/pupil-labs/pyuvc.git
     - git+ssh://git@github.com/vedb/pupil_recording_interface.git #--install-option="--no-deps"
+    - git+ssh://git@github.com/vedb/ved-capture.git

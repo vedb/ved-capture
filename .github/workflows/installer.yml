@@ -15,4 +15,6 @@ jobs:
       with:
         python-version: 3.6
     - name: Run installer
-      run: python installer/install_ved_capture.py -y --no_ssh
+      run: python installer/install_ved_capture.py -y -v --no_ssh
+    - name: Check installation
+      run: vedc check_install

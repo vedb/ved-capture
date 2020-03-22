@@ -33,7 +33,7 @@ def init_logger(log_folder, name="install_ved_capture", verbose=False):
 
     # file handler
     file_formatter = logging.Formatter(
-        "%(asctime)s | %(name)s | %(levelname)s: %(message)s"
+        "%(asctime)s | %(levelname)s: %(message)s"
     )
     log_file_path = os.path.join(log_folder, name + ".log")
     file_handler = logging.FileHandler(filename=log_file_path)
@@ -347,6 +347,8 @@ if __name__ == "__main__":
     if __vedc_version is not None:
         vedc_repo_url += f"@v{__vedc_version}"
     vedc_repo_folder = get_repo_folder(base_folder, vedc_repo_url)
+    vedc_binary_folder = os.path.expanduser("~/bin")
+    vedc_binary = os.path.join(vedc_binary_folder, "vedc")
 
     miniconda_prefix = os.path.expanduser(
         args.miniconda_prefix.format(base_folder=base_folder),
@@ -448,6 +450,16 @@ if __name__ == "__main__":
             "Updating environment", "This may take a couple of minutes.",
         )
         run_command([conda_binary, "env", "update"])
+
+    # Create link to vedc binary
+    show_header(
+        "Creating vedc excecutable", f"Installing to {vedc_binary}.",
+    )
+    os.makedirs(vedc_binary_folder, exist_ok=True)
+    with open(vedc_binary, "w") as f:
+        f.write("#!/bin/bash")
+        f.write(f". {conda_script} && conda activate vedc && vedc \"$@\" ")
+        os.chmod(vedc_binary, 0o755)
 
     # Success
     os.chdir(initial_folder)
