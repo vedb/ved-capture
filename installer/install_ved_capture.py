@@ -180,6 +180,16 @@ def run_as_sudo(command, password, error_message=None):
             pass
 
 
+def write_file_as_sudo(file_path, contents):
+    """"""
+    process = subprocess.Popen(
+        ['sudo', '-S', 'dd', 'if=/dev/stdin', f'of={file_path}',
+         'conv=notrunc', 'oflag=append'],
+        stdin=subprocess.PIPE,
+    )
+    process.communicate(contents.encode("utf-8"))
+
+
 # -- GIT -- #
 def check_ssh_pubkey(filename="id_ecdsa.pub"):
     """"""
@@ -264,12 +274,7 @@ def install_spinnaker_sdk(folder, password, groupname="flirimaging"):
     udev_file = "/etc/udev/rules.d/40-flir-spinnaker.rules"
     udev_rules = f"SUBSYSTEM==\"usb\", ATTRS{{idVendor}}==\"1e10\", " \
                  f"GROUP=\"{groupname}\"\n"
-    process = subprocess.Popen(
-        ['sudo', '-S', 'dd', 'if=/dev/stdin', f'of={udev_file}',
-         'conv=notrunc', 'oflag=append'],
-        stdin=subprocess.PIPE,
-    )
-    process.communicate(udev_rules.encode("utf-8"))
+    write_file_as_sudo(udev_file, udev_rules)
 
     # Restart udev daemon
     run_as_sudo(["/etc/init.d/udev", "restart"], password)
@@ -280,12 +285,7 @@ def create_libuvc_udev_rules(password):
     udev_file = "/etc/udev/rules.d/10-libuvc.rules"
     udev_rules = "SUBSYSTEM==\"usb\", ENV{DEVTYPE}==\"usb_device\", " \
                 "GROUP=\"plugdev\", MODE=\"0664\"\n"
-    process = subprocess.Popen(
-        ['sudo', '-S', 'dd', 'if=/dev/stdin', f'of={udev_file}',
-         'conv=notrunc', 'oflag=append'],
-        stdin=subprocess.PIPE,
-    )
-    process.communicate(udev_rules.encode("utf-8"))
+    write_file_as_sudo(udev_file, udev_rules)
 
     run_as_sudo(["udevadm", "trigger"], password)
 
@@ -347,8 +347,6 @@ if __name__ == "__main__":
     if __vedc_version is not None:
         vedc_repo_url += f"@v{__vedc_version}"
     vedc_repo_folder = get_repo_folder(base_folder, vedc_repo_url)
-    vedc_binary_folder = os.path.expanduser("~/bin")
-    vedc_binary = os.path.join(vedc_binary_folder, "vedc")
 
     miniconda_prefix = os.path.expanduser(
         args.miniconda_prefix.format(base_folder=base_folder),
@@ -452,14 +450,19 @@ if __name__ == "__main__":
         run_command([conda_binary, "env", "update"])
 
     # Create link to vedc binary
-    show_header(
-        "Creating vedc excecutable", f"Installing to {vedc_binary}.",
-    )
-    os.makedirs(vedc_binary_folder, exist_ok=True)
-    with open(vedc_binary, "w") as f:
-        f.write("#!/bin/bash")
-        f.write(f". {conda_script} && conda activate vedc && vedc \"$@\" ")
-        os.chmod(vedc_binary, 0o755)
+    if not args.no_root:
+        vedc_binary = "/usr/local/bin/vedc"
+        show_header(
+            "Creating vedc excecutable", f"Installing to {vedc_binary}.",
+        )
+        write_file_as_sudo(
+            vedc_binary,
+            f"#!/bin/bash\n"
+            f". {conda_script} && conda activate vedc && vedc \"$@\"\n"
+        )
+        run_as_sudo(["chmod", "+x", vedc_binary], password)
+    else:
+        logger.debug("Skipping installation of vedc binary.")
 
     # Success
     os.chdir(initial_folder)
