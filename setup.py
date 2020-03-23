@@ -16,4 +16,5 @@ setup(
         vedc=ved_capture.cli:vedc
     """,
     install_requires=requirements,
+    include_package_data=True,
 )
