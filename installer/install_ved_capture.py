@@ -112,17 +112,13 @@ def log_as_warning_or_debug(data):
     """"""
     _suppress_if_startswith = (
         b"[sudo] ",
-        b"Please run using \"bash\" or \"sh\"",
+        b'Please run using "bash" or "sh"',
         b"==> WARNING: A newer version of conda exists. <==",
     )
 
-    _suppress_if_endswith = (
-        b"is not a symbolic link",
-    )
+    _suppress_if_endswith = (b"is not a symbolic link",)
 
-    _suppress_if_contains = (
-        b"Extracting : ",
-    )
+    _suppress_if_contains = (b"Extracting : ",)
 
     data = data.strip(b"\n")
 
@@ -160,8 +156,8 @@ def handle_process(process, command, error_msg, n_bytes=4096):
     if return_code != 0:
         if error_msg is None:
             logger.error(
-                " ".join(command) +
-                f" failed with exit code {return_code}. See the output above "
+                " ".join(command)
+                + f" failed with exit code {return_code}. See the output above "
                 f"for more information. If you don't know how to fix this by "
                 f"yourself, please send an email with the "
                 f"'install_ved_capture.log' file located in {initial_folder} "
@@ -247,9 +243,7 @@ def clone_repo(base_folder, repo_url):
     """"""
     os.makedirs(base_folder, exist_ok=True)
     os.chdir(base_folder)
-    error_msg = (
-        "Could not clone the repository. Did you set up the SSH key?"
-    )
+    error_msg = "Could not clone the repository. Did you set up the SSH key?"
     run_command(["git", "clone", repo_url], error_msg=error_msg)
 
 
@@ -294,8 +288,10 @@ def install_spinnaker_sdk(folder, password, groupname="flirimaging"):
 
     # Create udev rules
     udev_file = "/etc/udev/rules.d/40-flir-spinnaker.rules"
-    udev_rules = f"SUBSYSTEM==\"usb\", ATTRS{{idVendor}}==\"1e10\", " \
-                 f"GROUP=\"{groupname}\"\n"
+    udev_rules = (
+        f'SUBSYSTEM=="usb", ATTRS{{idVendor}}=="1e10", '
+        f'GROUP="{groupname}"\n'
+    )
     run_as_sudo(["rm", udev_file], password)
     write_file_as_sudo(udev_file, udev_rules)
 
@@ -315,8 +311,10 @@ def install_libuvc_deps(password):
 
     # Create udev rules
     udev_file = "/etc/udev/rules.d/10-libuvc.rules"
-    udev_rules = "SUBSYSTEM==\"usb\", ENV{DEVTYPE}==\"usb_device\", " \
-                "GROUP=\"plugdev\", MODE=\"0664\"\n"
+    udev_rules = (
+        'SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", '
+        'GROUP="plugdev", MODE="0664"\n'
+    )
     run_as_sudo(["rm", udev_file], password)
     write_file_as_sudo(udev_file, udev_rules)
 
@@ -351,10 +349,7 @@ if __name__ == "__main__":
         help="Base folder for miniconda installation",
     )
     parser.add_argument(
-        "-y",
-        "--yes",
-        action="store_true",
-        help="Install non-interactively",
+        "-y", "--yes", action="store_true", help="Install non-interactively",
     )
     parser.add_argument(
         "-v",
@@ -369,9 +364,7 @@ if __name__ == "__main__":
         help="Install from the parent folder instead of the remote repository",
     )
     parser.add_argument(
-        "--no_ssh",
-        action="store_true",
-        help="Disable check for SSH key",
+        "--no_ssh", action="store_true", help="Disable check for SSH key",
     )
     parser.add_argument(
         "--no_root",
@@ -431,13 +424,12 @@ if __name__ == "__main__":
     if not os.path.exists(vedc_repo_folder):
         show_header(
             "Cloning repository",
-            f"Retrieving git repository from {vedc_repo_url}"
+            f"Retrieving git repository from {vedc_repo_url}",
         )
         clone_repo(base_folder, vedc_repo_url)
     elif not args.local:
         show_header(
-            "Updating repository",
-            f"Pulling new changes from {vedc_repo_url}"
+            "Updating repository", f"Pulling new changes from {vedc_repo_url}"
         )
         update_repo(vedc_repo_folder)
 
@@ -509,7 +501,7 @@ if __name__ == "__main__":
         write_file_as_sudo(
             vedc_binary,
             f"#!/bin/bash\n"
-            f". {conda_script} && conda activate vedc && vedc \"$@\"\n"
+            f'. {conda_script} && conda activate vedc && vedc "$@"\n',
         )
         run_as_sudo(["chmod", "+x", vedc_binary], password)
     else:

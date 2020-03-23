@@ -15,7 +15,6 @@ def output_folder():
 
 
 class TestMethods:
-
     def test_check_ssh_pubkey(self):
         """"""
         assert check_ssh_pubkey() is not None
