@@ -1,0 +1,24 @@
+record:
+
+  folder:
+    '{cfgd}/out/{today:%Y-%m-%d}'
+  policy: overwrite
+  duration:
+  metadata:
+    - subject_id
+
+video:
+
+  t265:
+    resolution: (1696, 800)
+    fps: 30
+    codec: libx264
+    device_type: t265
+    device_uid: t265
+    color_format: gray
+
+odometry:
+
+  t265:
+    device_type: t265
+    device_uid: t265

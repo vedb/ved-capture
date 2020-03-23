@@ -7,6 +7,10 @@ import traceback
 
 import click
 
+from pupil_recording_interface import MultiStreamRecorder
+
+from ved_capture.config import ConfigParser, save_metadata
+
 
 def _init_logger(subcommand, verbose=False):
     """"""
@@ -29,6 +33,26 @@ def _init_logger(subcommand, verbose=False):
 @click.group("vedc")
 def vedc():
     """ vedc command line interface. """
+
+
+@click.command("record")
+@click.option(
+    "-c", "--config-file", default=None, help="Path to recording config file.",
+)
+def record(config_file):
+    """ Run recording. """
+    config_parser = ConfigParser(config_file)
+
+    metadata = config_parser.get_metadata()
+
+    recorder = MultiStreamRecorder(
+        config_parser.get_recording_folder(None, **metadata),
+        config_parser.get_recording_configs(),
+        show_video=True,
+    )
+
+    save_metadata(recorder.folder, metadata)
+    recorder.run()
 
 
 @click.command("check_install")
@@ -59,4 +83,5 @@ def check_install(verbose):
 
 
 # add subcommands
+vedc.add_command(record)
 vedc.add_command(check_install)

@@ -1,0 +1,56 @@
+record:
+
+  folder:
+    '~/recordings/{today:%Y_%m_%d}'
+  policy: new_folder
+  duration:
+  metadata:
+    - location
+    - experimenter
+    - experiment
+    - scene
+    - task
+    - subject_id
+    - age
+    - gender
+    - ethnicity
+
+video:
+
+  world:
+    resolution: (1280, 720)
+    fps: 30
+    codec: libx264
+    device_type: uvc
+    device_uid: 'Pupil Cam1 ID2'
+    color_format: bgr24
+
+  eye0:
+    resolution: (320, 240)
+    fps: 120
+    codec: libx264
+    device_type: uvc
+    device_uid: 'Pupil Cam1 ID0'
+    color_format: gray
+
+  eye1:
+    resolution: (320, 240)
+    fps: 120
+    codec: libx264
+    device_type: uvc
+    device_uid: 'Pupil Cam1 ID1'
+    color_format: gray
+
+  t265:
+    resolution: (1696, 800)
+    fps: 30
+    codec: libx264
+    device_type: t265
+    device_uid: t265
+    color_format: gray
+
+odometry:
+
+  t265:
+    device_type: t265
+    device_uid: t265
