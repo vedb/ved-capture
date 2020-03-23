@@ -33,6 +33,6 @@ dependencies:
   # pip
   - pip:
     - pyrealsense2==2.32.1.1346
-    - git+https://github.com/pupil-labs/pyuvc.git
-    - git+ssh://git@github.com/vedb/pupil_recording_interface.git #--install-option="--no-deps"
-    - git+ssh://git@github.com/vedb/ved-capture.git
+    - git+https://github.com/pupil-labs/pyuvc
+    - git+ssh://git@github.com/vedb/pupil_recording_interface@devel
+    - git+ssh://git@github.com/vedb/ved-capture

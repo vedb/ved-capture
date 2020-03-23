@@ -2,6 +2,8 @@
 
 import logging
 import inspect
+import importlib
+import traceback
 
 import click
 
@@ -24,27 +26,36 @@ def _init_logger(subcommand, verbose=False):
     return logger
 
 
-@click.group('vedc')
+@click.group("vedc")
 def vedc():
     """ vedc command line interface. """
 
 
-@click.command('check_install')
-def check_install():
+@click.command("check_install")
+@click.option(
+    "-v", "--verbose", default=False, help="Verbose output.", is_flag=True,
+)
+def check_install(verbose):
     """ Test installation. """
-    logger = _init_logger(str(inspect.currentframe()))
+    logger = _init_logger(str(inspect.currentframe()), verbose=verbose)
 
-    try:
-        import uvc
-    except ImportError:
-        logger.error("Could not import pyuvc.")
-        raise click.ClickException("Self-test failed!")
+    failures = []
 
-    try:
-        import PySpin
-    except ImportError:
-        logger.error("Could not import PySpin.")
-        raise click.ClickException("Self-test failed!")
+    def check_import(module):
+        try:
+            importlib.import_module(module)
+        except ImportError:
+            logger.error(f"Could not import {module}.")
+            logger.debug(traceback.format_exc())
+            failures.append(module)
+
+    for module in ["uvc", "PySpin", "pyrealsense2"]:
+        check_import(module)
+
+    if len(failures) == 0:
+        logger.info("Installation check OK.")
+    else:
+        raise click.ClickException("Installation check failed!")
 
 
 # add subcommands

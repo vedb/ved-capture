@@ -153,10 +153,10 @@ def handle_process(process, command, error_msg, n_bytes=4096):
         abort()
 
 
-def run_command(command, error_msg=None):
+def run_command(command, error_msg=None, shell=False):
     """"""
     with subprocess.Popen(
-        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=shell,
     ) as process:
         handle_process(process, command, error_msg)
 
@@ -183,8 +183,7 @@ def run_as_sudo(command, password, error_message=None):
 def write_file_as_sudo(file_path, contents):
     """"""
     process = subprocess.Popen(
-        ['sudo', '-S', 'dd', 'if=/dev/stdin', f'of={file_path}',
-         'conv=notrunc', 'oflag=append'],
+        f"sudo -S dd if=/dev/stdin of={file_path} conv=notrunc".split(),
         stdin=subprocess.PIPE,
     )
     process.communicate(contents.encode("utf-8"))
@@ -280,8 +279,17 @@ def install_spinnaker_sdk(folder, password, groupname="flirimaging"):
     run_as_sudo(["/etc/init.d/udev", "restart"], password)
 
 
-def create_libuvc_udev_rules(password):
+def install_libuvc_deps(password):
     """"""
+    # Install libudev0
+    filename, _ = urllib.request.urlretrieve(
+        "http://mirrors.kernel.org/ubuntu/pool/main/u/udev/"
+        "libudev0_175-0ubuntu9_amd64.deb"
+    )
+
+    run_as_sudo(["dpkg", "-i", filename], password)
+
+    # Create udev rules
     udev_file = "/etc/udev/rules.d/10-libuvc.rules"
     udev_rules = "SUBSYSTEM==\"usb\", ENV{DEVTYPE}==\"usb_device\", " \
                 "GROUP=\"plugdev\", MODE=\"0664\"\n"
@@ -319,9 +327,16 @@ if __name__ == "__main__":
         help="set this flag to show debug output",
     )
     parser.add_argument(
+        "-l",
+        "--local",
+        action="store_true",
+        help="set this flag to install from the parent folder instead of the "
+             "remote repository",
+    )
+    parser.add_argument(
         "--no_ssh",
         action="store_true",
-        help="set this flag to disable check for ECDSA key",
+        help="set this flag to disable check for SSH key",
     )
     parser.add_argument(
         "--no_root",
@@ -346,7 +361,10 @@ if __name__ == "__main__":
     vedc_repo_url = "ssh://git@github.com/vedb/ved-capture"
     if __vedc_version is not None:
         vedc_repo_url += f"@v{__vedc_version}"
-    vedc_repo_folder = get_repo_folder(base_folder, vedc_repo_url)
+    if args.local:
+        vedc_repo_folder = os.path.join(os.path.dirname(__file__), os.pardir)
+    else:
+        vedc_repo_folder = get_repo_folder(base_folder, vedc_repo_url)
 
     miniconda_prefix = os.path.expanduser(
         args.miniconda_prefix.format(base_folder=base_folder),
@@ -391,7 +409,7 @@ if __name__ == "__main__":
             f"Retrieving git repository from {vedc_repo_url}"
         )
         clone_repo(base_folder, vedc_repo_url)
-    else:
+    elif not args.local:
         show_header(
             "Updating repository",
             f"Pulling new changes from {vedc_repo_url}"
@@ -419,8 +437,8 @@ if __name__ == "__main__":
         install_spinnaker_sdk(sdk_folder, password)
 
         # Create udev rules for libuvc
-        show_header("Creating libuvc udev rules")
-        create_libuvc_udev_rules(password)
+        show_header("Installing libuvc dependencies")
+        install_libuvc_deps(password)
 
     else:
         logger.debug("Skipping installation of system-wide dependencies.")
@@ -449,6 +467,13 @@ if __name__ == "__main__":
         )
         run_command([conda_binary, "env", "update"])
 
+    if args.local:
+        run_command(
+            f"/bin/bash -c '. {conda_script} && conda activate vedc "
+            f"&& pip install --no-deps -U -e {vedc_repo_folder}'",
+            shell=True,
+        )
+
     # Create link to vedc binary
     if not args.no_root:
         vedc_binary = "/usr/local/bin/vedc"
@@ -463,6 +488,13 @@ if __name__ == "__main__":
         run_as_sudo(["chmod", "+x", vedc_binary], password)
     else:
         logger.debug("Skipping installation of vedc binary.")
+
+    # Check installation
+    show_header("Checking installation")
+    if args.verbose:
+        run_command(["vedc", "check_install", "-v"])
+    else:
+        run_command(["vedc", "check_install"])
 
     # Success
     os.chdir(initial_folder)
