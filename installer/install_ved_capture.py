@@ -1,4 +1,18 @@
-""""""
+""" Installation script for ved-capture.
+
+This script will set up ved-capture including all of its dependencies as
+well as the `vedc` command line interface.
+
+Run with:
+
+    $ python3 install_ved_capture.py
+
+For a list of additional options run:
+
+    $ python3 install_ved_capture.py --help
+
+Copyright 2020 Peter Hausamann / The Visual Experience Database
+"""
 import os
 import time
 import subprocess
@@ -62,7 +76,7 @@ def show_welcome_message(yes=False):
             "\n"
         )
         answer = input(
-            "Do you have a GitHub account that is member of the "
+            "Do you have a GitHub account and are a member of the "
             "VEDB organization? [y/n]: "
         )
         logger.debug(f"GitHub account prompt answer: {answer}")
@@ -98,7 +112,7 @@ def log_as_warning_or_debug(data):
     """"""
     _suppress_if_startswith = (
         b"[sudo] ",
-        b"Extracting : ",
+        b"Please run using \"bash\" or \"sh\"",
         b"==> WARNING: A newer version of conda exists. <==",
     )
 
@@ -106,11 +120,16 @@ def log_as_warning_or_debug(data):
         b"is not a symbolic link",
     )
 
-    data = data.rstrip(b"\n")
+    _suppress_if_contains = (
+        b"Extracting : ",
+    )
+
+    data = data.strip(b"\n")
 
     if (
         data.startswith(_suppress_if_startswith)
         or data.endswith(_suppress_if_endswith)
+        or any(data.find(s) for s in _suppress_if_contains)
     ):
         logger.debug(data.decode("utf-8"))
     else:
@@ -263,7 +282,7 @@ def install_spinnaker_sdk(folder, password, groupname="flirimaging"):
     """"""
     # Install dependencies
     libs = ["libswscale-dev", "libavcodec-dev", "libavformat-dev"]
-    run_as_sudo(["apt", "install"] + libs, password)
+    run_as_sudo(["apt-get", "install"] + libs, password)
 
     # Install packages
     deb_files = glob(os.path.join(folder, "*.deb"))
@@ -311,7 +330,7 @@ def install_miniconda(prefix="~/miniconda3"):
         "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"
     )
 
-    run_command(["bash", filename, "-b", "-p", prefix])
+    run_command(["/bin/bash", filename, "-b", "-p", prefix])
 
 
 if __name__ == "__main__":
@@ -319,44 +338,43 @@ if __name__ == "__main__":
     # Parse command line arguments
     parser = argparse.ArgumentParser("install_ved_capture.py")
     parser.add_argument(
+        "-f",
+        "--folder",
+        default="~/vedb",
+        help="Base folder for installation",
+    )
+    parser.add_argument(
+        "--miniconda_prefix",
+        default="{base_folder}/miniconda3",
+        help="Base folder for miniconda installation",
+    )
+    parser.add_argument(
         "-y",
         "--yes",
         action="store_true",
-        help="set this flag to install non-interactively",
+        help="Install non-interactively",
     )
     parser.add_argument(
         "-v",
         "--verbose",
         action="store_true",
-        help="set this flag to show debug output",
+        help="Show debug output on the command line",
     )
     parser.add_argument(
         "-l",
         "--local",
         action="store_true",
-        help="set this flag to install from the parent folder instead of the "
-             "remote repository",
+        help="Install from the parent folder instead of the remote repository",
     )
     parser.add_argument(
         "--no_ssh",
         action="store_true",
-        help="set this flag to disable check for SSH key",
+        help="Disable check for SSH key",
     )
     parser.add_argument(
         "--no_root",
         action="store_true",
-        help="set this flag to skip steps that require root access",
-    )
-    parser.add_argument(
-        "-f",
-        "--folder",
-        default="~/vedb",
-        help="base folder for installation",
-    )
-    parser.add_argument(
-        "--miniconda_prefix",
-        default="{base_folder}/miniconda3",
-        help="prefix for miniconda installation",
+        help="Skip steps that require root access",
     )
     args = parser.parse_args()
 
@@ -386,7 +404,9 @@ if __name__ == "__main__":
     # Welcome message
     if not show_welcome_message(args.yes):
         logger.info(
-            "Please contact someone from the VEDB team to give you access.",
+            f"\nPlease create an account at https://www.github.com and send "
+            f"an email with your user name to {__maintainer_email} to get "
+            f"access.",
         )
         abort()
 
@@ -403,8 +423,7 @@ if __name__ == "__main__":
             logger.info("When you're done, run this script again.")
             abort()
         else:
-            input("When you're done, press Enter.")
-            logger.info("")
+            input("When you're done, press Enter.\n")
 
     # Clone or update repository
     if not os.path.exists(vedc_repo_folder):
@@ -433,7 +452,7 @@ if __name__ == "__main__":
 
         # Install Spinnaker SDK
         show_header(
-            "Installing Spinnaker SDK", "This may take a couple of minutes.",
+            "Installing Spinnaker SDK", "This may take a couple of minutes. ☕",
         )
         sdk_folder = os.path.join(
             vedc_repo_folder, "installer", "spinnaker_sdk_1.27.0.48_amd64",
@@ -450,7 +469,7 @@ if __name__ == "__main__":
     # Install miniconda if necessary
     if not os.path.exists(conda_binary):
         show_header(
-            "Installing miniconda", "This may take a couple of minutes.",
+            "Installing miniconda", "This may take a couple of minutes. ☕",
         )
         install_miniconda(miniconda_prefix)
     else:
@@ -462,12 +481,12 @@ if __name__ == "__main__":
     # Create or update environment
     if not os.path.exists(os.path.join(miniconda_prefix, "envs", "vedc")):
         show_header(
-            "Creating environment", "This may take a couple of minutes.",
+            "Creating environment", "This may take a couple of minutes. ☕",
         )
         run_command([conda_binary, "env", "create"])
     else:
         show_header(
-            "Updating environment", "This may take a couple of minutes.",
+            "Updating environment", "This may take a couple of minutes. ☕",
         )
         run_command([conda_binary, "env", "update"])
 
