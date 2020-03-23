@@ -292,7 +292,7 @@ def install_spinnaker_sdk(folder, password, groupname="flirimaging"):
         f'SUBSYSTEM=="usb", ATTRS{{idVendor}}=="1e10", '
         f'GROUP="{groupname}"\n'
     )
-    run_as_sudo(["rm", udev_file], password)
+    run_as_sudo(["rm", "-f", udev_file], password)
     write_file_as_sudo(udev_file, udev_rules)
 
     # Restart udev daemon
@@ -315,7 +315,7 @@ def install_libuvc_deps(password):
         'SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", '
         'GROUP="plugdev", MODE="0664"\n'
     )
-    run_as_sudo(["rm", udev_file], password)
+    run_as_sudo(["rm", "-f", udev_file], password)
     write_file_as_sudo(udev_file, udev_rules)
 
     run_as_sudo(["udevadm", "trigger"], password)
@@ -497,7 +497,7 @@ if __name__ == "__main__":
         show_header(
             "Creating vedc excecutable", f"Installing to {vedc_binary}.",
         )
-        run_as_sudo(["rm", vedc_binary], password)
+        run_as_sudo(["rm", "-f", vedc_binary], password)
         write_file_as_sudo(
             vedc_binary,
             f"#!/bin/bash\n"
