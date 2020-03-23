@@ -262,7 +262,9 @@ def password_prompt():
 def install_spinnaker_sdk(folder, password, groupname="flirimaging"):
     """"""
     # Install dependencies
-    run_as_sudo(["apt", "install", "libswscale-dev"], password)
+    run_as_sudo(
+        ["apt", "install", "libswscale-dev", "libavcodec-dev"], password,
+    )
 
     # Install packages
     deb_files = glob(os.path.join(folder, "*.deb"))
