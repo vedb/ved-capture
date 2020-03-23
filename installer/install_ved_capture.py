@@ -445,9 +445,7 @@ if __name__ == "__main__":
             password = None
 
         # Install Spinnaker SDK
-        show_header(
-            "Installing Spinnaker SDK", "This may take a couple of minutes. ☕",
-        )
+        show_header("Installing Spinnaker SDK")
         sdk_folder = os.path.join(
             vedc_repo_folder, "installer", "spinnaker_sdk_1.27.0.48_amd64",
         )
@@ -463,7 +461,7 @@ if __name__ == "__main__":
     # Install miniconda if necessary
     if not os.path.exists(conda_binary):
         show_header(
-            "Installing miniconda", "This may take a couple of minutes. ☕",
+            "Installing miniconda", f"Install location: {miniconda_prefix}",
         )
         install_miniconda(miniconda_prefix)
     else:
@@ -475,12 +473,12 @@ if __name__ == "__main__":
     # Create or update environment
     if not os.path.exists(os.path.join(miniconda_prefix, "envs", "vedc")):
         show_header(
-            "Creating environment", "This may take a couple of minutes. ☕",
+            "Creating environment", "This will take a couple of minutes. ☕",
         )
         run_command([conda_binary, "env", "create"])
     else:
         show_header(
-            "Updating environment", "This may take a couple of minutes. ☕",
+            "Updating environment", "This will take a couple of minutes. ☕",
         )
         run_command([conda_binary, "env", "update"])
 
