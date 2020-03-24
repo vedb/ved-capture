@@ -22,6 +22,9 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v2
+    - uses: webfactory/ssh-agent@v0.2.0
+      with:
+        ssh-private-key: ${{ secrets.VEDC_PRIVATE_KEY }}
     - uses: s-weigand/setup-conda@v1
     - run: conda --version
     - run: which python
