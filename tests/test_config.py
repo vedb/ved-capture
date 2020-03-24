@@ -9,9 +9,9 @@ from ved_capture.config import ConfigParser
 
 class TestConfigParser(object):
     @pytest.fixture()
-    def config_file(self, test_data_dir):
+    def config_file(self, config_dir):
         """"""
-        yield os.path.join(test_data_dir, "config.yaml")
+        yield os.path.join(config_dir, "config.yaml")
 
     @pytest.fixture()
     def parser(self, config_file):
@@ -26,13 +26,13 @@ class TestConfigParser(object):
         parser = ConfigParser()
         assert parser.config["record"]["metadata"].get()[0] == "location"
 
-    def test_get_recording_folder(self, parser, test_data_dir):
+    def test_get_recording_folder(self, parser, config_dir):
         """"""
         import datetime
 
         folder = parser.get_recording_folder(None)
         assert folder == "{dir}/out/{today:%Y-%m-%d}".format(
-            dir=test_data_dir, today=datetime.date.today()
+            dir=config_dir, today=datetime.date.today()
         )
 
     def test_get_policy(self, parser):
@@ -49,8 +49,10 @@ class TestConfigParser(object):
         """"""
         # TODO add __eq__ to pri.StreamConfig to handle equality check
         config_list = parser.get_recording_configs()
+
         assert isinstance(config_list[0], VideoConfig)
         assert config_list[0].device_type == "t265"
         assert config_list[0].resolution == (1696, 800)
+
         assert isinstance(config_list[1], OdometryConfig)
         assert config_list[1].device_type == "t265"
