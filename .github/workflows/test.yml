@@ -1,0 +1,31 @@
+name: test
+
+on: push
+
+jobs:
+
+  test_installer:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    - uses: webfactory/ssh-agent@v0.2.0
+      with:
+        ssh-private-key: ${{ secrets.VEDC_PRIVATE_KEY }}
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.6
+    - name: Run installer
+      run: python installer/install_ved_capture.py -y -v --no_ssh
+
+    test_app:
+      runs-on: ubuntu-18.04
+      steps:
+        - uses: actions/checkout@v2
+        - uses: s-weigand/setup-conda@v1
+        - run: conda --version
+        - run: which python
+        - run: conda env create
+        - run: conda activate vedc
+        - run: conda install --file requirements_dev.txt
+        - run: pytest tests
