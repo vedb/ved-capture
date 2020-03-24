@@ -26,9 +26,17 @@ jobs:
       with:
         ssh-private-key: ${{ secrets.VEDC_PRIVATE_KEY }}
     - uses: s-weigand/setup-conda@v1
-    - run: conda --version
-    - run: which python
-    - run: conda env create
-    - run: conda activate vedc
-    - run: conda install --file requirements_dev.txt
-    - run: pytest tests
+    - name: Check versions
+      run: |
+        conda --version
+        which python
+    - name: Create environment
+      run: conda env create
+    - name: Install dev dependencies
+      run: |
+        source activate vedc
+        conda install --file requirements_dev.txt
+    - name: Run pytest
+      run: |
+        source activate vedc
+        pytest tests
