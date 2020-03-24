@@ -477,7 +477,7 @@ if __name__ == "__main__":
             "Cloning repository",
             f"Retrieving git repository from {vedc_repo_url}",
         )
-        clone_repo(base_folder, vedc_repo_url)
+        clone_repo(base_folder, vedc_repo_folder, vedc_repo_url)
     elif not args.local:
         show_header(
             "Updating repository", f"Pulling new changes from {vedc_repo_url}"
