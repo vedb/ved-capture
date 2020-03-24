@@ -10,8 +10,9 @@ class TestUtils:
         """"""
         paths = get_paths(config_dir)
         assert paths == {
-            "conda_binary": "/home/vedb/vedb/miniconda3/bin/conda",
-            "vedc_repo_folder": "/home/vedb/vedb/ved-capture",
+            "conda_binary": "/usr/share/miniconda/bin/conda",
+            "conda_script": "/usr/share/miniconda/etc/profile.d/conda.sh",
+            "vedc_repo_folder": "/home/runner/work/ved-capture/ved-capture",
         }
 
     def test_update_repo(self, user_config_dir):

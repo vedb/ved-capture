@@ -1,1 +1,5 @@
-{"conda_binary": "/home/vedb/vedb/miniconda3/bin/conda", "vedc_repo_folder": "/home/vedb/vedb/ved-capture"}
+{
+  "conda_binary": "/usr/share/miniconda/bin/conda",
+  "conda_script": "/usr/share/miniconda/etc/profile.d/conda.sh",
+  "vedc_repo_folder": "/home/runner/work/ved-capture/ved-capture"
+}
