@@ -24,9 +24,10 @@ from glob import glob
 import logging
 from select import select
 import json
+import hashlib
 
 
-__installer_version = "0.1.1"
+__installer_version = "0.1.2"
 __vedc_version = None  # TODO set this once there is a first release
 __maintainer_email = "peter.hausamann@tum.de"
 
@@ -106,7 +107,6 @@ def show_header(header, message=None, delay=1):
 # -- COMMAND RUNNERS -- #
 def abort(exit_code=1):
     """"""
-    os.chdir(initial_folder)
     exit(exit_code)
 
 
@@ -241,22 +241,54 @@ def get_repo_folder(base_folder, repo_url):
     return os.path.join(base_folder, repo_url.rsplit("/", 1)[-1].split(".")[0])
 
 
-def clone_repo(base_folder, repo_url):
+def clone_repo(base_folder, repo_folder, repo_url):
     """"""
     os.makedirs(base_folder, exist_ok=True)
-    os.chdir(base_folder)
     error_msg = "Could not clone the repository. Did you set up the SSH key?"
-    run_command(["git", "clone", repo_url], error_msg=error_msg)
+    run_command(["git", "clone", repo_url, repo_folder], error_msg=error_msg)
 
 
 def update_repo(repo_folder):
     """"""
-    os.chdir(repo_folder)
     error_msg = (
         f"Could not update {repo_folder}. "
         f"You might need to delete the folder and try again."
     )
-    run_command(["git", "pull"], error_msg=error_msg)
+    run_command(
+        [
+            "git",
+            f"--work-tree={repo_folder}",
+            f"--git-dir={repo_folder}/.git",
+            "pull",
+        ],
+        error_msg=error_msg,
+    )
+
+
+def md5(fname):
+    """"""
+    hash_md5 = hashlib.md5()
+
+    with open(fname, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+
+    return hash_md5.hexdigest()
+
+
+def verify_latest_version(vedc_repo_folder):
+    """"""
+    repo_script = os.path.join(
+        vedc_repo_folder, "installer", "install_ved_capture.py"
+    )
+
+    if md5(__file__) != md5(repo_script):
+        logger.error(
+            f"You are using an outdated version of the installer script. "
+            f"Please run:\n\n"
+            f"python3 {repo_script}"
+        )
+        abort()
 
 
 # -- SYSTEM DEPS -- #
@@ -335,6 +367,24 @@ def install_miniconda(prefix="~/miniconda3"):
     run_command(["/bin/bash", filename, "-b", "-p", prefix])
 
 
+def write_paths(conda_binary, conda_script, vedc_repo_folder):
+    """"""
+    config_folder = os.path.expanduser("~/.config/vedc")
+    os.makedirs(config_folder, exist_ok=True)
+    json_file = os.path.join(config_folder, "paths.json")
+    logger.debug(f"Writing paths to {json_file}")
+    with open(json_file, "w") as f:
+        f.write(
+            json.dumps(
+                {
+                    "conda_binary": conda_binary,
+                    "conda_script": conda_script,
+                    "vedc_repo_folder": vedc_repo_folder,
+                }
+            )
+        )
+
+
 if __name__ == "__main__":
 
     # Parse command line arguments
@@ -385,6 +435,7 @@ if __name__ == "__main__":
     else:
         vedc_repo_folder = get_repo_folder(base_folder, vedc_repo_url)
 
+    env_file = os.path.join(vedc_repo_folder, "environment.yml")
     miniconda_prefix = os.path.expanduser(
         args.miniconda_prefix.format(base_folder=base_folder),
     )
@@ -392,8 +443,6 @@ if __name__ == "__main__":
     conda_script = os.path.join(
         miniconda_prefix, "etc", "profile.d", "conda.sh",
     )
-
-    initial_folder = os.getcwd()
 
     # Set up logger
     logger = init_logger(os.path.dirname(__file__), verbose=args.verbose)
@@ -435,7 +484,8 @@ if __name__ == "__main__":
         )
         update_repo(vedc_repo_folder)
 
-    os.chdir(vedc_repo_folder)
+    # Check script version
+    verify_latest_version(vedc_repo_folder)
 
     # Steps with root access
     if not args.no_root:
@@ -477,12 +527,12 @@ if __name__ == "__main__":
         show_header(
             "Creating environment", "This will take a couple of minutes. ☕",
         )
-        run_command([conda_binary, "env", "create"])
+        run_command([conda_binary, "env", "create", "-f", env_file])
     else:
         show_header(
             "Updating environment", "This will take a couple of minutes. ☕",
         )
-        run_command([conda_binary, "env", "update"])
+        run_command([conda_binary, "env", "update", "-f", env_file])
 
     if args.local:
         run_command(
@@ -508,16 +558,7 @@ if __name__ == "__main__":
         logger.debug("Skipping installation of vedc binary.")
 
     # Write paths
-    os.makedirs(os.path.expanduser("~/.config/vedc"), exist_ok=True)
-    with open(os.path.expanduser("~/.config/vedc/paths.json"), "w") as f:
-        f.write(
-            json.dumps(
-                {
-                    "conda_binary": conda_binary,
-                    "vedc_repo_folder": vedc_repo_folder,
-                }
-            )
-        )
+    write_paths(conda_binary, conda_script, vedc_repo_folder)
 
     # Check installation
     show_header("Checking installation")
@@ -527,5 +568,4 @@ if __name__ == "__main__":
         run_command(["vedc", "check_install"])
 
     # Success
-    os.chdir(initial_folder)
     logger.info("Installation successful. Congratulations! 🎉🎉🎉")
