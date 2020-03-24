@@ -17,14 +17,16 @@ import os
 import time
 import subprocess
 import argparse
+import pathlib
 import urllib.request
 from getpass import getuser, getpass
 from glob import glob
 import logging
 from select import select
+import json
 
 
-__installer_version = "0.1.0"
+__installer_version = "0.1.1"
 __vedc_version = None  # TODO set this once there is a first release
 __maintainer_email = "peter.hausamann@tum.de"
 
@@ -157,11 +159,11 @@ def handle_process(process, command, error_msg, n_bytes=4096):
         if error_msg is None:
             logger.error(
                 " ".join(command)
-                + f" failed with exit code {return_code}. See the output above "
-                f"for more information. If you don't know how to fix this by "
-                f"yourself, please send an email with the "
-                f"'install_ved_capture.log' file located in {initial_folder} "
-                f"to {__maintainer_email}.",
+                + f" failed with exit code {return_code}. See the output "
+                f"above for more information. If you don't know how to fix "
+                f"this by yourself, please send an email with the "
+                f"'install_ved_capture.log' file located in "
+                f"{os.path.dirname(__file__)} to {__maintainer_email}.",
             )
         else:
             logger.error(error_msg)
@@ -379,7 +381,7 @@ if __name__ == "__main__":
     if __vedc_version is not None:
         vedc_repo_url += f"@v{__vedc_version}"
     if args.local:
-        vedc_repo_folder = os.path.join(os.path.dirname(__file__), os.pardir)
+        vedc_repo_folder = str(pathlib.Path(os.path.dirname(__file__)).parent)
     else:
         vedc_repo_folder = get_repo_folder(base_folder, vedc_repo_url)
 
@@ -504,6 +506,18 @@ if __name__ == "__main__":
         run_as_sudo(["chmod", "+x", vedc_binary], password)
     else:
         logger.debug("Skipping installation of vedc binary.")
+
+    # Write paths
+    os.makedirs(os.path.expanduser("~/.config/vedc"), exist_ok=True)
+    with open(os.path.expanduser("~/.config/vedc/paths.json"), "w") as f:
+        f.write(
+            json.dumps(
+                {
+                    "conda_binary": conda_binary,
+                    "vedc_repo_folder": vedc_repo_folder,
+                }
+            )
+        )
 
     # Check installation
     show_header("Checking installation")
