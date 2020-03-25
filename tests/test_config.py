@@ -24,7 +24,6 @@ class TestConfigParser(object):
         assert parser.config["video"]["t265"]["device_type"].get() == "t265"
 
         parser = ConfigParser()
-        print(parser.config.sources)
         assert parser.config["record"]["metadata"].get()[0] == "location"
 
     def test_get_recording_folder(self, parser, config_dir):
