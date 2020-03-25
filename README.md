@@ -17,7 +17,7 @@ The script will guide you through the setup process and instruct you what to
 ## Usage
 
 The central tool of this app is the command line tool `vedc`. You can use it
- to generate recording configuration, make recordings and update the app.
+ to generate recording configurations, make recordings and update the app.
  
 ### Generating a configuration
 
@@ -25,9 +25,9 @@ Plug in your hardware (Pupil core system, RealSense T265, FLIR camera) and run:
 
     $ vedc generate_config
     
-This will create a config file `~/.config/vedc/config.yaml` that will work
- for your current setup. You can adjust some of the parameters in this file, 
- such as `fps` and `resolution`.
+This will check your connected devices and ask you several question. At
+ the end it will create a config file `~/.config/vedc/config.yaml` that will
+ work for your current setup.
 
 ### Recording
 

@@ -1,4 +1,5 @@
 """ ``vec_capture.cli`` bundles a variety of command line interfaces. """
+import os
 import logging
 import inspect
 import importlib
@@ -6,11 +7,18 @@ import traceback
 
 import click
 from git.exc import GitError
-
-from pupil_recording_interface import MultiStreamRecorder
+from pupil_recording_interface import (
+    MultiStreamRecorder,
+    VideoDeviceUVC,
+)
 
 from ved_capture._version import __version__
-from ved_capture.config import ConfigParser, save_metadata
+from ved_capture.config import (
+    ConfigParser,
+    save_metadata,
+    save_config,
+    get_uvc_config,
+)
 from ved_capture.utils import get_paths, update_repo, update_environment
 from ved_capture import utils
 
@@ -29,6 +37,18 @@ def init_logger(subcommand, verbose=False):
         stream_handler.setLevel(logging.INFO)
     stream_handler.setFormatter(stream_formatter)
     logger.addHandler(stream_handler)
+
+    # file handler
+    file_formatter = logging.Formatter(
+        "%(asctime)s | %(name)s | %(levelname)s: %(message)s"
+    )
+    log_file_path = os.path.join(
+        ConfigParser().config.config_dir(), __name__ + ".log"
+    )
+    file_handler = logging.FileHandler(filename=log_file_path)
+    file_handler.setFormatter(file_formatter)
+    file_handler.setLevel(logging.DEBUG)
+    logger.addHandler(file_handler)
 
     # TODO this can be done more elegantly
     utils.logger = logger
@@ -66,8 +86,44 @@ def record(config_file, verbose):
         show_video=True,
     )
 
-    save_metadata(recorder.folder, metadata)
+    if len(metadata) > 0:
+        save_metadata(recorder.folder, metadata)
+
     recorder.run()
+
+
+@click.command("generate_config")
+@click.option(
+    "-v", "--verbose", default=False, help="Verbose output.", is_flag=True,
+)
+def generate_config(verbose):
+    """ Generate recording configuration. """
+    logger = init_logger(str(inspect.currentframe()), verbose=verbose)
+
+    config = {
+        "record": {
+            "folder": "'~/recordings/{today:%Y_%m_%d}'",
+            "policy": "new_folder",
+            "duration": None,
+            "metadata": None,
+        },
+        "video": {},
+        "odometry": {},
+    }
+
+    pupil_cams = {
+        name: uid
+        for name, uid in VideoDeviceUVC._get_connected_device_uids().items()
+        if name.startswith("Pupil Cam")
+    }
+
+    for name, uid in pupil_cams.items():
+        config = get_uvc_config(config, name, uid)
+
+    if len(config["video"]) == 0 & len(config["odometry"]) == 0:
+        raise click.ClickException("No devices connected!")
+    else:
+        save_config(ConfigParser.config_dir(), config)
 
 
 @click.command("update")
@@ -146,5 +202,6 @@ def check_install(verbose):
 
 # add subcommands
 vedc.add_command(record)
+vedc.add_command(generate_config)
 vedc.add_command(update)
 vedc.add_command(check_install)
