@@ -30,6 +30,10 @@ jobs:
       run: |
         conda --version
         which python
+    - name: Install system dependencies
+      run: |
+        wget http://mirrors.kernel.org/ubuntu/pool/main/u/udev/libudev0_175-0ubuntu9_amd64.deb
+        sudo dpkg -i libudev0_175-0ubuntu9_amd64.deb
     - name: Create environment
       run: conda env create
     - name: Install dev dependencies
