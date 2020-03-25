@@ -102,7 +102,7 @@ def generate_config(verbose):
 
     config = {
         "record": {
-            "folder": "'~/recordings/{today:%Y_%m_%d}'",
+            "folder": "~/recordings/{today:%Y_%m_%d}",
             "policy": "new_folder",
             "duration": None,
             "metadata": None,

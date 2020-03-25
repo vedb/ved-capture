@@ -4,6 +4,7 @@ import datetime
 import pprint
 from collections import OrderedDict
 from ast import literal_eval
+import csv
 
 import yaml
 from confuse import Configuration, NotFoundError, ConfigTypeError
@@ -106,24 +107,10 @@ class ConfigParser(object):
 
 def save_metadata(folder, metadata):
     """"""
-    # TODO save as user_info.csv
-    def ordered_dump(data, stream=None, Dumper=yaml.Dumper, **kwargs):
-        """"""
-
-        class OrderedDumper(Dumper):
-            pass
-
-        def _dict_representer(dumper, data):
-            return dumper.represent_mapping(
-                yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, data.items()
-            )
-
-        OrderedDumper.add_representer(OrderedDict, _dict_representer)
-        return yaml.dump(data, stream, OrderedDumper, **kwargs)
-
-    # save to recording folder
-    with open(os.path.join(folder, "meta.yaml"), "w") as f:
-        ordered_dump(metadata, f)
+    with open(os.path.join(folder, "user_info.csv"), "w") as f:
+        w = csv.writer(f)
+        w.writerow(["key", "value"])
+        w.writerows(metadata.items())
 
 
 def save_config(folder, config):
