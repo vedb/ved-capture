@@ -18,8 +18,14 @@ from ved_capture.config import (
     save_metadata,
     save_config,
     get_uvc_config,
+    get_realsense_config,
 )
-from ved_capture.utils import get_paths, update_repo, update_environment
+from ved_capture.utils import (
+    get_paths,
+    update_repo,
+    update_environment,
+    get_serial_numbers,
+)
 from ved_capture import utils
 
 
@@ -94,12 +100,25 @@ def record(config_file, verbose):
 
 @click.command("generate_config")
 @click.option(
+    "-f",
+    "--folder",
+    default=None,
+    help="Folder where the config file will be stored. "
+    "Defaults to the application config folder.",
+)
+@click.option(
     "-v", "--verbose", default=False, help="Verbose output.", is_flag=True,
 )
-def generate_config(verbose):
+def generate_config(folder, verbose):
     """ Generate recording configuration. """
     logger = init_logger(str(inspect.currentframe()), verbose=verbose)
 
+    # check folder
+    folder = folder or ConfigParser.config_dir()
+    if not os.path.exists(folder):
+        raise click.ClickException(f"No such folder: {folder}")
+
+    # default config
     config = {
         "record": {
             "folder": "~/recordings/{today:%Y_%m_%d}",
@@ -111,19 +130,33 @@ def generate_config(verbose):
         "odometry": {},
     }
 
+    # get connected devices
     pupil_cams = {
         name: uid
         for name, uid in VideoDeviceUVC._get_connected_device_uids().items()
         if name.startswith("Pupil Cam")
     }
 
+    realsense_cams = get_serial_numbers()
+
+    # TODO
+    flir_cams = {}
+
+    if len(pupil_cams) + len(flir_cams) + len(realsense_cams) == 0:
+        raise click.ClickException("No devices connected!")
+
+    # select devices
     for name, uid in pupil_cams.items():
         config = get_uvc_config(config, name, uid)
 
-    if len(config["video"]) == 0 & len(config["odometry"]) == 0:
-        raise click.ClickException("No devices connected!")
+    for serial in realsense_cams:
+        config = get_realsense_config(config, serial)
+
+    # write config
+    if len(config["video"]) + len(config["odometry"]) == 0:
+        raise click.ClickException("No devices selected!")
     else:
-        save_config(ConfigParser.config_dir(), config)
+        save_config(folder, config)
 
 
 @click.command("update")

@@ -132,7 +132,7 @@ def save_config(folder, config):
 
     # save to recording folder
     with open(os.path.join(folder, "config.yaml"), "w") as f:
-        ordered_dump(config, f)
+        ordered_dump(OrderedDict(config), f)
 
 
 def get_uvc_config(config, name, uid):
@@ -147,13 +147,21 @@ def get_uvc_config(config, name, uid):
         device_name = name
 
     choice = input(
-        f"Found device '{name}'. Do you want to set this as the "
-        f"{device_name} camera? [y/n]: "
+        f"Found device '{name}'.\n"
+        f"Do you want to set up video recording for this device? [y/n]: "
     )
 
     if choice != "y":
         logger.warning(f"Skipping device '{name}'")
         return config
+
+    device_name = (
+        input(
+            f"Enter device name or press Enter to use the name "
+            f"'{device_name}': "
+        )
+        or device_name
+    )
 
     def mode_prompt(modes):
         try:
@@ -183,5 +191,55 @@ def get_uvc_config(config, name, uid):
         "color_format": "gray" if device_name.startswith("eye") else "bgr24",
         "codec": "libx264",
     }
+
+    return config
+
+
+def get_realsense_config(config, serial, device_name="t265"):
+    """ Get config for a RealSense device. """
+    # video
+    choice = input(
+        f"Found T265 device with serial number '{serial}'.\n"
+        f"Do you want to set up video recording for this device [y/n]: "
+    )
+
+    if choice != "y":
+        logger.warning(f"Skipping video setup for device '{serial}'")
+    else:
+        device_name = (
+            input(
+                f"Enter device name or press Enter to use the name "
+                f"'{device_name}': "
+            )
+            or device_name
+        )
+        config["video"][device_name] = {
+            "resolution": "(1696, 800)",
+            "fps": 30,
+            "codec": "libx264",
+            "device_type": "t265",
+            "device_uid": serial,
+            "color_format": "gray",
+        }
+
+    # odometry
+    choice = input(
+        f"Do you want to set up odometry recording for this device [y/n]: "
+    )
+
+    if choice != "y":
+        logger.warning(f"Skipping odometry setup for device '{serial}'")
+    else:
+        device_name = (
+            input(
+                f"Enter device name or press Enter to use the name "
+                f"'{device_name}': "
+            )
+            or device_name
+        )
+        config["odometry"][device_name] = {
+            "device_type": "t265",
+            "device_uid": serial,
+        }
 
     return config

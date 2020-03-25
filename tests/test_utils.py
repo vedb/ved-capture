@@ -2,7 +2,7 @@ import pytest
 
 from git.exc import GitError
 
-from ved_capture.utils import get_paths, update_repo
+from ved_capture.utils import get_paths, update_repo, get_serial_numbers
 
 
 class TestUtils:
@@ -26,3 +26,8 @@ class TestUtils:
         # wrong folder
         with pytest.raises(GitError):
             update_repo("not_a_folder")
+
+    def test_get_serial_numbers(self):
+        """"""
+        # TODO figure out how to test this
+        get_serial_numbers()

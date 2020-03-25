@@ -6,7 +6,7 @@ import subprocess
 from select import select
 
 import git
-
+import pyrealsense2 as rs
 
 logger = logging.getLogger(__name__)
 
@@ -110,3 +110,19 @@ def update_environment(
         )
 
     return return_code
+
+
+def get_serial_numbers(suffix="T265"):
+    """ Return serial numbers of connected devices.
+
+    based on https://github.com/IntelRealSense/librealsense/issues/2332
+    """
+    # TODO move to pri.RealsenseDeviceT265
+    serials = []
+    context = rs.context()
+    for d in context.devices:
+        if suffix and not d.get_info(rs.camera_info.name).endswith(suffix):
+            continue
+        serials.append(d.get_info(rs.camera_info.serial_number))
+
+    return serials
