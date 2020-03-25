@@ -40,7 +40,11 @@ jobs:
       run: |
         source activate vedc
         conda install --file requirements_dev.txt
+    - name: Copy paths.json
+      run: |
+        mkdir -p /home/runner/.config/vedc
+        cp tests/test_data/config/paths.json /home/runner/.config/vedc
     - name: Run pytest
       run: |
         source activate vedc
-        pytest tests
+        pytest
