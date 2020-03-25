@@ -1,3 +1,5 @@
+[![Build status](https://github.com/vedb/ved-capture/workflows/test/badge.svg)](https://github.com/vedb/ved-capture/actions)
+
 # ved-capture
 
 **ved-capture** is the app for simultaneous recording of camera, gaze and head
@@ -5,7 +7,10 @@
  
 ## Installation
 
-The app can be installed on ubuntu 18.04 with a single Python script. 
+The app can be installed on ubuntu 18.04 with a single Python script that
+ can be downloaded [here](https://github.com/vedb/ved-capture/blob/master/installer/install_ved_capture.py) 
+ by right clicking on the "Raw" button and then "Save target as" 
+ or on the [Releases page](https://github.com/vedb/ved-capture/releases). 
 
     $ python3 install_ved_capture.py
     

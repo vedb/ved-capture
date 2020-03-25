@@ -28,7 +28,7 @@ import hashlib
 
 
 __installer_version = "0.1.2"
-__vedc_version = None  # TODO set this once there is a first release
+__vedc_tag = None
 __maintainer_email = "peter.hausamann@tum.de"
 
 
@@ -428,8 +428,8 @@ if __name__ == "__main__":
     # Set up paths
     base_folder = os.path.expanduser(args.folder)
     vedc_repo_url = "ssh://git@github.com/vedb/ved-capture"
-    if __vedc_version is not None:
-        vedc_repo_url += f"@v{__vedc_version}"
+    if __vedc_tag is not None:
+        vedc_repo_url += f"@{__vedc_tag}"
     if args.local:
         vedc_repo_folder = str(pathlib.Path(os.path.dirname(__file__)).parent)
     else:
