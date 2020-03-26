@@ -26,13 +26,18 @@ from ved_capture.utils import (
     update_environment,
     get_serial_numbers,
 )
-from ved_capture import utils
 
 
 def init_logger(subcommand, verbose=False):
-    """"""
-    logger = logging.getLogger(__name__ + ":" + subcommand)
-    logger.setLevel(logging.DEBUG)
+    """ Initialize logger with file and stream handler for a subcommand. """
+    # root logger with file handler
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s | %(name)s | %(levelname)s: %(message)s",
+        filename=os.path.join(
+            ConfigParser().config.config_dir(), "vedc." + subcommand + ".log"
+        ),
+    )
 
     # stream handler
     stream_formatter = logging.Formatter("%(message)s")
@@ -42,24 +47,19 @@ def init_logger(subcommand, verbose=False):
     else:
         stream_handler.setLevel(logging.INFO)
     stream_handler.setFormatter(stream_formatter)
-    logger.addHandler(stream_handler)
 
-    # file handler
-    file_formatter = logging.Formatter(
-        "%(asctime)s | %(name)s | %(levelname)s: %(message)s"
-    )
-    log_file_path = os.path.join(
-        ConfigParser().config.config_dir(), __name__ + ".log"
-    )
-    file_handler = logging.FileHandler(filename=log_file_path)
-    file_handler.setFormatter(file_formatter)
-    file_handler.setLevel(logging.DEBUG)
-    logger.addHandler(file_handler)
+    # add the handler to the root logger
+    logging.getLogger("").addHandler(stream_handler)
 
-    # TODO this can be done more elegantly
-    utils.logger = logger
+    return logging.getLogger("vedc." + subcommand)
 
-    return logger
+
+def raise_error(msg, logger=None):
+    """ Log error as debug message and raise ClickException. """
+    if logger is not None:
+        logger.debug(f"ERROR: {msg}")
+
+    raise click.ClickException(msg)
 
 
 @click.group("vedc")
@@ -80,9 +80,10 @@ def vedc():
 )
 def record(config_file, verbose):
     """ Run recording. """
-    logger = init_logger(str(inspect.currentframe()), verbose=verbose)
+    logger = init_logger(inspect.stack()[0][3], verbose=verbose)
 
     config_parser = ConfigParser(config_file)
+    logger.debug("Parsed config")
 
     metadata = config_parser.get_metadata()
 
@@ -94,8 +95,13 @@ def record(config_file, verbose):
 
     if len(metadata) > 0:
         save_metadata(recorder.folder, metadata)
+        logger.debug(f"Saved user_info.csv to {recorder.folder}")
 
-    recorder.run()
+    # TODO use curses for this
+    for fps_dict in recorder.run():
+        fps_str = recorder.format_fps(fps_dict)
+        if fps_str is not None:
+            print("\rSampling rates: " + fps_str, end="")
 
 
 @click.command("generate_config")
@@ -111,12 +117,14 @@ def record(config_file, verbose):
 )
 def generate_config(folder, verbose):
     """ Generate recording configuration. """
-    logger = init_logger(str(inspect.currentframe()), verbose=verbose)
+    logger = init_logger(inspect.stack()[0][3], verbose=verbose)
 
     # check folder
     folder = folder or ConfigParser.config_dir()
     if not os.path.exists(folder):
-        raise click.ClickException(f"No such folder: {folder}")
+        raise_error(f"No such folder: {folder}", logger)
+    else:
+        logger.debug(f"Saving config file to {folder}")
 
     # default config
     config = {
@@ -136,14 +144,17 @@ def generate_config(folder, verbose):
         for name, uid in VideoDeviceUVC._get_connected_device_uids().items()
         if name.startswith("Pupil Cam")
     }
+    logger.debug(f"Found pupil cams: {pupil_cams}")
 
     realsense_cams = get_serial_numbers()
+    logger.debug(f"Found realsense cams: {realsense_cams}")
 
     # TODO
     flir_cams = {}
+    logger.debug(f"Found FLIR cams: {flir_cams}")
 
     if len(pupil_cams) + len(flir_cams) + len(realsense_cams) == 0:
-        raise click.ClickException("No devices connected!")
+        raise_error("No devices connected!", logger)
 
     # select devices
     for name, uid in pupil_cams.items():
@@ -154,7 +165,7 @@ def generate_config(folder, verbose):
 
     # write config
     if len(config["video"]) + len(config["odometry"]) == 0:
-        raise click.ClickException("No devices selected!")
+        raise_error("No devices selected!", logger)
     else:
         save_config(folder, config)
 
@@ -175,13 +186,14 @@ def generate_config(folder, verbose):
 )
 def update(verbose, local, stash):
     """ Update installation. """
-    logger = init_logger(str(inspect.currentframe()), verbose=verbose)
+    logger = init_logger(inspect.stack()[0][3], verbose=verbose)
 
     paths = get_paths()
     if paths is None:
-        raise click.ClickException(
+        raise_error(
             "Application paths have not been set up. You might need to "
-            "reinstall."
+            "reinstall.",
+            logger,
         )
 
     # update repo if needed
@@ -190,9 +202,7 @@ def update(verbose, local, stash):
         try:
             update_repo(paths["vedc_repo_folder"], stash)
         except GitError as e:
-            raise click.ClickException(
-                f"Repository update failed. Reason: {str(e)}"
-            )
+            raise_error(f"Repository update failed. Reason: {str(e)}", logger)
 
     # update environment
     logger.info("Updating environment.\nThis will take a couple of minutes. ☕")
@@ -203,7 +213,7 @@ def update(verbose, local, stash):
         local=local,
     )
     if return_code != 0:
-        raise click.ClickException("Environment update failed")
+        raise_error("Environment update failed", logger)
 
 
 @click.command("check_install")
@@ -212,7 +222,7 @@ def update(verbose, local, stash):
 )
 def check_install(verbose):
     """ Test installation. """
-    logger = init_logger(str(inspect.currentframe()), verbose=verbose)
+    logger = init_logger(inspect.stack()[0][3], verbose=verbose)
 
     failures = []
 
@@ -230,7 +240,7 @@ def check_install(verbose):
     if len(failures) == 0:
         logger.info("Installation check OK.")
     else:
-        raise click.ClickException("Installation check failed!")
+        raise_error("Installation check failed!", logger)
 
 
 # add subcommands
