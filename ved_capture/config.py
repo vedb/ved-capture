@@ -75,9 +75,19 @@ class ConfigParser(object):
     def get_policy(self, policy=None):
         """"""
         try:
-            return policy or self.config["record"]["policy"].get()
-        except ConfigTypeError:
+            return policy or self.config["record"]["policy"].get(str)
+        except (NotFoundError, ConfigTypeError):
             return "new_folder"
+
+    def get_show_video(self, show_video=None):
+        """"""
+        if show_video is None:
+            try:
+                return self.config["record"]["show_video"].get(bool)
+            except (NotFoundError, ConfigTypeError):
+                return False
+        else:
+            return show_video
 
     def get_metadata(self):
         """"""

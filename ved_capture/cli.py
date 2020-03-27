@@ -101,6 +101,15 @@ def init_logger(subcommand, verbose=False, stream=sys.stdout):
     return logging.getLogger("vedc." + subcommand)
 
 
+def print_log_buffer(stream):
+    """ Print buffered logs. """
+    stream.flush()
+    buffer = stream.getvalue()
+    stream.truncate(0)
+    if len(buffer):
+        print(buffer)
+
+
 def raise_error(msg, logger=None):
     """ Log error as debug message and raise ClickException. """
     if logger is not None:
@@ -141,7 +150,7 @@ def record(config_file, verbose):
         config_parser.get_recording_folder(None, **metadata),
         config_parser.get_recording_configs(),
         policy=config_parser.get_policy(),
-        show_video=True,
+        show_video=config_parser.get_show_video(),
     )
 
     if len(metadata) > 0:
@@ -156,11 +165,7 @@ def record(config_file, verbose):
     while True:
         try:
             fps_str = recorder.format_fps(next(iter(fps_generator)))
-            f_stdout.flush()
-            buffer = f_stdout.getvalue()
-            f_stdout.truncate(0)
-            if len(buffer):
-                print(buffer)
+            print_log_buffer(f_stdout)
             with t.hidden_cursor():
                 with t.location(0, t.height - 1):
                     if fps_str is not None:
@@ -182,6 +187,8 @@ def record(config_file, verbose):
 
     # Stop recorder
     recorder.stop()
+    print(t.clear_eol)
+    print_log_buffer(f_stdout)
     with t.location(0, t.height - 1):
         print(t.clear_eol + t.bold(t.firebrick("Stopped recording")))
 
@@ -215,6 +222,7 @@ def generate_config(folder, verbose):
             "policy": "new_folder",
             "duration": None,
             "metadata": None,
+            "show_video": False,
         },
         "video": {},
         "odometry": {},
@@ -244,6 +252,11 @@ def generate_config(folder, verbose):
 
     for serial in realsense_cams:
         config = get_realsense_config(config, serial)
+
+    # show video
+    config["record"]["show_video"] = input(
+        "Show video streams during recording? [y/n]: "
+    ) == "y"
 
     # write config
     if len(config["video"]) + len(config["odometry"]) == 0:

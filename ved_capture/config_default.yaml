@@ -4,6 +4,7 @@ record:
     '~/recordings/{today:%Y_%m_%d}'
   policy: new_folder
   duration:
+  show_video: true
   metadata:
     - location
     - experimenter

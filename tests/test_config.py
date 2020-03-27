@@ -37,8 +37,21 @@ class TestConfigParser(object):
 
     def test_get_policy(self, parser):
         """"""
-        assert parser.get_policy(None) == "overwrite"
+        # test config file
+        assert parser.get_policy() == "overwrite"
+        # user override
         assert parser.get_policy("here") == "here"
+        # package default
+        assert ConfigParser().get_policy() == "new_folder"
+
+    def test_get_show_video(self, parser):
+        """"""
+        # test config file
+        assert parser.get_show_video()
+        # user override
+        assert not parser.get_show_video(False)
+        # package default
+        assert ConfigParser().get_show_video()
 
     def test_get_metadata(self, parser, monkeypatch):
         """"""

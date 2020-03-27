@@ -4,6 +4,7 @@ record:
     '{cfgd}/out/{today:%Y-%m-%d}'
   policy: overwrite
   duration:
+  show_video: false
   metadata:
 
 video:
