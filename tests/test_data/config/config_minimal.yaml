@@ -1,0 +1,19 @@
+record:
+
+  folder:
+    '{cfgd}/out/{today:%Y-%m-%d}'
+  policy: overwrite
+  duration:
+  metadata:
+
+video:
+
+  world:
+    codec: libx264
+    color_format: bgr24
+    device_type: uvc
+    device_uid: Pupil Cam1 ID2
+    fps: 30
+    resolution: (1280, 720)
+
+odometry: {}

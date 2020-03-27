@@ -5,15 +5,16 @@ import pprint
 from collections import OrderedDict
 from ast import literal_eval
 import csv
+import logging
 
 import yaml
 from confuse import Configuration, NotFoundError, ConfigTypeError
 from pupil_recording_interface import VideoDeviceUVC
 from pupil_recording_interface.config import VideoConfig, OdometryConfig
 
-from ved_capture.utils import logger
-
 APPNAME = "vedc"
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigParser(object):
@@ -24,6 +25,7 @@ class ConfigParser(object):
         self.config_file = config_file
         if config_file is not None:
             self.config.set_file(config_file)
+            logger.debug(f"Loaded configuration from {config_file}")
 
     @classmethod
     def config_dir(cls):
@@ -70,7 +72,7 @@ class ConfigParser(object):
         except (NotFoundError, ConfigTypeError):
             return os.getcwd()
 
-    def get_policy(self, policy):
+    def get_policy(self, policy=None):
         """"""
         try:
             return policy or self.config["record"]["policy"].get()
