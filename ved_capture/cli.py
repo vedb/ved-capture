@@ -1,12 +1,18 @@
 """ ``vec_capture.cli`` bundles a variety of command line interfaces. """
 import os
+import sys
 import logging
 import inspect
 import importlib
 import traceback
+from contextlib import contextmanager
+import ctypes
+import io
+import tempfile
 
 import click
 from git.exc import GitError
+from blessed import Terminal
 from pupil_recording_interface import (
     MultiStreamRecorder,
     VideoDeviceUVC,
@@ -28,7 +34,48 @@ from ved_capture.utils import (
 )
 
 
-def init_logger(subcommand, verbose=False):
+libc = ctypes.CDLL(None)
+c_stdout = ctypes.c_void_p.in_dll(libc, "stdout")
+
+
+@contextmanager
+def redirect(stream):
+    # The original fd stdout points to. Usually 1 on POSIX systems.
+    original_stdout_fd = sys.stdout.fileno()
+
+    def _redirect_stdout(to_fd):
+        """Redirect stdout to the given file descriptor."""
+        # Flush the C-level buffer stdout
+        libc.fflush(c_stdout)
+        # Flush and close sys.stdout - also closes the file descriptor (fd)
+        sys.stdout.close()
+        # Make original_stdout_fd point to the same file as to_fd
+        os.dup2(to_fd, original_stdout_fd)
+        # Create a new sys.stdout that points to the redirected fd
+        sys.stdout = io.TextIOWrapper(os.fdopen(original_stdout_fd, "wb"))
+
+    # Save a copy of the original stdout fd in saved_stdout_fd
+    saved_stdout_fd = os.dup(original_stdout_fd)
+    try:
+        # Create a temporary file and redirect stdout to it
+        tfile = tempfile.TemporaryFile(mode="w+b")
+        _redirect_stdout(tfile.fileno())
+        # Yield to caller, then redirect stdout back to the saved fd
+        yield
+        _redirect_stdout(saved_stdout_fd)
+        # Copy contents of temporary file to the given stream
+        tfile.flush()
+        tfile.seek(0, io.SEEK_SET)
+        stream.write(tfile.read().decode())
+    finally:
+        try:
+            tfile.close()
+        except UnboundLocalError:
+            pass
+        os.close(saved_stdout_fd)
+
+
+def init_logger(subcommand, verbose=False, stream=sys.stdout):
     """ Initialize logger with file and stream handler for a subcommand. """
     # root logger with file handler
     logging.basicConfig(
@@ -40,8 +87,8 @@ def init_logger(subcommand, verbose=False):
     )
 
     # stream handler
-    stream_formatter = logging.Formatter("%(message)s")
-    stream_handler = logging.StreamHandler()
+    stream_formatter = logging.Formatter("[%(levelname)s] %(message)s")
+    stream_handler = logging.StreamHandler(stream)
     if verbose:
         stream_handler.setLevel(logging.DEBUG)
     else:
@@ -80,16 +127,20 @@ def vedc():
 )
 def record(config_file, verbose):
     """ Run recording. """
-    logger = init_logger(inspect.stack()[0][3], verbose=verbose)
+    t = Terminal()
+    f_stdout = io.StringIO()
+    logger = init_logger(
+        inspect.stack()[0][3], verbose=verbose, stream=f_stdout
+    )
 
     config_parser = ConfigParser(config_file)
-    logger.debug("Parsed config")
 
     metadata = config_parser.get_metadata()
 
     recorder = MultiStreamRecorder(
         config_parser.get_recording_folder(None, **metadata),
         config_parser.get_recording_configs(),
+        policy=config_parser.get_policy(),
         show_video=True,
     )
 
@@ -97,11 +148,42 @@ def record(config_file, verbose):
         save_metadata(recorder.folder, metadata)
         logger.debug(f"Saved user_info.csv to {recorder.folder}")
 
-    # TODO use curses for this
-    for fps_dict in recorder.run():
-        fps_str = recorder.format_fps(fps_dict)
-        if fps_str is not None:
-            print("\rSampling rates: " + fps_str, end="")
+    # Start recorder
+    recorder.start()
+    print(t.bold(t.turquoise3("Started recording")) + f" to {recorder.folder}")
+
+    fps_generator = recorder.spin()
+    while True:
+        try:
+            fps_str = recorder.format_fps(next(iter(fps_generator)))
+            f_stdout.flush()
+            buffer = f_stdout.getvalue()
+            f_stdout.truncate(0)
+            if len(buffer):
+                print(buffer)
+            with t.hidden_cursor():
+                with t.location(0, t.height - 1):
+                    if fps_str is not None:
+                        print(
+                            t.clear_eol
+                            + t.bold(
+                                t.turquoise3("Sampling rates: ") + fps_str
+                            )
+                            + t.move_up
+                        )
+                    else:
+                        print(
+                            t.clear_eol
+                            + t.bold(t.turquoise3("Waiting for init"))
+                            + t.move_up
+                        )
+        except (StopIteration, KeyboardInterrupt):
+            break
+
+    # Stop recorder
+    recorder.stop()
+    with t.location(0, t.height - 1):
+        print(t.clear_eol + t.bold(t.firebrick("Stopped recording")))
 
 
 @click.command("generate_config")

@@ -33,6 +33,7 @@ dependencies:
   - tqdm
   # pip
   - pip:
+    - blessed==1.17.4
     - pyrealsense2==2.32.1.1346
     - git+https://github.com/pupil-labs/pyuvc
     - git+ssh://git@github.com/vedb/pupil_recording_interface@devel
