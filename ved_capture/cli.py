@@ -75,28 +75,37 @@ def redirect(stream):
         os.close(saved_stdout_fd)
 
 
-def init_logger(subcommand, verbose=False, stream=sys.stdout):
+def init_logger(
+    subcommand, verbosity=0, stream=sys.stdout, stream_format="%(message)s"
+):
     """ Initialize logger with file and stream handler for a subcommand. """
+    TRACE = 5
+
     # root logger with file handler
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=TRACE,
         format="%(asctime)s | %(name)s | %(levelname)s: %(message)s",
         filename=os.path.join(
             ConfigParser().config.config_dir(), "vedc." + subcommand + ".log"
         ),
     )
+    logging.addLevelName(TRACE, "TRACE")
+    verbosity_map = {
+        0: logging.INFO,
+        1: logging.DEBUG,
+        2: TRACE,
+    }
 
     # stream handler
-    stream_formatter = logging.Formatter("[%(levelname)s] %(message)s")
+    stream_formatter = logging.Formatter(stream_format)
     stream_handler = logging.StreamHandler(stream)
-    if verbose:
-        stream_handler.setLevel(logging.DEBUG)
-    else:
-        stream_handler.setLevel(logging.INFO)
+    stream_handler.setLevel(verbosity_map[int(verbosity)])
     stream_handler.setFormatter(stream_formatter)
 
     # add the handler to the root logger
-    logging.getLogger("").addHandler(stream_handler)
+    root_logger = logging.getLogger("")
+    root_logger.addHandler(stream_handler)
+    root_logger.setLevel(verbosity_map[int(verbosity)])
 
     return logging.getLogger("vedc." + subcommand)
 
@@ -132,14 +141,17 @@ def vedc():
     "-c", "--config-file", default=None, help="Path to recording config file.",
 )
 @click.option(
-    "-v", "--verbose", default=False, help="Verbose output.", is_flag=True,
+    "-v", "--verbose", default=False, help="Verbose output.", count=True,
 )
 def record(config_file, verbose):
     """ Run recording. """
     t = Terminal()
     f_stdout = io.StringIO()
     logger = init_logger(
-        inspect.stack()[0][3], verbose=verbose, stream=f_stdout
+        inspect.stack()[0][3],
+        verbosity=verbose,
+        stream=f_stdout,
+        stream_format="[%(levelname)s] %(message)s",
     )
 
     config_parser = ConfigParser(config_file)
@@ -166,6 +178,7 @@ def record(config_file, verbose):
         try:
             fps_str = recorder.format_fps(next(iter(fps_generator)))
             print_log_buffer(f_stdout)
+            # TODO save position
             with t.hidden_cursor():
                 with t.location(0, t.height - 1):
                     if fps_str is not None:
@@ -182,6 +195,7 @@ def record(config_file, verbose):
                             + t.bold(t.turquoise3("Waiting for init"))
                             + t.move_up
                         )
+                # TODO move to previous position
         except (StopIteration, KeyboardInterrupt):
             break
 
@@ -202,11 +216,11 @@ def record(config_file, verbose):
     "Defaults to the application config folder.",
 )
 @click.option(
-    "-v", "--verbose", default=False, help="Verbose output.", is_flag=True,
+    "-v", "--verbose", default=False, help="Verbose output.", count=True,
 )
 def generate_config(folder, verbose):
     """ Generate recording configuration. """
-    logger = init_logger(inspect.stack()[0][3], verbose=verbose)
+    logger = init_logger(inspect.stack()[0][3], verbosity=verbose)
 
     # check folder
     folder = folder or ConfigParser.config_dir()
@@ -254,9 +268,9 @@ def generate_config(folder, verbose):
         config = get_realsense_config(config, serial)
 
     # show video
-    config["record"]["show_video"] = input(
-        "Show video streams during recording? [y/n]: "
-    ) == "y"
+    config["record"]["show_video"] = (
+        input("Show video streams during recording? [y/n]: ") == "y"
+    )
 
     # write config
     if len(config["video"]) + len(config["odometry"]) == 0:
@@ -281,7 +295,7 @@ def generate_config(folder, verbose):
 )
 def update(verbose, local, stash):
     """ Update installation. """
-    logger = init_logger(inspect.stack()[0][3], verbose=verbose)
+    logger = init_logger(inspect.stack()[0][3], verbosity=verbose)
 
     paths = get_paths()
     if paths is None:
@@ -317,7 +331,7 @@ def update(verbose, local, stash):
 )
 def check_install(verbose):
     """ Test installation. """
-    logger = init_logger(inspect.stack()[0][3], verbose=verbose)
+    logger = init_logger(inspect.stack()[0][3], verbosity=verbose)
 
     failures = []
 
