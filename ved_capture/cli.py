@@ -281,7 +281,7 @@ def generate_config(folder, verbose):
 
 @click.command("update")
 @click.option(
-    "-v", "--verbose", default=False, help="Verbose output.", is_flag=True,
+    "-v", "--verbose", default=False, help="Verbose output.", count=True,
 )
 @click.option(
     "-l",
@@ -291,7 +291,7 @@ def generate_config(folder, verbose):
     is_flag=True,
 )
 @click.option(
-    "-s", "--stash", default=False, help="Stash local changes.", is_flag=True,
+    "-s", "--stash", default=False, help="Stash local changes.", count=True,
 )
 def update(verbose, local, stash):
     """ Update installation. """
@@ -327,7 +327,7 @@ def update(verbose, local, stash):
 
 @click.command("check_install")
 @click.option(
-    "-v", "--verbose", default=False, help="Verbose output.", is_flag=True,
+    "-v", "--verbose", default=False, help="Verbose output.", count=True,
 )
 def check_install(verbose):
     """ Test installation. """
