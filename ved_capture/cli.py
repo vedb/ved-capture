@@ -13,10 +13,7 @@ import tempfile
 import click
 from git.exc import GitError
 from blessed import Terminal
-from pupil_recording_interface import (
-    MultiStreamRecorder,
-    VideoDeviceUVC,
-)
+from pupil_recording_interface import VideoDeviceUVC, StreamManager
 
 from ved_capture._version import __version__
 from ved_capture.config import (
@@ -158,35 +155,32 @@ def record(config_file, verbose):
 
     metadata = config_parser.get_metadata()
 
-    recorder = MultiStreamRecorder(
-        config_parser.get_recording_folder(None, **metadata),
+    manager = StreamManager(
         config_parser.get_recording_configs(),
+        folder=config_parser.get_recording_folder(None, **metadata),
         policy=config_parser.get_policy(),
-        show_video=config_parser.get_show_video(),
     )
 
     if len(metadata) > 0:
-        save_metadata(recorder.folder, metadata)
-        logger.debug(f"Saved user_info.csv to {recorder.folder}")
+        save_metadata(manager.folder, metadata)
+        logger.debug(f"Saved user_info.csv to {manager.folder}")
 
-    # Start recorder
-    recorder.start()
-    print(t.bold(t.turquoise3("Started recording")) + f" to {recorder.folder}")
+    # Start manager
+    manager.start()
+    print(t.bold(t.turquoise3("Started recording")) + f" to {manager.folder}")
 
-    fps_generator = recorder.spin()
+    status_generator = manager.spin()
     while True:
         try:
-            fps_str = recorder.format_fps(next(iter(fps_generator)))
+            status_str = manager.format_status(next(iter(status_generator)))
             print_log_buffer(f_stdout)
             # TODO save position
             with t.hidden_cursor():
                 with t.location(0, t.height - 1):
-                    if fps_str is not None:
+                    if status_str is not None:
                         print(
                             t.clear_eol
-                            + t.bold(
-                                t.turquoise3("Sampling rates: ") + fps_str
-                            )
+                            + t.bold(t.turquoise3(status_str))
                             + t.move_up
                         )
                     else:
@@ -199,8 +193,8 @@ def record(config_file, verbose):
         except (StopIteration, KeyboardInterrupt):
             break
 
-    # Stop recorder
-    recorder.stop()
+    # Stop manager
+    manager.stop()
     print(t.clear_eol)
     print_log_buffer(f_stdout)
     with t.location(0, t.height - 1):

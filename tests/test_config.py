@@ -2,7 +2,12 @@ import os
 
 import pytest
 
-from pupil_recording_interface.config import VideoConfig, OdometryConfig
+from pupil_recording_interface.config import (
+    VideoConfig,
+    OdometryConfig,
+    VideoRecorderConfig,
+    OdometryRecorderConfig,
+)
 
 from ved_capture.config import ConfigParser
 
@@ -21,7 +26,9 @@ class TestConfigParser(object):
     def test_constructor(self, config_file):
         """"""
         parser = ConfigParser(config_file)
-        assert parser.config["video"]["t265"]["device_type"].get() == "t265"
+        assert (
+            parser.config["video"]["t265_video"]["device_type"].get() == "t265"
+        )
 
         parser = ConfigParser()
         assert parser.config["record"]["metadata"].get()[0] == "location"
@@ -64,8 +71,14 @@ class TestConfigParser(object):
         config_list = parser.get_recording_configs()
 
         assert isinstance(config_list[0], VideoConfig)
-        assert config_list[0].device_type == "t265"
-        assert config_list[0].resolution == (1696, 800)
+        assert config_list[0].device_type == "uvc"
+        assert config_list[0].pipeline is None
 
-        assert isinstance(config_list[1], OdometryConfig)
+        assert isinstance(config_list[1], VideoConfig)
         assert config_list[1].device_type == "t265"
+        assert config_list[1].resolution == (1696, 800)
+        assert isinstance(config_list[1].pipeline[0], VideoRecorderConfig)
+
+        assert isinstance(config_list[2], OdometryConfig)
+        assert config_list[2].device_type == "t265"
+        assert isinstance(config_list[2].pipeline[0], OdometryRecorderConfig)

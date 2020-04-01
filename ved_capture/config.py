@@ -10,7 +10,13 @@ import logging
 import yaml
 from confuse import Configuration, NotFoundError, ConfigTypeError
 from pupil_recording_interface import VideoDeviceUVC
-from pupil_recording_interface.config import VideoConfig, OdometryConfig
+from pupil_recording_interface.config import (
+    VideoConfig,
+    OdometryConfig,
+    VideoRecorderConfig,
+    OdometryRecorderConfig,
+    VideoDisplayConfig,
+)
 
 APPNAME = "vedc"
 
@@ -18,6 +24,8 @@ logger = logging.getLogger(__name__)
 
 
 class ConfigParser(object):
+    """"""
+
     def __init__(self, config_file=None):
         """"""
         self.config = Configuration(APPNAME, "ved_capture")
@@ -52,7 +60,7 @@ class ConfigParser(object):
             return folder
 
         try:
-            folder = self.config["record"]["folder"].get()
+            folder = self.config["record"].get(dict)["folder"]
             if folder is not None:
                 try:
                     return folder.format(
@@ -69,7 +77,7 @@ class ConfigParser(object):
                     )
             else:
                 return os.getcwd()
-        except (NotFoundError, ConfigTypeError):
+        except (NotFoundError, ConfigTypeError, KeyError):
             return os.getcwd()
 
     def get_policy(self, policy=None):
@@ -92,27 +100,63 @@ class ConfigParser(object):
     def get_metadata(self):
         """"""
         try:
-            fields = self.config["record"]["metadata"].get()
-        except ConfigTypeError:
-            return None
+            fields = self.config["record"]["metadata"].get(list)
+        except (NotFoundError, ConfigTypeError):
+            return {}
 
         if fields is not None:
             return {f: input("{}: ".format(f)) for f in fields}
         else:
             return {}
 
+    def _get_recording_pipeline(self, config_dict, name, stream_type):
+        """"""
+        recorder_types = {
+            "video": VideoRecorderConfig,
+            "odometry": OdometryRecorderConfig,
+        }
+
+        try:
+            record_config = self.config["record"].get(dict)[stream_type][name]
+        except (NotFoundError, ConfigTypeError, KeyError):
+            return config_dict
+
+        if "pipeline" not in config_dict:
+            config_dict["pipeline"] = []
+
+        config_dict["pipeline"].append(
+            recorder_types[stream_type](**(record_config or {}))
+        )
+
+        if self.get_show_video() and stream_type == "video":
+            config_dict["pipeline"].append(VideoDisplayConfig())
+
+        return config_dict
+
     def get_recording_configs(self):
         """"""
+        # TODO turn this around by parsing record first and devices after?
+        # TODO user-defined stream and recording configs completely
+        #  override the package default. Is that what we want?
         configs = []
 
         if self.config["video"].get() is not None:
             for name, config in self.config["video"].get(dict).items():
                 config["resolution"] = literal_eval(config["resolution"])
+                config = self._get_recording_pipeline(config, name, "video")
                 configs.append(VideoConfig(name=name, **config))
+                logger.debug(
+                    f"Adding video device '{name}' with config: {dict(config)}"
+                )
 
         if self.config["odometry"].get() is not None:
             for name, config in self.config["odometry"].get(dict).items():
+                config = self._get_recording_pipeline(config, name, "odometry")
                 configs.append(OdometryConfig(name=name, **config))
+                logger.debug(
+                    f"Adding odometry device '{name}' with config: "
+                    f"{dict(config)}"
+                )
 
         return configs
 
@@ -201,7 +245,6 @@ def get_uvc_config(config, name, uid):
         "resolution": str(selected_mode[:-1]),
         "fps": selected_mode[-1],
         "color_format": "gray" if device_name.startswith("eye") else "bgr24",
-        "codec": "libx264",
     }
 
     return config
@@ -228,7 +271,6 @@ def get_realsense_config(config, serial, device_name="t265"):
         config["video"][device_name] = {
             "resolution": "(1696, 800)",
             "fps": 30,
-            "codec": "libx264",
             "device_type": "t265",
             "device_uid": serial,
             "color_format": "gray",

@@ -1,9 +1,19 @@
 record:
-
   folder:
     '~/recordings/{today:%Y_%m_%d}'
   policy: new_folder
-  duration:
+  duration: null
+  video:
+    world:
+      codec: libx264
+    eye0:
+      codec: libx264
+    eye1:
+      codec: libx264
+    t265_video:
+      codec: libx264
+  odometry:
+    t265_odometry: null
   show_video: true
   metadata:
     - location
@@ -17,7 +27,6 @@ record:
     - ethnicity
 
 video:
-
   world:
     resolution: (1280, 720)
     fps: 30
@@ -25,7 +34,6 @@ video:
     device_type: uvc
     device_uid: 'Pupil Cam1 ID2'
     color_format: bgr24
-
   eye0:
     resolution: (320, 240)
     fps: 120
@@ -33,7 +41,6 @@ video:
     device_type: uvc
     device_uid: 'Pupil Cam1 ID0'
     color_format: gray
-
   eye1:
     resolution: (320, 240)
     fps: 120
@@ -41,8 +48,7 @@ video:
     device_type: uvc
     device_uid: 'Pupil Cam1 ID1'
     color_format: gray
-
-  t265:
+  t265_video:
     resolution: (1696, 800)
     fps: 30
     codec: libx264
@@ -51,7 +57,6 @@ video:
     color_format: gray
 
 odometry:
-
-  t265:
+  t265_odometry:
     device_type: t265
     device_uid: t265

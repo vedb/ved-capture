@@ -1,5 +1,4 @@
 record:
-
   folder:
     '{cfgd}/out/{today:%Y-%m-%d}'
   policy: overwrite
@@ -7,10 +6,20 @@ record:
   show_video: true
   metadata:
     - subject_id
+  video:
+    t265_video:
+      codec: libx264
+  odometry:
+    t265_odometry:
 
 video:
-
-  t265:
+  world:
+    color_format: bgr24
+    device_type: uvc
+    device_uid: Pupil Cam1 ID2
+    fps: 60
+    resolution: (1280, 720)
+  t265_video:
     resolution: (1696, 800)
     fps: 30
     codec: libx264
@@ -19,7 +28,6 @@ video:
     color_format: gray
 
 odometry:
-
-  t265:
+  t265_odometry:
     device_type: t265
     device_uid: t265

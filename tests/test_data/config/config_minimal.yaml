@@ -1,5 +1,4 @@
 record:
-
   folder:
     '{cfgd}/out/{today:%Y-%m-%d}'
   policy: overwrite
@@ -8,7 +7,6 @@ record:
   metadata:
 
 video:
-
   world:
     codec: libx264
     color_format: bgr24
