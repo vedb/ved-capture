@@ -9,14 +9,7 @@ import logging
 
 import yaml
 from confuse import Configuration, NotFoundError, ConfigTypeError
-from pupil_recording_interface import VideoDeviceUVC
-from pupil_recording_interface.config import (
-    VideoConfig,
-    OdometryConfig,
-    VideoRecorderConfig,
-    OdometryRecorderConfig,
-    VideoDisplayConfig,
-)
+import pupil_recording_interface as pri
 
 APPNAME = "vedc"
 
@@ -60,7 +53,7 @@ class ConfigParser(object):
             return folder
 
         try:
-            folder = self.config["record"].get(dict)["folder"]
+            folder = self.config["commands"]["record"].get(dict)["folder"]
             if folder is not None:
                 try:
                     return folder.format(
@@ -83,7 +76,9 @@ class ConfigParser(object):
     def get_policy(self, policy=None):
         """"""
         try:
-            return policy or self.config["record"]["policy"].get(str)
+            return policy or self.config["commands"]["record"]["policy"].get(
+                str
+            )
         except (NotFoundError, ConfigTypeError):
             return "new_folder"
 
@@ -91,7 +86,9 @@ class ConfigParser(object):
         """"""
         if show_video is None:
             try:
-                return self.config["record"]["show_video"].get(bool)
+                return self.config["commands"]["record"]["show_video"].get(
+                    bool
+                )
             except (NotFoundError, ConfigTypeError):
                 return False
         else:
@@ -100,7 +97,7 @@ class ConfigParser(object):
     def get_metadata(self):
         """"""
         try:
-            fields = self.config["record"]["metadata"].get(list)
+            fields = self.config["commands"]["record"]["metadata"].get(list)
         except (NotFoundError, ConfigTypeError):
             return {}
 
@@ -112,12 +109,14 @@ class ConfigParser(object):
     def _get_recording_pipeline(self, config_dict, name, stream_type):
         """"""
         recorder_types = {
-            "video": VideoRecorderConfig,
-            "odometry": OdometryRecorderConfig,
+            "video": pri.VideoRecorder.Config,
+            "motion": pri.MotionRecorder.Config,
         }
 
         try:
-            record_config = self.config["record"].get(dict)[stream_type][name]
+            record_config = self.config["commands"]["record"].get(dict)[
+                stream_type
+            ][name]
         except (NotFoundError, ConfigTypeError, KeyError):
             return config_dict
 
@@ -129,7 +128,7 @@ class ConfigParser(object):
         )
 
         if self.get_show_video() and stream_type == "video":
-            config_dict["pipeline"].append(VideoDisplayConfig())
+            config_dict["pipeline"].append(pri.VideoDisplay.Config())
 
         return config_dict
 
@@ -140,21 +139,25 @@ class ConfigParser(object):
         #  override the package default. Is that what we want?
         configs = []
 
-        if self.config["video"].get() is not None:
-            for name, config in self.config["video"].get(dict).items():
+        if self.config["streams"]["video"].get() is not None:
+            for name, config in (
+                self.config["streams"]["video"].get(dict).items()
+            ):
                 config["resolution"] = literal_eval(config["resolution"])
                 config = self._get_recording_pipeline(config, name, "video")
-                configs.append(VideoConfig(name=name, **config))
+                configs.append(pri.VideoStream.Config(name=name, **config))
                 logger.debug(
                     f"Adding video device '{name}' with config: {dict(config)}"
                 )
 
-        if self.config["odometry"].get() is not None:
-            for name, config in self.config["odometry"].get(dict).items():
-                config = self._get_recording_pipeline(config, name, "odometry")
-                configs.append(OdometryConfig(name=name, **config))
+        if self.config["streams"]["motion"].get() is not None:
+            for name, config in (
+                self.config["streams"]["motion"].get(dict).items()
+            ):
+                config = self._get_recording_pipeline(config, name, "motion")
+                configs.append(pri.MotionStream.Config(name=name, **config))
                 logger.debug(
-                    f"Adding odometry device '{name}' with config: "
+                    f"Adding motion device '{name}' with config: "
                     f"{dict(config)}"
                 )
 
@@ -194,29 +197,29 @@ def save_config(folder, config):
 def get_uvc_config(config, name, uid):
     """ Get config for a Pupil UVC cam. """
     if name.endswith("ID0"):
-        device_name = "eye0"
+        stream_name = "eye0"
     elif name.endswith("ID1"):
-        device_name = "eye1"
+        stream_name = "eye1"
     elif name.endswith("ID2"):
-        device_name = "world"
+        stream_name = "world"
     else:
-        device_name = name
+        stream_name = name
 
     choice = input(
         f"Found device '{name}'.\n"
-        f"Do you want to set up video recording for this device? [y/n]: "
+        f"Do you want to set up video streaming for this device? ([y]/n): "
     )
 
-    if choice != "y":
+    if choice.lower() == "n":
         logger.warning(f"Skipping device '{name}'")
         return config
 
-    device_name = (
+    stream_name = (
         input(
-            f"Enter device name or press Enter to use the name "
-            f"'{device_name}': "
+            f"Enter stream name or press Enter to use the name "
+            f"'{stream_name}': "
         )
-        or device_name
+        or stream_name
     )
 
     def mode_prompt(modes):
@@ -234,18 +237,26 @@ def get_uvc_config(config, name, uid):
 
     modes = {
         idx: mode
-        for idx, mode in enumerate(VideoDeviceUVC._get_available_modes(uid))
+        for idx, mode in enumerate(
+            pri.VideoDeviceUVC._get_available_modes(uid)
+        )
     }
 
     selected_mode = mode_prompt(modes)
 
-    config["video"][device_name] = {
+    config["streams"]["video"][stream_name] = {
         "device_type": "uvc",
         "device_uid": name,
         "resolution": str(selected_mode[:-1]),
         "fps": selected_mode[-1],
-        "color_format": "gray" if device_name.startswith("eye") else "bgr24",
+        "color_format": "gray" if stream_name.startswith("eye") else "bgr24",
     }
+
+    choice = input("Do you want to record this stream? ([y]/n): ")
+    if choice.lower() != "n":
+        if "video" not in config["commands"]["record"]:
+            config["commands"]["record"]["video"] = {}
+        config["commands"]["record"]["video"][stream_name] = None
 
     return config
 
@@ -255,45 +266,58 @@ def get_realsense_config(config, serial, device_name="t265"):
     # video
     choice = input(
         f"Found T265 device with serial number '{serial}'.\n"
-        f"Do you want to set up video recording for this device [y/n]: "
+        f"Do you want to set up video streaming for this device ([y]/n): "
     )
-
-    if choice != "y":
+    if choice.lower() == "n":
         logger.warning(f"Skipping video setup for device '{serial}'")
     else:
-        device_name = (
+        stream_name = (
             input(
-                f"Enter device name or press Enter to use the name "
+                f"Enter stream name or press Enter to use the name "
                 f"'{device_name}': "
             )
             or device_name
         )
-        config["video"][device_name] = {
+        config["streams"]["video"][stream_name] = {
             "resolution": "(1696, 800)",
             "fps": 30,
             "device_type": "t265",
             "device_uid": serial,
             "color_format": "gray",
         }
+        choice = input("Do you want to record this stream? ([y]/n): ")
+        if choice.lower() != "n":
+            if "video" not in config["commands"]["record"]:
+                config["commands"]["record"]["video"] = {}
+            config["commands"]["record"]["video"][stream_name] = None
 
-    # odometry
-    choice = input(
-        f"Do you want to set up odometry recording for this device [y/n]: "
-    )
-
-    if choice != "y":
-        logger.warning(f"Skipping odometry setup for device '{serial}'")
-    else:
-        device_name = (
-            input(
-                f"Enter device name or press Enter to use the name "
-                f"'{device_name}': "
-            )
-            or device_name
+    # motion
+    for motion_type in ("odometry", "accel", "gyro"):
+        choice = input(
+            f"Do you want to set up {motion_type} streaming for this device "
+            f"([y]/n): "
         )
-        config["odometry"][device_name] = {
-            "device_type": "t265",
-            "device_uid": serial,
-        }
+        if choice.lower() == "n":
+            logger.warning(
+                f"Skipping {motion_type} setup for device '{serial}'"
+            )
+        else:
+            stream_name = (
+                input(
+                    f"Enter stream name or press Enter to use the name "
+                    f"'{motion_type}': "
+                )
+                or motion_type
+            )
+            config["streams"]["motion"][stream_name] = {
+                "device_type": "t265",
+                "device_uid": serial,
+                "motion_type": motion_type,
+            }
+            choice = input("Do you want to record this stream? ([y]/n): ")
+            if choice.lower() != "n":
+                if "motion" not in config["commands"]["record"]:
+                    config["commands"]["record"]["motion"] = {}
+                config["commands"]["record"]["motion"][stream_name] = None
 
     return config

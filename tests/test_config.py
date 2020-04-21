@@ -2,13 +2,6 @@ import os
 
 import pytest
 
-from pupil_recording_interface.config import (
-    VideoConfig,
-    OdometryConfig,
-    VideoRecorderConfig,
-    OdometryRecorderConfig,
-)
-
 from ved_capture.config import ConfigParser
 
 
@@ -27,20 +20,22 @@ class TestConfigParser(object):
         """"""
         parser = ConfigParser(config_file)
         assert (
-            parser.config["video"]["t265_video"]["device_type"].get() == "t265"
+            parser.config["streams"]["video"]["t265"]["device_type"].get()
+            == "t265"
         )
 
         parser = ConfigParser()
-        assert parser.config["record"]["metadata"].get()[0] == "location"
+        assert (
+            parser.config["commands"]["record"]["metadata"].get()[0]
+            == "location"
+        )
 
     def test_get_recording_folder(self, parser, config_dir):
         """"""
         import datetime
 
         folder = parser.get_recording_folder(None)
-        assert folder == "{dir}/out/{today:%Y-%m-%d}".format(
-            dir=config_dir, today=datetime.date.today()
-        )
+        assert folder == f"{config_dir}/out/{datetime.date.today():%Y-%m-%d}"
 
     def test_get_policy(self, parser):
         """"""
@@ -70,15 +65,15 @@ class TestConfigParser(object):
         # TODO add __eq__ to pri.StreamConfig to handle equality check
         config_list = parser.get_recording_configs()
 
-        assert isinstance(config_list[0], VideoConfig)
+        assert config_list[0].stream_type == "video"
         assert config_list[0].device_type == "uvc"
         assert config_list[0].pipeline is None
 
-        assert isinstance(config_list[1], VideoConfig)
+        assert config_list[1].stream_type == "video"
         assert config_list[1].device_type == "t265"
         assert config_list[1].resolution == (1696, 800)
-        assert isinstance(config_list[1].pipeline[0], VideoRecorderConfig)
+        assert config_list[1].pipeline[0].process_type == "video_recorder"
 
-        assert isinstance(config_list[2], OdometryConfig)
+        assert config_list[2].stream_type == "motion"
         assert config_list[2].device_type == "t265"
-        assert isinstance(config_list[2].pipeline[0], OdometryRecorderConfig)
+        assert config_list[2].pipeline[0].process_type == "motion_recorder"

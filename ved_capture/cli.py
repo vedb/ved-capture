@@ -13,7 +13,7 @@ import tempfile
 import click
 from git.exc import GitError
 from blessed import Terminal
-from pupil_recording_interface import VideoDeviceUVC, StreamManager
+import pupil_recording_interface as pri
 
 from ved_capture._version import __version__
 from ved_capture.config import (
@@ -152,49 +152,45 @@ def record(config_file, verbose):
     )
 
     config_parser = ConfigParser(config_file)
-
     metadata = config_parser.get_metadata()
 
-    manager = StreamManager(
+    with pri.StreamManager(
         config_parser.get_recording_configs(),
         folder=config_parser.get_recording_folder(None, **metadata),
         policy=config_parser.get_policy(),
-    )
+    ) as manager:
 
-    if len(metadata) > 0:
-        save_metadata(manager.folder, metadata)
-        logger.debug(f"Saved user_info.csv to {manager.folder}")
+        if len(metadata) > 0:
+            save_metadata(manager.folder, metadata)
+            logger.debug(f"Saved user_info.csv to {manager.folder}")
 
-    # Start manager
-    manager.start()
-    print(t.bold(t.turquoise3("Started recording")) + f" to {manager.folder}")
+        print(
+            t.bold(t.turquoise3("Started recording")) + f" to {manager.folder}"
+        )
 
-    status_generator = manager.spin()
-    while True:
-        try:
-            status_str = manager.format_status(next(iter(status_generator)))
+        while not manager.stopped:
             print_log_buffer(f_stdout)
             # TODO save position
-            with t.hidden_cursor():
-                with t.location(0, t.height - 1):
-                    if status_str is not None:
+            if manager.all_streams_running:
+                status_str = manager.format_status("fps", max_cols=t.width)
+                with t.hidden_cursor():
+                    with t.location(0, t.height - 1):
                         print(
                             t.clear_eol
                             + t.bold(t.turquoise3(status_str))
                             + t.move_up
                         )
-                    else:
+            else:
+                with t.hidden_cursor():
+                    with t.location(0, t.height - 1):
                         print(
                             t.clear_eol
                             + t.bold(t.turquoise3("Waiting for init"))
                             + t.move_up
                         )
-                # TODO move to previous position
-        except (StopIteration, KeyboardInterrupt):
-            break
+                    # TODO move to previous position
 
     # Stop manager
-    manager.stop()
     print(t.clear_eol)
     print_log_buffer(f_stdout)
     with t.location(0, t.height - 1):
@@ -225,21 +221,23 @@ def generate_config(folder, verbose):
 
     # default config
     config = {
-        "record": {
-            "folder": "~/recordings/{today:%Y_%m_%d}",
-            "policy": "new_folder",
-            "duration": None,
-            "metadata": None,
-            "show_video": False,
+        "commands": {
+            "record": {
+                "folder": "~/recordings/{today:%Y_%m_%d}",
+                "policy": "new_folder",
+                "duration": None,
+                "metadata": None,
+                "show_video": False,
+            }
         },
-        "video": {},
-        "odometry": {},
+        "streams": {"video": {}, "motion": {}},
     }
 
     # get connected devices
+    connected_devices = pri.VideoDeviceUVC._get_connected_device_uids()
     pupil_cams = {
         name: uid
-        for name, uid in VideoDeviceUVC._get_connected_device_uids().items()
+        for name, uid in connected_devices.items()
         if name.startswith("Pupil Cam")
     }
     logger.debug(f"Found pupil cams: {pupil_cams}")
@@ -262,12 +260,12 @@ def generate_config(folder, verbose):
         config = get_realsense_config(config, serial)
 
     # show video
-    config["record"]["show_video"] = (
-        input("Show video streams during recording? [y/n]: ") == "y"
+    config["commands"]["record"]["show_video"] = (
+        input("Show video streams during recording? ([y]/n): ").lower() != "n"
     )
 
     # write config
-    if len(config["video"]) + len(config["odometry"]) == 0:
+    if len(config["streams"]["video"]) + len(config["streams"]["motion"]) == 0:
         raise_error("No devices selected!", logger)
     else:
         save_config(folder, config)

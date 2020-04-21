@@ -1,33 +1,33 @@
-record:
-  folder:
-    '{cfgd}/out/{today:%Y-%m-%d}'
-  policy: overwrite
-  duration:
-  show_video: true
-  metadata:
+commands:
+  record:
+    folder: '{cfgd}/out/{today:%Y-%m-%d}'
+    policy: overwrite
+    duration:
+    show_video: true
+    metadata:
     - subject_id
+    video:
+      t265:
+        codec: libx264
+    motion:
+      odometry:
+
+streams:
   video:
-    t265_video:
-      codec: libx264
-  odometry:
-    t265_odometry:
-
-video:
-  world:
-    color_format: bgr24
-    device_type: uvc
-    device_uid: Pupil Cam1 ID2
-    fps: 60
-    resolution: (1280, 720)
-  t265_video:
-    resolution: (1696, 800)
-    fps: 30
-    codec: libx264
-    device_type: t265
-    device_uid: t265
-    color_format: gray
-
-odometry:
-  t265_odometry:
-    device_type: t265
-    device_uid: t265
+    world:
+      device_type: uvc
+      device_uid: Pupil Cam1 ID2
+      resolution: (1280, 720)
+      fps: 60
+      color_format: bgr24
+    t265:
+      device_type: t265
+      device_uid: t265
+      resolution: (1696, 800)
+      fps: 30
+      color_format: gray
+  motion:
+    odometry:
+      device_type: t265
+      device_uid: t265
+      motion_type: odometry
