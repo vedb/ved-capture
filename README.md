@@ -1,4 +1,4 @@
-[![Build status](https://github.com/vedb/ved-capture/workflows/test/badge.svg)](https://github.com/vedb/ved-capture/actions)
+[![Build status](https://github.com/vedb/ved-capture/workflows/build/badge.svg)](https://github.com/vedb/ved-capture/actions)
 
 # ved-capture
 

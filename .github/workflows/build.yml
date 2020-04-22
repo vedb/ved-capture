@@ -1,4 +1,4 @@
-name: test
+name: build
 
 on: push
 
@@ -34,6 +34,9 @@ jobs:
       run: |
         wget http://mirrors.kernel.org/ubuntu/pool/main/u/udev/libudev0_175-0ubuntu9_amd64.deb
         sudo dpkg -i libudev0_175-0ubuntu9_amd64.deb
+        sudo apt-get update
+        sudo apt-get install -y libswscale-dev libavcodec-dev libavformat-dev
+        sudo dpkg -i installer/spinnaker_sdk_*/*.deb
     - name: Create environment
       run: conda env create
     - name: Install dev dependencies

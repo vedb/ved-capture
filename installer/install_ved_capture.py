@@ -27,7 +27,7 @@ import json
 import hashlib
 
 
-__installer_version = "0.1.2"
+__installer_version = "0.2.0"
 __vedc_tag = None
 __maintainer_email = "peter.hausamann@tum.de"
 
@@ -309,8 +309,9 @@ def password_prompt():
 def install_spinnaker_sdk(folder, password, groupname="flirimaging"):
     """"""
     # Install dependencies
+    run_as_sudo(["apt-get", "update"], password)
     libs = ["libswscale-dev", "libavcodec-dev", "libavformat-dev"]
-    run_as_sudo(["apt-get", "install"] + libs, password)
+    run_as_sudo(["apt-get", "install", "-y"] + libs, password)
 
     # Install packages
     deb_files = glob(os.path.join(folder, "*.deb"))
