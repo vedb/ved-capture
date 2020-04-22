@@ -32,6 +32,8 @@ commands:
     folder: ~/pupil_capture_settings
     streams:
       world: null
+      eye0: null
+      eye1: null
       t265:
         stereo: True
 

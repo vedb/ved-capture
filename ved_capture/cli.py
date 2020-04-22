@@ -202,7 +202,11 @@ def generate_config(folder, verbose):
                 "show_video": False,
                 "video": {},
                 "motion": {},
-            }
+            },
+            "estimate_cam_params": {
+                "folder": "~/pupil_capture_settings",
+                "streams": {},
+            },
         },
         "streams": {"video": {}, "motion": {}},
     }

@@ -109,7 +109,7 @@ def raise_error(msg, logger=None):
 def setup_stream_prompt(device_type, device_uid, stream_type):
     """"""
     choice = input(
-        f"Found {device_type} device '{device_uid}'.\n"
+        f"Found {device_type} device '{device_uid}'\n"
         f"Do you want to set up {stream_type} streaming for this device? "
         f"([y]/n): "
     )
@@ -206,6 +206,9 @@ def get_uvc_config(config, name, uid):
             else "bgr24",
         }
         record_prompt(config, "video", stream_name)
+        config["commands"]["estimate_cam_params"]["streams"][
+            stream_name
+        ] = None
 
     return config
 
@@ -227,10 +230,13 @@ def get_realsense_config(
             "color_format": "gray",
         }
         record_prompt(config, "video", stream_name)
+        config["commands"]["estimate_cam_params"]["streams"][stream_name] = {
+            "stereo": True
+        }
 
     # motion
     for motion_type in ("odometry", "accel", "gyro"):
-        if setup_stream_prompt(device_type, serial, "motion"):
+        if setup_stream_prompt(device_type, serial, motion_type):
             stream_name = stream_name_prompt(
                 config["streams"]["motion"], motion_type
             )
@@ -259,5 +265,8 @@ def get_flir_config(
             "device_uid": serial,
         }
         record_prompt(config, "video", stream_name)
+        config["commands"]["estimate_cam_params"]["streams"][
+            stream_name
+        ] = None
 
     return config
