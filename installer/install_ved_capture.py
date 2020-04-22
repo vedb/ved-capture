@@ -539,8 +539,6 @@ if __name__ == "__main__":
         )
         install_spinnaker_sdk(sdk_folder, password)
 
-        exit(0)
-
         # Create udev rules for libuvc
         show_header("Installing libuvc dependencies")
         install_libuvc_deps(password)
