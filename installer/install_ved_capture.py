@@ -24,7 +24,7 @@ from glob import glob
 import logging
 from select import select
 import json
-from packaging import version
+from distutils.version import LooseVersion
 import re
 import hashlib
 
@@ -284,9 +284,9 @@ def verify_latest_version(vedc_repo_folder):
         vedc_repo_folder, "installer", "install_ved_capture.py"
     )
 
-    installer_version = version.parse(__installer_version)
+    installer_version = LooseVersion(__installer_version)
     with open(repo_script, "rt") as f:
-        repo_script_version = version.parse(
+        repo_script_version = LooseVersion(
             re.search(
                 r"^__installer_version = ['\"]([^'\"]*)['\"]", f.read(), re.M
             ).group(1)
