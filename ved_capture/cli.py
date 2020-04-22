@@ -22,12 +22,15 @@ from ved_capture.config import (
     save_config,
     get_uvc_config,
     get_realsense_config,
+    get_flir_config,
 )
 from ved_capture.utils import (
     get_paths,
     update_repo,
     update_environment,
-    get_serial_numbers,
+    get_pupil_devices,
+    get_realsense_devices,
+    get_flir_devices,
 )
 
 
@@ -234,30 +237,27 @@ def generate_config(folder, verbose):
     }
 
     # get connected devices
-    connected_devices = pri.VideoDeviceUVC._get_connected_device_uids()
-    pupil_cams = {
-        name: uid
-        for name, uid in connected_devices.items()
-        if name.startswith("Pupil Cam")
-    }
-    logger.debug(f"Found pupil cams: {pupil_cams}")
+    pupil_devices = get_pupil_devices()
+    logger.debug(f"Found pupil cams: {pupil_devices}")
 
-    realsense_cams = get_serial_numbers()
-    logger.debug(f"Found realsense cams: {realsense_cams}")
+    t265_devices = get_realsense_devices()
+    logger.debug(f"Found T265 devices: {t265_devices}")
 
-    # TODO
-    flir_cams = {}
-    logger.debug(f"Found FLIR cams: {flir_cams}")
+    flir_devices = get_flir_devices()
+    logger.debug(f"Found FLIR cams: {flir_devices}")
 
-    if len(pupil_cams) + len(flir_cams) + len(realsense_cams) == 0:
+    if len(pupil_devices) + len(flir_devices) + len(t265_devices) == 0:
         raise_error("No devices connected!", logger)
 
     # select devices
-    for name, uid in pupil_cams.items():
+    for name, uid in pupil_devices.items():
         config = get_uvc_config(config, name, uid)
 
-    for serial in realsense_cams:
+    for serial in t265_devices:
         config = get_realsense_config(config, serial)
+
+    for serial in flir_devices:
+        config = get_flir_config(config, serial)
 
     # show video
     config["commands"]["record"]["show_video"] = (

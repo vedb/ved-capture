@@ -1,6 +1,6 @@
 commands:
   record:
-    folder: '~/recordings/{today:%Y_%m_%d}'
+    folder: ~/recordings/{today:%Y_%m_%d}
     policy: new_folder
     duration: null
     video:
@@ -31,22 +31,22 @@ commands:
 streams:
   video:
     world:
-      resolution: (1280, 720)
-      fps: 30
-      device_type: uvc
-      device_uid: 'Pupil Cam1 ID2'
+      resolution: (2048, 1536)
+      fps: 50
+      device_type: flir
+      device_uid: null
       color_format: bgr24
     eye0:
-      resolution: (320, 240)
-      fps: 120
+      resolution: (192, 192)
+      fps: 200
       device_type: uvc
-      device_uid: 'Pupil Cam1 ID0'
+      device_uid: Pupil Cam2 ID0
       color_format: gray
     eye1:
-      resolution: (320, 240)
-      fps: 120
+      resolution: (192, 192)
+      fps: 200
       device_type: uvc
-      device_uid: 'Pupil Cam1 ID1'
+      device_uid: Pupil Cam2 ID1
       color_format: gray
     t265:
       resolution: (1696, 800)

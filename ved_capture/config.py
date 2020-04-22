@@ -194,6 +194,61 @@ def save_config(folder, config):
         ordered_dump(OrderedDict(config), f)
 
 
+def setup_stream_prompt(device_type, device_uid, stream_type):
+    """"""
+    choice = input(
+        f"Found {device_type} device '{device_uid}'.\n"
+        f"Do you want to set up {stream_type} streaming for this device? "
+        f"([y]/n): "
+    )
+    if choice.lower() == "n":
+        logger.warning(
+            f"Skipping {stream_type} setup for device '{device_uid}'"
+        )
+        return False
+    else:
+        return True
+
+
+def stream_name_prompt(config, default):
+    """"""
+    stream_name = (
+        input(
+            f"Enter stream name or press Enter to use the name '{default}': "
+        )
+        or default
+    )
+    if stream_name in config:
+        logger.error(
+            f"Stream name {stream_name} already exists, please make a "
+            f"different choice"
+        )
+        return stream_name_prompt(config, default)
+    else:
+        return stream_name
+
+
+def fps_prompt(default):
+    """"""
+    try:
+        choice = (
+            input(f"Enter FPS or press enter to set to {default}: ") or default
+        )
+        return float(choice)
+    except ValueError:
+        logger.error("Invalid FPS, please try again.")
+        return fps_prompt(default)
+
+
+def record_prompt(config, stream_type, stream_name):
+    """"""
+    choice = input("Do you want to record this stream? ([y]/n): ")
+    if choice.lower() != "n":
+        if "video" not in config["commands"]["record"]:
+            config["commands"]["record"][stream_type] = {}
+        config["commands"]["record"][stream_type][stream_name] = None
+
+
 def get_uvc_config(config, name, uid):
     """ Get config for a Pupil UVC cam. """
     if name.endswith("ID0"):
@@ -204,23 +259,6 @@ def get_uvc_config(config, name, uid):
         stream_name = "world"
     else:
         stream_name = name
-
-    choice = input(
-        f"Found device '{name}'.\n"
-        f"Do you want to set up video streaming for this device? ([y]/n): "
-    )
-
-    if choice.lower() == "n":
-        logger.warning(f"Skipping device '{name}'")
-        return config
-
-    stream_name = (
-        input(
-            f"Enter stream name or press Enter to use the name "
-            f"'{stream_name}': "
-        )
-        or stream_name
-    )
 
     def mode_prompt(modes):
         try:
@@ -235,89 +273,79 @@ def get_uvc_config(config, name, uid):
             logger.error("Invalid choice, please try again.")
             return mode_prompt(modes)
 
-    modes = {
-        idx: mode
-        for idx, mode in enumerate(
-            pri.VideoDeviceUVC._get_available_modes(uid)
+    if setup_stream_prompt("pupil", name, "video"):
+        stream_name = stream_name_prompt(
+            config["streams"]["video"], stream_name
         )
-    }
-
-    selected_mode = mode_prompt(modes)
-
-    config["streams"]["video"][stream_name] = {
-        "device_type": "uvc",
-        "device_uid": name,
-        "resolution": str(selected_mode[:-1]),
-        "fps": selected_mode[-1],
-        "color_format": "gray" if stream_name.startswith("eye") else "bgr24",
-    }
-
-    choice = input("Do you want to record this stream? ([y]/n): ")
-    if choice.lower() != "n":
-        if "video" not in config["commands"]["record"]:
-            config["commands"]["record"]["video"] = {}
-        config["commands"]["record"]["video"][stream_name] = None
+        modes = {
+            idx: mode
+            for idx, mode in enumerate(
+                pri.VideoDeviceUVC._get_available_modes(uid)
+            )
+        }
+        selected_mode = mode_prompt(modes)
+        config["streams"]["video"][stream_name] = {
+            "device_type": "uvc",
+            "device_uid": name,
+            "resolution": str(selected_mode[:-1]),
+            "fps": selected_mode[-1],
+            "color_format": "gray"
+            if stream_name.startswith("eye")
+            else "bgr24",
+        }
+        record_prompt(config, "video", stream_name)
 
     return config
 
 
-def get_realsense_config(config, serial, device_name="t265"):
+def get_realsense_config(
+    config, serial, device_type="t265", fps=30, resolution=(1696, 800)
+):
     """ Get config for a RealSense device. """
     # video
-    choice = input(
-        f"Found T265 device with serial number '{serial}'.\n"
-        f"Do you want to set up video streaming for this device ([y]/n): "
-    )
-    if choice.lower() == "n":
-        logger.warning(f"Skipping video setup for device '{serial}'")
-    else:
-        stream_name = (
-            input(
-                f"Enter stream name or press Enter to use the name "
-                f"'{device_name}': "
-            )
-            or device_name
+    if setup_stream_prompt(device_type, serial, "video"):
+        stream_name = stream_name_prompt(
+            config["streams"]["video"], device_type
         )
         config["streams"]["video"][stream_name] = {
-            "resolution": "(1696, 800)",
-            "fps": 30,
-            "device_type": "t265",
+            "resolution": str(resolution),
+            "fps": fps,
+            "device_type": device_type,
             "device_uid": serial,
             "color_format": "gray",
         }
-        choice = input("Do you want to record this stream? ([y]/n): ")
-        if choice.lower() != "n":
-            if "video" not in config["commands"]["record"]:
-                config["commands"]["record"]["video"] = {}
-            config["commands"]["record"]["video"][stream_name] = None
+        record_prompt(config, "video", stream_name)
 
     # motion
     for motion_type in ("odometry", "accel", "gyro"):
-        choice = input(
-            f"Do you want to set up {motion_type} streaming for this device "
-            f"([y]/n): "
-        )
-        if choice.lower() == "n":
-            logger.warning(
-                f"Skipping {motion_type} setup for device '{serial}'"
-            )
-        else:
-            stream_name = (
-                input(
-                    f"Enter stream name or press Enter to use the name "
-                    f"'{motion_type}': "
-                )
-                or motion_type
+        if setup_stream_prompt(device_type, serial, "motion"):
+            stream_name = stream_name_prompt(
+                config["streams"]["motion"], motion_type
             )
             config["streams"]["motion"][stream_name] = {
-                "device_type": "t265",
+                "device_type": device_type,
                 "device_uid": serial,
                 "motion_type": motion_type,
             }
-            choice = input("Do you want to record this stream? ([y]/n): ")
-            if choice.lower() != "n":
-                if "motion" not in config["commands"]["record"]:
-                    config["commands"]["record"]["motion"] = {}
-                config["commands"]["record"]["motion"][stream_name] = None
+            record_prompt(config, "motion", stream_name)
+
+    return config
+
+
+def get_flir_config(
+    config, serial, device_type="flir", resolution=(2048, 1536)
+):
+    """ Get config for a FLIR camera. """
+    if setup_stream_prompt(device_type, serial, "video"):
+        stream_name = stream_name_prompt(
+            config["streams"]["video"], device_type
+        )
+        config["streams"]["video"][stream_name] = {
+            "resolution": str(resolution),  # TODO get from cam
+            "fps": fps_prompt(50.0),  # TODO get default from cam
+            "device_type": device_type,
+            "device_uid": serial,
+        }
+        record_prompt(config, "video", stream_name)
 
     return config

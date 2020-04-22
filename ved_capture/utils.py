@@ -6,7 +6,9 @@ import subprocess
 from select import select
 
 import git
+import pupil_recording_interface as pri
 import pyrealsense2 as rs
+import PySpin
 
 logger = logging.getLogger(__name__)
 
@@ -112,8 +114,19 @@ def update_environment(
     return return_code
 
 
-def get_serial_numbers(suffix="T265"):
-    """ Return serial numbers of connected devices.
+def get_pupil_devices():
+    """ Get names and UIDs of connected Pupil cameras. """
+    connected_devices = pri.VideoDeviceUVC._get_connected_device_uids()
+    pupil_cams = {
+        name: uid
+        for name, uid in connected_devices.items()
+        if name.startswith("Pupil Cam")
+    }
+    return pupil_cams
+
+
+def get_realsense_devices(suffix="T265"):
+    """ Get serial numbers of connected RealSense devices.
 
     based on https://github.com/IntelRealSense/librealsense/issues/2332
     """
@@ -124,5 +137,30 @@ def get_serial_numbers(suffix="T265"):
         if suffix and not d.get_info(rs.camera_info.name).endswith(suffix):
             continue
         serials.append(d.get_info(rs.camera_info.serial_number))
+
+    return serials
+
+
+def get_flir_devices():
+    """ Get serial numbers connected FLIR cameras. """
+    system = PySpin.System.GetInstance()
+    cam_list = system.GetCameras()
+    logger.debug(f"Number of cameras detected: {cam_list.GetSize()}")
+
+    serials = []
+    for camera in cam_list:
+        nodemap = camera.GetTLDeviceNodeMap()
+        serial_number_node = PySpin.CStringPtr(
+            nodemap.GetNode("DeviceSerialNumber")
+        )
+        if PySpin.IsAvailable(serial_number_node) and PySpin.IsReadable(
+            serial_number_node
+        ):
+            serials.append(serial_number_node.GetValue())
+        else:
+            logger.warning(f"Could not get serial number for camera {camera}")
+
+    del camera
+    cam_list.Clear()
 
     return serials
