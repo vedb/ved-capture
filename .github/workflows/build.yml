@@ -1,4 +1,4 @@
-name: test
+name: build
 
 on: push
 
@@ -16,7 +16,7 @@ jobs:
       with:
         python-version: 3.6
     - name: Run installer
-      run: python installer/install_ved_capture.py -y -v --no_ssh
+      run: python installer/install_ved_capture.py -y -v --no_ssh --no_version_check
 
   test_app:
     runs-on: ubuntu-18.04
@@ -34,12 +34,19 @@ jobs:
       run: |
         wget http://mirrors.kernel.org/ubuntu/pool/main/u/udev/libudev0_175-0ubuntu9_amd64.deb
         sudo dpkg -i libudev0_175-0ubuntu9_amd64.deb
+        sudo apt-get update
+        sudo apt-get install -y libswscale-dev libavcodec-dev libavformat-dev
+        sudo dpkg -i installer/spinnaker_sdk_*/*.deb
     - name: Create environment
       run: conda env create
     - name: Install dev dependencies
       run: |
         source activate vedc
         conda install --file requirements_dev.txt
+    - name: Install package
+      run: |
+        source activate vedc
+        pip install --no-deps -e .
     - name: Copy paths.json
       run: |
         mkdir -p /home/runner/.config/vedc

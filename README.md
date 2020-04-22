@@ -1,4 +1,4 @@
-[![Build status](https://github.com/vedb/ved-capture/workflows/test/badge.svg)](https://github.com/vedb/ved-capture/actions)
+[![Build status](https://github.com/vedb/ved-capture/workflows/build/badge.svg)](https://github.com/vedb/ved-capture/actions)
 
 # ved-capture
 
@@ -30,7 +30,7 @@ Plug in your hardware (Pupil core system, RealSense T265, FLIR camera) and run:
 
     $ vedc generate_config
     
-This will check your connected devices and ask you several question. At
+This will check your connected devices and ask you several questions. At
  the end it will create a config file `~/.config/vedc/config.yaml` that will
  work for your current setup.
 
@@ -44,6 +44,15 @@ to start recording.
 
 By default, the data is recorded to `~/recordings/<today>/<no>`. After 
  recording, the data can be loaded into Pupil Player for inspection.
+ 
+
+### Estimating camera parameters
+
+Camera intrinsics can be estimated with:
+
+    $ vedc estimate_cam_params <stream>
+    
+where `<stream>` is the name of one of the streams you've set up, e.g. `world`.
   
 ### Updating
 

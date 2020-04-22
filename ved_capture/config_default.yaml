@@ -1,57 +1,78 @@
-record:
+commands:
+  record:
+    folder: ~/recordings/{today:%Y_%m_%d}
+    policy: new_folder
+    duration: null
+    video:
+      world:
+        codec: libx264
+      eye0:
+        codec: libx264
+      eye1:
+        codec: libx264
+      t265:
+        codec: libx264
+    motion:
+      odometry: null
+      accel: null
+      gyro: null
+    show_video: true
+    metadata:
+      - location
+      - experimenter
+      - experiment
+      - scene
+      - task
+      - subject_id
+      - age
+      - gender
+      - ethnicity
 
-  folder:
-    '~/recordings/{today:%Y_%m_%d}'
-  policy: new_folder
-  duration:
-  show_video: true
-  metadata:
-    - location
-    - experimenter
-    - experiment
-    - scene
-    - task
-    - subject_id
-    - age
-    - gender
-    - ethnicity
+  estimate_cam_params:
+    folder: ~/pupil_capture_settings
+    streams:
+      world: null
+      eye0: null
+      eye1: null
+      t265:
+        stereo: True
 
-video:
-
-  world:
-    resolution: (1280, 720)
-    fps: 30
-    codec: libx264
-    device_type: uvc
-    device_uid: 'Pupil Cam1 ID2'
-    color_format: bgr24
-
-  eye0:
-    resolution: (320, 240)
-    fps: 120
-    codec: libx264
-    device_type: uvc
-    device_uid: 'Pupil Cam1 ID0'
-    color_format: gray
-
-  eye1:
-    resolution: (320, 240)
-    fps: 120
-    codec: libx264
-    device_type: uvc
-    device_uid: 'Pupil Cam1 ID1'
-    color_format: gray
-
-  t265:
-    resolution: (1696, 800)
-    fps: 30
-    codec: libx264
-    device_type: t265
-    device_uid: t265
-    color_format: gray
-
-odometry:
-
-  t265:
-    device_type: t265
-    device_uid: t265
+streams:
+  video:
+    world:
+      resolution: (2048, 1536)
+      fps: 50
+      device_type: flir
+      device_uid: null
+      color_format: bgr24
+    eye0:
+      resolution: (192, 192)
+      fps: 200
+      device_type: uvc
+      device_uid: Pupil Cam2 ID0
+      color_format: gray
+    eye1:
+      resolution: (192, 192)
+      fps: 200
+      device_type: uvc
+      device_uid: Pupil Cam2 ID1
+      color_format: gray
+    t265:
+      resolution: (1696, 800)
+      fps: 30
+      device_type: t265
+      device_uid: t265
+      color_format: gray
+  motion:
+    odometry:
+      device_type: t265
+      device_uid: t265
+      motion_type: odometry
+    accel:
+      device_type: t265
+      device_uid: t265
+      motion_type: accel
+    gyro:
+      device_type: t265
+      device_uid: t265
+      motion_type: gyro

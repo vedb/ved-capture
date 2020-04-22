@@ -1,130 +1,38 @@
 """ ``vec_capture.cli`` bundles a variety of command line interfaces. """
 import os
-import sys
-import logging
 import inspect
 import importlib
 import traceback
-from contextlib import contextmanager
-import ctypes
 import io
-import tempfile
 
 import click
+from confuse import ConfigTypeError, NotFoundError
 from git.exc import GitError
 from blessed import Terminal
-from pupil_recording_interface import (
-    MultiStreamRecorder,
-    VideoDeviceUVC,
-)
+import pupil_recording_interface as pri
 
 from ved_capture._version import __version__
+from ved_capture.cli_utils import (
+    init_logger,
+    print_log_buffer,
+    raise_error,
+    get_uvc_config,
+    get_realsense_config,
+    get_flir_config,
+)
 from ved_capture.config import (
     ConfigParser,
     save_metadata,
     save_config,
-    get_uvc_config,
-    get_realsense_config,
 )
 from ved_capture.utils import (
     get_paths,
     update_repo,
     update_environment,
-    get_serial_numbers,
+    get_pupil_devices,
+    get_realsense_devices,
+    get_flir_devices,
 )
-
-
-libc = ctypes.CDLL(None)
-c_stdout = ctypes.c_void_p.in_dll(libc, "stdout")
-
-
-@contextmanager
-def redirect(stream):
-    # The original fd stdout points to. Usually 1 on POSIX systems.
-    original_stdout_fd = sys.stdout.fileno()
-
-    def _redirect_stdout(to_fd):
-        """Redirect stdout to the given file descriptor."""
-        # Flush the C-level buffer stdout
-        libc.fflush(c_stdout)
-        # Flush and close sys.stdout - also closes the file descriptor (fd)
-        sys.stdout.close()
-        # Make original_stdout_fd point to the same file as to_fd
-        os.dup2(to_fd, original_stdout_fd)
-        # Create a new sys.stdout that points to the redirected fd
-        sys.stdout = io.TextIOWrapper(os.fdopen(original_stdout_fd, "wb"))
-
-    # Save a copy of the original stdout fd in saved_stdout_fd
-    saved_stdout_fd = os.dup(original_stdout_fd)
-    try:
-        # Create a temporary file and redirect stdout to it
-        tfile = tempfile.TemporaryFile(mode="w+b")
-        _redirect_stdout(tfile.fileno())
-        # Yield to caller, then redirect stdout back to the saved fd
-        yield
-        _redirect_stdout(saved_stdout_fd)
-        # Copy contents of temporary file to the given stream
-        tfile.flush()
-        tfile.seek(0, io.SEEK_SET)
-        stream.write(tfile.read().decode())
-    finally:
-        try:
-            tfile.close()
-        except UnboundLocalError:
-            pass
-        os.close(saved_stdout_fd)
-
-
-def init_logger(
-    subcommand, verbosity=0, stream=sys.stdout, stream_format="%(message)s"
-):
-    """ Initialize logger with file and stream handler for a subcommand. """
-    TRACE = 5
-
-    # root logger with file handler
-    logging.basicConfig(
-        level=TRACE,
-        format="%(asctime)s | %(name)s | %(levelname)s: %(message)s",
-        filename=os.path.join(
-            ConfigParser().config.config_dir(), "vedc." + subcommand + ".log"
-        ),
-    )
-    logging.addLevelName(TRACE, "TRACE")
-    verbosity_map = {
-        0: logging.INFO,
-        1: logging.DEBUG,
-        2: TRACE,
-    }
-
-    # stream handler
-    stream_formatter = logging.Formatter(stream_format)
-    stream_handler = logging.StreamHandler(stream)
-    stream_handler.setLevel(verbosity_map[int(verbosity)])
-    stream_handler.setFormatter(stream_formatter)
-
-    # add the handler to the root logger
-    root_logger = logging.getLogger("")
-    root_logger.addHandler(stream_handler)
-    root_logger.setLevel(verbosity_map[int(verbosity)])
-
-    return logging.getLogger("vedc." + subcommand)
-
-
-def print_log_buffer(stream):
-    """ Print buffered logs. """
-    stream.flush()
-    buffer = stream.getvalue()
-    stream.truncate(0)
-    if len(buffer):
-        print(buffer)
-
-
-def raise_error(msg, logger=None):
-    """ Log error as debug message and raise ClickException. """
-    if logger is not None:
-        logger.debug(f"ERROR: {msg}")
-
-    raise click.ClickException(msg)
 
 
 @click.group("vedc")
@@ -145,6 +53,8 @@ def vedc():
 )
 def record(config_file, verbose):
     """ Run recording. """
+
+    # set up output
     t = Terminal()
     f_stdout = io.StringIO()
     logger = init_logger(
@@ -154,57 +64,109 @@ def record(config_file, verbose):
         stream_format="[%(levelname)s] %(message)s",
     )
 
-    config_parser = ConfigParser(config_file)
+    # parse config
+    try:
+        config_parser = ConfigParser(config_file)
+        metadata = config_parser.get_metadata()
+        stream_configs = config_parser.get_recording_configs()
+        folder = config_parser.get_folder("record", None, **metadata)
+        policy = config_parser.get_policy("record")
+    except (ConfigTypeError, NotFoundError, KeyError) as e:
+        raise_error(f"Error parsing configuration: {e.msg}", logger)
 
-    metadata = config_parser.get_metadata()
+    # init manager
+    manager = pri.StreamManager(stream_configs, folder=folder, policy=policy)
 
-    recorder = MultiStreamRecorder(
-        config_parser.get_recording_folder(None, **metadata),
-        config_parser.get_recording_configs(),
-        policy=config_parser.get_policy(),
-        show_video=config_parser.get_show_video(),
-    )
+    # run manager
+    with manager:
+        print(
+            t.bold(t.turquoise3("Started recording")) + f" to {manager.folder}"
+        )
+        if len(metadata) > 0:
+            save_metadata(manager.folder, metadata)
+            logger.debug(f"Saved user_info.csv to {manager.folder}")
 
-    if len(metadata) > 0:
-        save_metadata(recorder.folder, metadata)
-        logger.debug(f"Saved user_info.csv to {recorder.folder}")
-
-    # Start recorder
-    recorder.start()
-    print(t.bold(t.turquoise3("Started recording")) + f" to {recorder.folder}")
-
-    fps_generator = recorder.spin()
-    while True:
-        try:
-            fps_str = recorder.format_fps(next(iter(fps_generator)))
+        while not manager.stopped:
             print_log_buffer(f_stdout)
             # TODO save position
-            with t.hidden_cursor():
-                with t.location(0, t.height - 1):
-                    if fps_str is not None:
+            if manager.all_streams_running:
+                status_str = manager.format_status("fps", max_cols=t.width)
+                with t.hidden_cursor():
+                    with t.location(0, t.height - 1):
                         print(
                             t.clear_eol
-                            + t.bold(
-                                t.turquoise3("Sampling rates: ") + fps_str
-                            )
+                            + t.bold(t.turquoise3(status_str))
                             + t.move_up
                         )
-                    else:
+            else:
+                with t.hidden_cursor():
+                    with t.location(0, t.height - 1):
                         print(
                             t.clear_eol
                             + t.bold(t.turquoise3("Waiting for init"))
                             + t.move_up
                         )
-                # TODO move to previous position
-        except (StopIteration, KeyboardInterrupt):
-            break
+                    # TODO move to previous position
 
-    # Stop recorder
-    recorder.stop()
+    # stop
     print(t.clear_eol)
     print_log_buffer(f_stdout)
     with t.location(0, t.height - 1):
         print(t.clear_eol + t.bold(t.firebrick("Stopped recording")))
+
+
+@click.command("estimate_cam_params")
+@click.argument("streams", nargs=-1)
+@click.option(
+    "-c", "--config-file", default=None, help="Path to recording config file.",
+)
+@click.option(
+    "-e",
+    "--extrinsics",
+    default=False,
+    help="Also estimate extrinsics between cameras.",
+)
+@click.option(
+    "-v", "--verbose", default=False, help="Verbose output.", count=True,
+)
+def estimate_cam_params(streams, config_file, extrinsics, verbose):
+    """ Estimate camera parameters. """
+
+    # set up output
+    t = Terminal()
+    logger = init_logger(inspect.stack()[0][3], verbosity=verbose)
+
+    # parse config
+    try:
+        config_parser = ConfigParser(config_file)
+        stream_configs = config_parser.get_cam_param_configs(
+            *streams, extrinsics=extrinsics
+        )
+        folder = config_parser.get_folder("estimate_cam_params", None)
+    except (ConfigTypeError, NotFoundError, KeyError) as e:
+        raise_error(f"Error parsing configuration: {e.msg}", logger)
+
+    # init manager
+    manager = pri.StreamManager(stream_configs, folder=folder, policy="here")
+
+    # run manager
+    with manager:
+        while not manager.stopped:
+            if manager.all_streams_running:
+                response = input(
+                    t.bold(
+                        "Press enter to capture a pattern or type 's' to "
+                        "stop: "
+                    )
+                )
+                if response == "s":
+                    break
+                else:
+                    manager.send_notification({"acquire_pattern": True})
+                    manager.await_status(streams[0], pattern_acquired=True)
+
+    # stop
+    print(t.clear_eol + t.bold(t.firebrick("Stopped")))
 
 
 @click.command("generate_config")
@@ -219,7 +181,7 @@ def record(config_file, verbose):
     "-v", "--verbose", default=False, help="Verbose output.", count=True,
 )
 def generate_config(folder, verbose):
-    """ Generate recording configuration. """
+    """ Generate configuration. """
     logger = init_logger(inspect.stack()[0][3], verbosity=verbose)
 
     # check folder
@@ -231,49 +193,54 @@ def generate_config(folder, verbose):
 
     # default config
     config = {
-        "record": {
-            "folder": "~/recordings/{today:%Y_%m_%d}",
-            "policy": "new_folder",
-            "duration": None,
-            "metadata": None,
-            "show_video": False,
+        "commands": {
+            "record": {
+                "folder": "~/recordings/{today:%Y_%m_%d}",
+                "policy": "new_folder",
+                "duration": None,
+                "metadata": None,
+                "show_video": False,
+                "video": {},
+                "motion": {},
+            },
+            "estimate_cam_params": {
+                "folder": "~/pupil_capture_settings",
+                "streams": {},
+            },
         },
-        "video": {},
-        "odometry": {},
+        "streams": {"video": {}, "motion": {}},
     }
 
     # get connected devices
-    pupil_cams = {
-        name: uid
-        for name, uid in VideoDeviceUVC._get_connected_device_uids().items()
-        if name.startswith("Pupil Cam")
-    }
-    logger.debug(f"Found pupil cams: {pupil_cams}")
+    pupil_devices = get_pupil_devices()
+    logger.debug(f"Found pupil cams: {pupil_devices}")
 
-    realsense_cams = get_serial_numbers()
-    logger.debug(f"Found realsense cams: {realsense_cams}")
+    t265_devices = get_realsense_devices()
+    logger.debug(f"Found T265 devices: {t265_devices}")
 
-    # TODO
-    flir_cams = {}
-    logger.debug(f"Found FLIR cams: {flir_cams}")
+    flir_devices = get_flir_devices()
+    logger.debug(f"Found FLIR cams: {flir_devices}")
 
-    if len(pupil_cams) + len(flir_cams) + len(realsense_cams) == 0:
+    if len(pupil_devices) + len(flir_devices) + len(t265_devices) == 0:
         raise_error("No devices connected!", logger)
 
     # select devices
-    for name, uid in pupil_cams.items():
+    for name, uid in pupil_devices.items():
         config = get_uvc_config(config, name, uid)
 
-    for serial in realsense_cams:
+    for serial in t265_devices:
         config = get_realsense_config(config, serial)
 
+    for serial in flir_devices:
+        config = get_flir_config(config, serial)
+
     # show video
-    config["record"]["show_video"] = (
-        input("Show video streams during recording? [y/n]: ") == "y"
+    config["commands"]["record"]["show_video"] = (
+        input("Show video streams during recording? ([y]/n): ").lower() != "n"
     )
 
     # write config
-    if len(config["video"]) + len(config["odometry"]) == 0:
+    if len(config["streams"]["video"]) + len(config["streams"]["motion"]) == 0:
         raise_error("No devices selected!", logger)
     else:
         save_config(folder, config)
@@ -281,7 +248,7 @@ def generate_config(folder, verbose):
 
 @click.command("update")
 @click.option(
-    "-v", "--verbose", default=False, help="Verbose output.", is_flag=True,
+    "-v", "--verbose", default=False, help="Verbose output.", count=True,
 )
 @click.option(
     "-l",
@@ -291,7 +258,7 @@ def generate_config(folder, verbose):
     is_flag=True,
 )
 @click.option(
-    "-s", "--stash", default=False, help="Stash local changes.", is_flag=True,
+    "-s", "--stash", default=False, help="Stash local changes.", count=True,
 )
 def update(verbose, local, stash):
     """ Update installation. """
@@ -327,7 +294,7 @@ def update(verbose, local, stash):
 
 @click.command("check_install")
 @click.option(
-    "-v", "--verbose", default=False, help="Verbose output.", is_flag=True,
+    "-v", "--verbose", default=False, help="Verbose output.", count=True,
 )
 def check_install(verbose):
     """ Test installation. """
@@ -354,6 +321,7 @@ def check_install(verbose):
 
 # add subcommands
 vedc.add_command(record)
+vedc.add_command(estimate_cam_params)
 vedc.add_command(generate_config)
 vedc.add_command(update)
 vedc.add_command(check_install)

@@ -2,8 +2,6 @@ import os
 
 import pytest
 
-from pupil_recording_interface.config import VideoConfig, OdometryConfig
-
 from ved_capture.config import ConfigParser
 
 
@@ -21,28 +19,32 @@ class TestConfigParser(object):
     def test_constructor(self, config_file):
         """"""
         parser = ConfigParser(config_file)
-        assert parser.config["video"]["t265"]["device_type"].get() == "t265"
+        assert (
+            parser.config["streams"]["video"]["t265"]["device_type"].get()
+            == "t265"
+        )
 
         parser = ConfigParser()
-        assert parser.config["record"]["metadata"].get()[0] == "location"
+        assert (
+            parser.config["commands"]["record"]["metadata"].get()[0]
+            == "location"
+        )
 
-    def test_get_recording_folder(self, parser, config_dir):
+    def test_get_folder(self, parser, config_dir):
         """"""
         import datetime
 
-        folder = parser.get_recording_folder(None)
-        assert folder == "{dir}/out/{today:%Y-%m-%d}".format(
-            dir=config_dir, today=datetime.date.today()
-        )
+        folder = parser.get_folder("record", None)
+        assert folder == f"{config_dir}/out/{datetime.date.today():%Y-%m-%d}"
 
     def test_get_policy(self, parser):
         """"""
         # test config file
-        assert parser.get_policy() == "overwrite"
+        assert parser.get_policy("record") == "overwrite"
         # user override
-        assert parser.get_policy("here") == "here"
+        assert parser.get_policy("record", "here") == "here"
         # package default
-        assert ConfigParser().get_policy() == "new_folder"
+        assert ConfigParser().get_policy("record") == "new_folder"
 
     def test_get_show_video(self, parser):
         """"""
@@ -60,12 +62,32 @@ class TestConfigParser(object):
 
     def test_get_recording_configs(self, parser):
         """"""
-        # TODO add __eq__ to pri.StreamConfig to handle equality check
+        # TODO add __eq__ to Config to handle equality check
         config_list = parser.get_recording_configs()
 
-        assert isinstance(config_list[0], VideoConfig)
+        assert config_list[0].stream_type == "video"
         assert config_list[0].device_type == "t265"
         assert config_list[0].resolution == (1696, 800)
+        assert config_list[0].pipeline[0].process_type == "video_recorder"
+        assert config_list[0].pipeline[1].process_type == "video_display"
 
-        assert isinstance(config_list[1], OdometryConfig)
+        assert config_list[1].stream_type == "motion"
         assert config_list[1].device_type == "t265"
+        assert config_list[1].pipeline[0].process_type == "motion_recorder"
+
+    def test_get_cam_param_configs(self, parser):
+        """"""
+        config_list = parser.get_cam_param_configs("world", "t265")
+
+        assert config_list[0].stream_type == "video"
+        assert (
+            config_list[0].pipeline[0].process_type == "circle_grid_detector"
+        )
+        assert config_list[0].pipeline[1].process_type == "cam_param_estimator"
+        assert config_list[0].pipeline[2].process_type == "video_display"
+
+        assert config_list[1].device_type == "t265"
+        assert (
+            config_list[1].pipeline[0].process_type == "circle_grid_detector"
+        )
+        assert config_list[1].pipeline[1].process_type == "video_display"

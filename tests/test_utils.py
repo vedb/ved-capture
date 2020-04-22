@@ -2,7 +2,13 @@ import pytest
 
 from git.exc import GitError
 
-from ved_capture.utils import get_paths, update_repo, get_serial_numbers
+from ved_capture.utils import (
+    get_paths,
+    update_repo,
+    get_pupil_devices,
+    get_realsense_devices,
+    get_flir_devices,
+)
 
 
 class TestUtils:
@@ -27,7 +33,17 @@ class TestUtils:
         with pytest.raises(GitError):
             update_repo("not_a_folder")
 
-    def test_get_serial_numbers(self):
+    def test_get_pupil_devices(self):
         """"""
-        # TODO figure out how to test this
-        get_serial_numbers()
+        # TODO check return value
+        get_pupil_devices()
+
+    def test_get_flir_devices(self):
+        """"""
+        # TODO check return value
+        get_flir_devices()
+
+    def test_get_realsense_devices(self):
+        """"""
+        # TODO check return value
+        get_realsense_devices()

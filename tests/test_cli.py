@@ -11,7 +11,7 @@ class TestCli:
         """"""
         runner = CliRunner()
         result = runner.invoke(
-            record, f"-v -c {config_dir}/nometa_config.yaml"
+            record, f"-v -c {config_dir}/config_minimal.yaml"
         )
 
         assert result.exit_code == 0

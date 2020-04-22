@@ -24,10 +24,12 @@ from glob import glob
 import logging
 from select import select
 import json
+from distutils.version import LooseVersion
+import re
 import hashlib
 
 
-__installer_version = "0.1.2"
+__installer_version = "0.2.0"
 __vedc_tag = None
 __maintainer_email = "peter.hausamann@tum.de"
 
@@ -282,7 +284,19 @@ def verify_latest_version(vedc_repo_folder):
         vedc_repo_folder, "installer", "install_ved_capture.py"
     )
 
-    if md5(__file__) != md5(repo_script):
+    installer_version = LooseVersion(__installer_version)
+    with open(repo_script, "rt") as f:
+        repo_script_version = LooseVersion(
+            re.search(
+                r"^__installer_version = ['\"]([^'\"]*)['\"]", f.read(), re.M
+            ).group(1)
+        )
+
+    if installer_version < repo_script_version or (
+        installer_version == repo_script_version
+        and md5(__file__) != md5(repo_script)
+    ):
+        show_header("ERROR")
         logger.error(
             f"You are using an outdated version of the installer script. "
             f"Please run:\n\n"
@@ -309,8 +323,9 @@ def password_prompt():
 def install_spinnaker_sdk(folder, password, groupname="flirimaging"):
     """"""
     # Install dependencies
+    run_as_sudo(["apt-get", "update"], password)
     libs = ["libswscale-dev", "libavcodec-dev", "libavformat-dev"]
-    run_as_sudo(["apt-get", "install"] + libs, password)
+    run_as_sudo(["apt-get", "install", "-y"] + libs, password)
 
     # Install packages
     deb_files = glob(os.path.join(folder, "*.deb"))
@@ -331,6 +346,21 @@ def install_spinnaker_sdk(folder, password, groupname="flirimaging"):
 
     # Restart udev daemon
     run_as_sudo(["/etc/init.d/udev", "restart"], password)
+
+    # Increase USB-FS size
+    old_params = '"quiet splash"'
+    new_params = '"quiet splash usbcore.usbfs_memory_mb=160000"'
+    run_as_sudo(
+        [
+            "sed",
+            "-i",
+            f"s/GRUB_CMDLINE_LINUX_DEFAULT={old_params}"
+            f"/GRUB_CMDLINE_LINUX_DEFAULT={new_params}/",
+            "/etc/default/grub",
+        ],
+        password,
+    )
+    run_as_sudo(["update-grub"], password)
 
 
 def install_libuvc_deps(password):
@@ -423,6 +453,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Skip steps that require root access",
     )
+    parser.add_argument(
+        "--no_version_check",
+        action="store_true",
+        help="Skip checking for newer install script version",
+    )
     args = parser.parse_args()
 
     # Set up paths
@@ -485,7 +520,8 @@ if __name__ == "__main__":
         update_repo(vedc_repo_folder)
 
     # Check script version
-    verify_latest_version(vedc_repo_folder)
+    if not args.no_version_check:
+        verify_latest_version(vedc_repo_folder)
 
     # Steps with root access
     if not args.no_root:
@@ -569,3 +605,5 @@ if __name__ == "__main__":
 
     # Success
     logger.info("Installation successful. Congratulations! 🎉🎉🎉")
+    if not args.no_root:
+        logger.info("Please reboot your system.")

@@ -1,20 +1,20 @@
-record:
+commands:
+  record:
+    folder:
+      '{cfgd}/out/{today:%Y-%m-%d}'
+    policy: overwrite
+    duration:
+    video:
+    motion:
+    show_video: false
+    metadata:
 
-  folder:
-    '{cfgd}/out/{today:%Y-%m-%d}'
-  policy: overwrite
-  duration:
-  show_video: false
-  metadata:
-
-video:
-
-  world:
-    codec: libx264
-    color_format: bgr24
-    device_type: uvc
-    device_uid: Pupil Cam1 ID2
-    fps: 30
-    resolution: (1280, 720)
-
-odometry: {}
+streams:
+  video:
+    world:
+      device_type: uvc
+      device_uid: Pupil Cam1 ID2
+      resolution: (1280, 720)
+      fps: 30
+      color_format: bgr24
+  motion: {}
