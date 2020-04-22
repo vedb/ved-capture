@@ -2,15 +2,21 @@ commands:
   record:
     folder: '{cfgd}/out/{today:%Y-%m-%d}'
     policy: overwrite
-    duration:
+    duration: null
     show_video: true
     metadata:
-    - subject_id
+      - subject_id
     video:
       t265:
         codec: libx264
     motion:
-      odometry:
+      odometry: null
+  estimate_cam_params:
+    folder: '{cfgd}/out/pupil_capture_settings'
+    streams:
+      world: null
+      t265:
+        stereo: True
 
 streams:
   video:

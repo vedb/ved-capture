@@ -4,6 +4,8 @@ commands:
       '{cfgd}/out/{today:%Y-%m-%d}'
     policy: overwrite
     duration:
+    video:
+    motion:
     show_video: false
     metadata:
 

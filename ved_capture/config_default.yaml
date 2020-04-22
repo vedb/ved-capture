@@ -28,6 +28,13 @@ commands:
       - gender
       - ethnicity
 
+  estimate_cam_params:
+    folder: ~/pupil_capture_settings
+    streams:
+      world: null
+      t265:
+        stereo: True
+
 streams:
   video:
     world:
