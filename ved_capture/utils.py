@@ -159,8 +159,8 @@ def get_flir_devices():
             serials.append(serial_number_node.GetValue())
         else:
             logger.warning(f"Could not get serial number for camera {camera}")
+        del camera
 
-    del camera
     cam_list.Clear()
 
     return serials

@@ -24,6 +24,8 @@ from glob import glob
 import logging
 from select import select
 import json
+from packaging import version
+import re
 import hashlib
 
 
@@ -282,7 +284,19 @@ def verify_latest_version(vedc_repo_folder):
         vedc_repo_folder, "installer", "install_ved_capture.py"
     )
 
-    if md5(__file__) != md5(repo_script):
+    installer_version = version.parse(__installer_version)
+    with open(repo_script, "rt") as f:
+        repo_script_version = version.parse(
+            re.search(
+                r"^__installer_version = ['\"]([^'\"]*)['\"]", f.read(), re.M
+            ).group(1)
+        )
+
+    if installer_version < repo_script_version or (
+        installer_version == repo_script_version
+        and md5(__file__) != md5(repo_script)
+    ):
+        show_header("ERROR")
         logger.error(
             f"You are using an outdated version of the installer script. "
             f"Please run:\n\n"
@@ -424,6 +438,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Skip steps that require root access",
     )
+    parser.add_argument(
+        "--no_version_check",
+        action="store_true",
+        help="Skip checking for newer install script version",
+    )
     args = parser.parse_args()
 
     # Set up paths
@@ -486,7 +505,8 @@ if __name__ == "__main__":
         update_repo(vedc_repo_folder)
 
     # Check script version
-    verify_latest_version(vedc_repo_folder)
+    if not args.no_version_check:
+        verify_latest_version(vedc_repo_folder)
 
     # Steps with root access
     if not args.no_root:
