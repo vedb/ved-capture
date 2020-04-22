@@ -6,6 +6,7 @@ import traceback
 import io
 
 import click
+from confuse import ConfigTypeError, NotFoundError
 from git.exc import GitError
 from blessed import Terminal
 import pupil_recording_interface as pri
@@ -52,6 +53,8 @@ def vedc():
 )
 def record(config_file, verbose):
     """ Run recording. """
+
+    # set up output
     t = Terminal()
     f_stdout = io.StringIO()
     logger = init_logger(
@@ -61,15 +64,20 @@ def record(config_file, verbose):
         stream_format="[%(levelname)s] %(message)s",
     )
 
-    config_parser = ConfigParser(config_file)
-    metadata = config_parser.get_metadata()
+    # parse config
+    try:
+        config_parser = ConfigParser(config_file)
+        metadata = config_parser.get_metadata()
+        stream_configs = config_parser.get_recording_configs()
+        folder = config_parser.get_folder("record", None, **metadata)
+        policy = config_parser.get_policy("record")
+    except (ConfigTypeError, NotFoundError, KeyError) as e:
+        raise_error(f"Error parsing configuration: {e.msg}", logger)
 
-    manager = pri.StreamManager(
-        config_parser.get_recording_configs(),
-        folder=config_parser.get_folder("record", None, **metadata),
-        policy=config_parser.get_policy("record"),
-    )
+    # init manager
+    manager = pri.StreamManager(stream_configs, folder=folder, policy=policy)
 
+    # run manager
     with manager:
         print(
             t.bold(t.turquoise3("Started recording")) + f" to {manager.folder}"
@@ -100,7 +108,7 @@ def record(config_file, verbose):
                         )
                     # TODO move to previous position
 
-    # Stop manager
+    # stop
     print(t.clear_eol)
     print_log_buffer(f_stdout)
     with t.location(0, t.height - 1):
@@ -116,28 +124,40 @@ def record(config_file, verbose):
     "-e",
     "--extrinsics",
     default=False,
-    help="Estimate extrinsics between cameras.",
+    help="Also estimate extrinsics between cameras.",
 )
 @click.option(
     "-v", "--verbose", default=False, help="Verbose output.", count=True,
 )
 def estimate_cam_params(streams, config_file, extrinsics, verbose):
     """ Estimate camera parameters. """
+
+    # set up output
+    t = Terminal()
     logger = init_logger(inspect.stack()[0][3], verbosity=verbose)
 
-    config_parser = ConfigParser(config_file)
+    # parse config
+    try:
+        config_parser = ConfigParser(config_file)
+        stream_configs = config_parser.get_cam_param_configs(
+            *streams, extrinsics=extrinsics
+        )
+        folder = config_parser.get_folder("estimate_cam_params", None)
+    except (ConfigTypeError, NotFoundError, KeyError) as e:
+        raise_error(f"Error parsing configuration: {e.msg}", logger)
 
-    manager = pri.StreamManager(
-        config_parser.get_cam_param_configs(*streams, extrinsics=extrinsics),
-        folder=config_parser.get_folder("estimate_cam_params", None),
-        policy="here",
-    )
+    # init manager
+    manager = pri.StreamManager(stream_configs, folder=folder, policy="here")
 
+    # run manager
     with manager:
         while not manager.stopped:
             if manager.all_streams_running:
                 response = input(
-                    "Press enter to capture a pattern or type 's' to stop: "
+                    t.bold(
+                        "Press enter to capture a pattern or type 's' to "
+                        "stop: "
+                    )
                 )
                 if response == "s":
                     break
@@ -145,7 +165,8 @@ def estimate_cam_params(streams, config_file, extrinsics, verbose):
                     manager.send_notification({"acquire_pattern": True})
                     manager.await_status(streams[0], pattern_acquired=True)
 
-    print("\nStopped")
+    # stop
+    print(t.clear_eol + t.bold(t.firebrick("Stopped")))
 
 
 @click.command("generate_config")
