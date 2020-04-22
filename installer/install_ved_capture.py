@@ -347,6 +347,21 @@ def install_spinnaker_sdk(folder, password, groupname="flirimaging"):
     # Restart udev daemon
     run_as_sudo(["/etc/init.d/udev", "restart"], password)
 
+    # Increase USB-FS size
+    old_params = '"quiet splash"'
+    new_params = '"quiet splash usbcore.usbfs_memory_mb=160000"'
+    run_as_sudo(
+        [
+            "sed",
+            "-i",
+            f"s/GRUB_CMDLINE_LINUX_DEFAULT={old_params}"
+            f"/GRUB_CMDLINE_LINUX_DEFAULT={new_params}/",
+            "/etc/default/grub",
+        ],
+        password,
+    )
+    run_as_sudo(["update-grub"], password)
+
 
 def install_libuvc_deps(password):
     """"""
@@ -524,6 +539,8 @@ if __name__ == "__main__":
         )
         install_spinnaker_sdk(sdk_folder, password)
 
+        exit(0)
+
         # Create udev rules for libuvc
         show_header("Installing libuvc dependencies")
         install_libuvc_deps(password)
@@ -590,3 +607,5 @@ if __name__ == "__main__":
 
     # Success
     logger.info("Installation successful. Congratulations! 🎉🎉🎉")
+    if not args.no_root:
+        logger.info("Please reboot your system.")
