@@ -32,8 +32,6 @@ dependencies:
   # other
   - gitpython=3.1.0
   - tqdm
-  # development
-  - pytest
   # pip
   - pip:
     - blessed==1.17.4
