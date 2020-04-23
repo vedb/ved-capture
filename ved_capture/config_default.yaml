@@ -1,3 +1,5 @@
+version: 0.2.0
+
 commands:
   record:
     folder: ~/recordings/{today:%Y_%m_%d}
@@ -27,6 +29,12 @@ commands:
       - age
       - gender
       - ethnicity
+
+  calibrate:
+    folder: ~/pupil_capture_settings
+    world: world
+    eye0: eye0
+    eye1: eye1
 
   estimate_cam_params:
     folder: ~/pupil_capture_settings
