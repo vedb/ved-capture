@@ -7,51 +7,52 @@ jobs:
   test_installer:
     runs-on: ubuntu-18.04
     steps:
-    - uses: actions/checkout@v2
-    - uses: webfactory/ssh-agent@v0.2.0
-      with:
-        ssh-private-key: ${{ secrets.VEDC_PRIVATE_KEY }}
-    - name: Set up Python 3.6
-      uses: actions/setup-python@v1
-      with:
-        python-version: 3.6
-    - name: Run installer
-      run: python installer/install_ved_capture.py -y -v --no_ssh --no_version_check
+      - uses: actions/checkout@v2
+      - uses: webfactory/ssh-agent@v0.2.0
+        with:
+          ssh-private-key: ${{ secrets.VEDC_PRIVATE_KEY }}
+      - name: Set up Python 3.6
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.6
+      - name: Run installer
+        run: python installer/install_ved_capture.py -y -v --no_ssh --no_version_check
 
   test_app:
     runs-on: ubuntu-18.04
     steps:
-    - uses: actions/checkout@v2
-    - uses: webfactory/ssh-agent@v0.2.0
-      with:
-        ssh-private-key: ${{ secrets.VEDC_PRIVATE_KEY }}
-    - uses: s-weigand/setup-conda@v1
-    - name: Check versions
-      run: |
-        conda --version
-        which python
-    - name: Install system dependencies
-      run: |
-        wget http://mirrors.kernel.org/ubuntu/pool/main/u/udev/libudev0_175-0ubuntu9_amd64.deb
-        sudo dpkg -i libudev0_175-0ubuntu9_amd64.deb
-        sudo apt-get update
-        sudo apt-get install -y libswscale-dev libavcodec-dev libavformat-dev
-        sudo dpkg -i installer/spinnaker_sdk_*/*.deb
-    - name: Create environment
-      run: conda env create
-    - name: Install dev dependencies
-      run: |
-        source activate vedc
-        conda install --file requirements_dev.txt
-    - name: Install package
-      run: |
-        source activate vedc
-        pip install --no-deps -e .
-    - name: Copy paths.json
-      run: |
-        mkdir -p /home/runner/.config/vedc
-        cp tests/test_data/config/paths.json /home/runner/.config/vedc
-    - name: Run pytest
-      run: |
-        source activate vedc
-        pytest
+      - uses: actions/checkout@v2
+      - uses: webfactory/ssh-agent@v0.2.0
+        with:
+          ssh-private-key: ${{ secrets.VEDC_PRIVATE_KEY }}
+      - uses: s-weigand/setup-conda@v1
+      - name: Check versions
+        run: |
+          conda --version
+          which python
+      - name: Install system dependencies
+        run: |
+          wget http://mirrors.kernel.org/ubuntu/pool/main/u/udev/libudev0_175-0ubuntu9_amd64.deb
+          sudo dpkg -i libudev0_175-0ubuntu9_amd64.deb
+          sudo apt-get update
+          sudo apt-get install -y libswscale-dev libavcodec-dev libavformat-dev
+          sudo dpkg -i installer/spinnaker_sdk_*/*.deb
+          sudo apt-get install libopencv-dev libeigen3-dev libceres-dev
+      - name: Create environment
+        run: conda env create
+      - name: Install dev dependencies
+        run: |
+          source activate vedc
+          conda install --file requirements_dev.txt
+      - name: Install package
+        run: |
+          source activate vedc
+          pip install --no-deps -e .
+      - name: Copy paths.json
+        run: |
+          mkdir -p /home/runner/.config/vedc
+          cp tests/test_data/config/paths.json /home/runner/.config/vedc
+      - name: Run pytest
+        run: |
+          source activate vedc
+          pytest

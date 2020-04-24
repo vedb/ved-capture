@@ -46,6 +46,13 @@ By default, the data is recorded to `~/recordings/<today>/<no>`. After
  recording, the data can be loaded into Pupil Player for inspection.
  
 
+### Calibration
+
+The gaze mapper can be calibrated with:
+
+    $ vedc calibrate
+    
+
 ### Estimating camera parameters
 
 Camera intrinsics can be estimated with:
@@ -53,6 +60,7 @@ Camera intrinsics can be estimated with:
     $ vedc estimate_cam_params <stream>
     
 where `<stream>` is the name of one of the streams you've set up, e.g. `world`.
+
   
 ### Updating
 

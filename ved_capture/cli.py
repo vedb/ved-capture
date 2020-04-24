@@ -34,6 +34,8 @@ from ved_capture.utils import (
     get_flir_devices,
 )
 
+_config_version = __version__
+
 
 @click.group("vedc")
 @click.version_option(version=__version__)
@@ -115,6 +117,76 @@ def record(config_file, verbose):
         print(t.clear_eol + t.bold(t.firebrick("Stopped recording")))
 
 
+@click.command("calibrate")
+@click.option(
+    "-c", "--config-file", default=None, help="Path to recording config file.",
+)
+@click.option(
+    "-v", "--verbose", default=False, help="Verbose output.", count=True,
+)
+def calibrate(config_file, verbose):
+    """ Calibrate gaze mapping. """
+
+    # set up output
+    t = Terminal()
+    logger = init_logger(inspect.stack()[0][3], verbosity=verbose)
+
+    # parse config
+    try:
+        config_parser = ConfigParser(config_file)
+        stream_configs = config_parser.get_calibration_configs()
+        folder = config_parser.get_folder("calibrate", None)
+    except (ConfigTypeError, NotFoundError, KeyError) as e:
+        raise_error(f"Error parsing configuration: {e.msg}", logger)
+
+    # init manager
+    manager = pri.StreamManager(stream_configs, folder=folder, policy="here")
+
+    # run manager
+    with manager:
+        while not manager.stopped:
+            if manager.all_streams_running:
+                # Collect data
+                response = input(
+                    t.bold(
+                        "Press enter to start calibration or type 'a' to "
+                        "abort: "
+                    )
+                )
+                if response == "a":
+                    break
+                else:
+                    print("Collecting calibration data...")
+                    manager.send_notification(
+                        {"resume_process": "world.CircleDetector"},
+                        streams=["world"],
+                    )
+                    manager.send_notification(
+                        {"collect_calibration_data": True}, streams=["world"],
+                    )
+                    manager.await_status("world", collected_markers=None)
+
+                # Calculate calibration
+                response = input(
+                    t.bold(
+                        "Press enter to stop calibration or type 'a' to "
+                        "abort: "
+                    )
+                )
+                if response == "a":
+                    break
+                else:
+                    manager.send_notification(
+                        {"pause_process": "world.CircleDetector"},
+                        streams=["world"],
+                    )
+                    manager.send_notification({"calculate_calibration": True})
+                    manager.await_status("world", calibration_calculated=True)
+
+    # stop
+    print(t.clear_eol + t.bold(t.firebrick("Stopped")))
+
+
 @click.command("estimate_cam_params")
 @click.argument("streams", nargs=-1)
 @click.option(
@@ -193,6 +265,7 @@ def generate_config(folder, verbose):
 
     # default config
     config = {
+        "version": _config_version,
         "commands": {
             "record": {
                 "folder": "~/recordings/{today:%Y_%m_%d}",
@@ -207,6 +280,7 @@ def generate_config(folder, verbose):
                 "folder": "~/pupil_capture_settings",
                 "streams": {},
             },
+            "calibration": {"folder": "~/pupil_capture_settings"},
         },
         "streams": {"video": {}, "motion": {}},
     }
@@ -310,7 +384,7 @@ def check_install(verbose):
             logger.debug(traceback.format_exc())
             failures.append(module)
 
-    for module in ["uvc", "PySpin", "pyrealsense2"]:
+    for module in ["uvc", "pupil_detectors", "PySpin", "pyrealsense2"]:
         check_import(module)
 
     if len(failures) == 0:
@@ -321,6 +395,7 @@ def check_install(verbose):
 
 # add subcommands
 vedc.add_command(record)
+vedc.add_command(calibrate)
 vedc.add_command(estimate_cam_params)
 vedc.add_command(generate_config)
 vedc.add_command(update)

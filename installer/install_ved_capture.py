@@ -363,6 +363,13 @@ def install_spinnaker_sdk(folder, password, groupname="flirimaging"):
     run_as_sudo(["update-grub"], password)
 
 
+def install_pupil_detectors_deps(password):
+    """"""
+    run_as_sudo(["apt-get", "update"], password)
+    libs = ["libopencv-dev", "libeigen3-dev", "libceres-dev"]
+    run_as_sudo(["apt-get", "install", "-y"] + libs, password)
+
+
 def install_libuvc_deps(password):
     """"""
     # Install libudev0
@@ -539,9 +546,10 @@ if __name__ == "__main__":
         )
         install_spinnaker_sdk(sdk_folder, password)
 
-        # Create udev rules for libuvc
-        show_header("Installing libuvc dependencies")
+        # Install libuvc and pupil detectors dependencies
+        show_header("Installing pupil software dependencies")
         install_libuvc_deps(password)
+        install_pupil_detectors_deps(password)
 
     else:
         logger.debug("Skipping installation of system-wide dependencies.")
