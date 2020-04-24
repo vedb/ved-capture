@@ -384,7 +384,7 @@ def check_install(verbose):
             logger.debug(traceback.format_exc())
             failures.append(module)
 
-    for module in ["uvc", "PySpin", "pyrealsense2"]:
+    for module in ["uvc", "pupil_detectors", "PySpin", "pyrealsense2"]:
         check_import(module)
 
     if len(failures) == 0:
