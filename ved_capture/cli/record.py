@@ -6,7 +6,13 @@ import pupil_recording_interface as pri
 from blessed import Terminal
 from confuse import ConfigTypeError, NotFoundError
 
-from ved_capture.cli.utils import init_logger, raise_error, print_log_buffer
+from ved_capture.cli.utils import (
+    init_logger,
+    raise_error,
+    flush_log_buffer,
+    print_log_buffer,
+)
+from ved_capture.cli.ui import refresh
 from ved_capture.config import ConfigParser, save_metadata
 
 
@@ -53,27 +59,22 @@ def record(config_file, verbose):
             logger.debug(f"Saved user_info.csv to {manager.folder}")
 
         while not manager.stopped:
-            print_log_buffer(f_stdout)
+            log_buffer = flush_log_buffer(f_stdout)
             if manager.all_streams_running:
-                status_str = manager.format_status("fps", max_cols=t.width)
-                with t.hidden_cursor():
-                    with t.location(0, t.height - 1):
-                        print(
-                            t.clear_eol
-                            + t.bold(t.turquoise3(status_str))
-                            + t.move_up
-                        )
+                status_str = manager.format_status(
+                    "fps", format="{:.2f} Hz", max_cols=t.width
+                )
+                refresh(
+                    t,
+                    log_buffer,
+                    t.bold(t.turquoise3("Sampling rates:"))
+                    + "\n"
+                    + t.bold(status_str),
+                )
             else:
-                with t.hidden_cursor():
-                    with t.location(0, t.height - 1):
-                        print(
-                            t.clear_eol
-                            + t.bold(t.turquoise3("Waiting for init"))
-                            + t.move_up
-                        )
+                if log_buffer is not None:
+                    print(log_buffer)
 
     # stop
-    print(t.clear_eol)
     print_log_buffer(f_stdout)
-    with t.location(0, t.height - 1):
-        print(t.clear_eol + t.bold(t.firebrick("Stopped recording")))
+    print(t.bold(t.firebrick("Stopped recording")))
