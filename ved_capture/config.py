@@ -27,6 +27,17 @@ class ConfigParser(object):
             self.config.set_file(config_file)
             logger.debug(f"Loaded configuration from {config_file}")
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        from ved_capture.cli.utils import raise_error
+
+        if exc_type is not None:
+            raise_error(
+                f"Error parsing configuration: {exc_type}: {exc_val}", logger
+            )
+
     def get_command_config(self, command, *subkeys):
         """ Get configuration for a CLI command. """
         # TODO user-defined command configs completely

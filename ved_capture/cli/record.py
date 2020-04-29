@@ -2,10 +2,8 @@ import inspect
 
 import click
 import pupil_recording_interface as pri
-from confuse import ConfigTypeError, NotFoundError
 
 from ved_capture.cli.ui import TerminalUI
-from ved_capture.cli.utils import raise_error
 from ved_capture.config import ConfigParser, save_metadata
 
 
@@ -21,14 +19,11 @@ def record(config_file, verbose):
     ui = TerminalUI(inspect.stack()[0][3], verbosity=verbose)
 
     # parse config
-    try:
-        config_parser = ConfigParser(config_file)
+    with ConfigParser(config_file) as config_parser:
         metadata = config_parser.get_metadata()
         stream_configs = config_parser.get_recording_configs()
         folder = config_parser.get_folder("record", None, **metadata)
         policy = config_parser.get_policy("record")
-    except (ConfigTypeError, NotFoundError, KeyError) as e:
-        raise_error(f"Error parsing configuration: {e}", ui.logger)
 
     # init manager
     manager = pri.StreamManager(stream_configs, folder=folder, policy=policy)
