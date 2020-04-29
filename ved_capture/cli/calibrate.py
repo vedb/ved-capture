@@ -69,10 +69,9 @@ def calibrate(config_file, verbose):
                 "collect calibration data",
                 lambda: collect_calibration_data(ui, manager, "c"),
             ),
-            "ctrl+c": ("quit", ui.nop),
         },
     )
 
-    # run manager
-    with manager:
+    # spin
+    with ui, manager:
         ui.spin()

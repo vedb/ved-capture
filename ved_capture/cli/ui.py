@@ -24,21 +24,21 @@ def refresh(t, stream_buffer, status_buffer, timeout=0.1, num_empty_lines=1):
     else:
         print(t.move_xy(0, refresh.first_log_line) + t.move_up)
 
-    # check bottom offset
-    num_status_lines = len(status_buffer.splitlines()) + 1
-    refresh.first_log_line = t.get_location()[0]
-    actual_offset = t.height - t.get_location()[0]
-    desired_offset = num_status_lines + num_empty_lines
-
-    # adjust if necessary
-    if desired_offset > actual_offset:
-        refresh.first_log_line -= desired_offset - actual_offset
-        print("\n" * (desired_offset - 2))
-
     # print status buffer
-    # TODO handle no status (=clear previous status)
-    first_status_line = t.height - num_status_lines
-    print(t.move_y(first_status_line) + t.clear_eos + status_buffer)
+    if status_buffer is not None:
+        num_status_lines = len(status_buffer.splitlines()) + 1
+        refresh.first_log_line = t.get_location()[0]
+        actual_offset = t.height - t.get_location()[0]
+        desired_offset = num_status_lines + num_empty_lines
+
+        if desired_offset > actual_offset:
+            refresh.first_log_line -= desired_offset - actual_offset
+            print("\n" * (desired_offset - 2))
+
+        first_status_line = t.height - num_status_lines
+        print(t.move_y(first_status_line) + t.clear_eos + status_buffer)
+    else:
+        print(t.clear_eos + t.move_up)
 
     # wait for keypress
     with t.cbreak():
@@ -67,6 +67,13 @@ class TerminalUI:
         self.statusmap = {}
         self.keymap = {}
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        refresh(self.term, flush_log_buffer(self.f_stdout), None)
+        print(self.term.bold(self.term.firebrick("Stopped")))
+
     @classmethod
     def nop(cls):
         """ Placeholder method for keys that don't get handled via keymap. """
@@ -86,6 +93,9 @@ class TerminalUI:
                 )
             if not callable(tup[1]):
                 raise ValueError(f"Key '{key}': value[1] is not callable")
+
+        # Add quit hint
+        self.keymap["ctrl+c"] = ("quit", self.nop)
 
     def _get_status_str(self):
         """ Get status and key mappings. """
@@ -128,7 +138,6 @@ class TerminalUI:
                     if key in self.keymap:
                         self.keymap[key][1]()
             else:
+                # TODO not calling refresh here because C-level stdout writes
+                #  are not handled
                 print_log_buffer(self.f_stdout)
-
-        print_log_buffer(self.f_stdout)
-        print(self.term.bold(self.term.firebrick("Stopped")))

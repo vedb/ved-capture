@@ -10,7 +10,7 @@ from ved_capture.config import ConfigParser
 
 
 def acquire_pattern(ui, manager):
-    """"""
+    """ Acquire a new calibration pattern. """
     manager.send_notification({"acquire_pattern": True})
 
 
@@ -53,6 +53,6 @@ def estimate_cam_params(streams, config_file, extrinsics, verbose):
         },
     )
 
-    # run manager
-    with manager:
+    # spin
+    with ui, manager:
         ui.spin()
