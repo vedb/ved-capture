@@ -7,60 +7,36 @@ from ved_capture.cli.ui import TerminalUI
 from ved_capture.config import ConfigParser, save_metadata
 
 
-def show_video_streams(ui, manager, key):
-    """ Show video streams. """
-    for stream in manager.streams:
-        manager.send_notification(
-            {"resume_process": f"{stream}.VideoDisplay"}, streams=[stream],
-        )
-
-    ui.logger.info("Showing video streams")
-    ui.keymap[key] = (
-        "hide video streams",
-        lambda: hide_video_streams(ui, manager, key),
-    )
-
-
-def hide_video_streams(ui, manager, key):
-    """ Hide video streams. """
-    for stream in manager.streams:
-        manager.send_notification(
-            {"pause_process": f"{stream}.VideoDisplay"}, streams=[stream],
-        )
-
-    ui.logger.info("Hiding video streams")
-    ui.keymap[key] = (
-        "show video streams",
-        lambda: show_video_streams(ui, manager, key),
-    )
-
-
-def pause_recording(ui, manager, key):
+def pause_recording(manager):
     """ Pause video recording. """
     for stream in manager.streams:
         manager.send_notification(
             {"pause_process": f"{stream}.VideoRecorder"}, streams=[stream],
         )
 
-    ui.logger.info("Pausing recording")
-    ui.keymap[key] = (
-        "resume recording",
-        lambda: resume_recording(ui, manager, key),
-    )
 
-
-def resume_recording(ui, manager, key):
+def resume_recording(manager):
     """ Resume video recording. """
     for stream in manager.streams:
         manager.send_notification(
             {"resume_process": f"{stream}.VideoRecorder"}, streams=[stream],
         )
 
-    ui.logger.info("Resuming recording")
-    ui.keymap[key] = (
-        "pause recording",
-        lambda: pause_recording(ui, manager, key),
-    )
+
+def show_video_streams(manager):
+    """ Show video streams. """
+    for stream in manager.streams:
+        manager.send_notification(
+            {"resume_process": f"{stream}.VideoDisplay"}, streams=[stream],
+        )
+
+
+def hide_video_streams(manager):
+    """ Hide video streams. """
+    for stream in manager.streams:
+        manager.send_notification(
+            {"pause_process": f"{stream}.VideoDisplay"}, streams=[stream],
+        )
 
 
 @click.command("record")
@@ -84,22 +60,30 @@ def record(config_file, verbose):
 
     # init manager
     manager = pri.StreamManager(stream_configs, folder=folder, policy=policy)
+    ui.attach(manager, statusmap={"fps": "{:.2f} Hz"})
 
-    keymap = {
-        "r": ("pause recording", lambda: pause_recording(ui, manager, "r")),
-    }
-    if show_video:
-        keymap["v"] = (
-            "hide video streams",
-            lambda: hide_video_streams(ui, manager, "v"),
-        )
-    else:
-        keymap["v"] = (
-            "show video streams",
-            lambda: show_video_streams(ui, manager, "v"),
-        )
-
-    ui.attach(manager, statusmap={"fps": "{:.2f} Hz"}, keymap=keymap)
+    # set keyboard commands
+    ui.add_key(
+        "s",
+        "show video streams",
+        show_video_streams,
+        msg="Showing video streams",
+        alt_key="h",
+        alt_description="hide video streams",
+        alt_fn=hide_video_streams,
+        alt_msg="Hiding video streams",
+        alt_default=show_video,
+    )
+    ui.add_key(
+        "p",
+        "pause recording",
+        pause_recording,
+        msg="Pausing video recording",
+        alt_key="r",
+        alt_description="resume recording",
+        alt_fn=resume_recording,
+        alt_msg="Resuming video recording",
+    )
 
     # spin
     with ui, manager:

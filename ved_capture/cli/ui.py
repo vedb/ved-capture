@@ -74,6 +74,48 @@ class TerminalUI:
         refresh(self.term, flush_log_buffer(self.f_stdout), None)
         print(self.term.bold(self.term.firebrick("Stopped")))
 
+    def add_key(
+        self,
+        key,
+        description,
+        fn,
+        args=tuple(),
+        msg=None,
+        alt_key=None,
+        alt_description=None,
+        alt_fn=None,
+        alt_args=None,
+        alt_msg=None,
+        alt_default=False,
+    ):
+        """ Add a key to the keymap. """
+
+        def call_fn():
+            fn(self.manager, *args)
+            if msg:
+                self.logger.info(msg)
+            if alt_fn:
+                self.keymap.pop(key)
+                self.keymap[alt_key or key] = (
+                    alt_description or description,
+                    call_alt_fn,
+                )
+
+        def call_alt_fn():
+            alt_fn(self.manager, *(alt_args or args))
+            if alt_msg or msg:
+                self.logger.info(alt_msg or msg)
+            self.keymap.pop(alt_key or key)
+            self.keymap[key] = (description, call_fn)
+
+        if alt_default:
+            self.keymap[alt_key] = (
+                alt_description or description,
+                call_alt_fn,
+            )
+        else:
+            self.keymap[key] = (description, call_fn)
+
     @classmethod
     def nop(cls):
         """ Placeholder method for keys that don't get handled via keymap. """
@@ -94,9 +136,6 @@ class TerminalUI:
             if not callable(tup[1]):
                 raise ValueError(f"Key '{key}': value[1] is not callable")
 
-        # Add quit hint
-        self.keymap["ctrl+c"] = ("quit", self.nop)
-
     def _get_status_str(self):
         """ Get status and key mappings. """
         status_str = "\n".join(
@@ -115,6 +154,7 @@ class TerminalUI:
                 f"[{self.term.bold(key)}] {name}"
                 for key, (name, _) in self.keymap.items()
             ]
+            + [f"[{self.term.bold('ctrl+c')}] quit"]
         )
         if len(key_str):
             status_str += "\n" + key_str
