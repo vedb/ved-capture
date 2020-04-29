@@ -89,12 +89,19 @@ def init_logger(
     return logging.getLogger("vedc." + subcommand)
 
 
-def print_log_buffer(stream):
-    """ Print buffered logs. """
+def flush_log_buffer(stream):
+    """ Flush buffered logs. """
     stream.flush()
     buffer = stream.getvalue()
     stream.truncate(0)
     if len(buffer):
+        return buffer.rstrip("\n")
+
+
+def print_log_buffer(stream):
+    """ Print buffered logs. """
+    buffer = flush_log_buffer(stream)
+    if buffer:
         print(buffer)
 
 
