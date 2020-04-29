@@ -7,35 +7,22 @@ from ved_capture.cli.ui import TerminalUI
 from ved_capture.config import ConfigParser
 
 
-def collect_calibration_data(ui, manager, key):
+def collect_calibration_data(manager, stream="world"):
     """ Start data collection. """
     manager.send_notification(
-        {"resume_process": "world.CircleDetector"}, streams=["world"],
+        {"resume_process": f"{stream}.CircleDetector"}, streams=[stream],
     )
     manager.send_notification(
-        {"collect_calibration_data": True}, streams=["world"],
-    )
-
-    ui.logger.info("Collecting calibration data")
-    ui.keymap[key] = (
-        "calculate calibration",
-        lambda: calculate_calibration(ui, manager, key),
+        {"collect_calibration_data": True}, streams=[stream],
     )
 
 
-def calculate_calibration(ui, manager, key):
+def calculate_calibration(manager, stream="world"):
     """ Stop data collection and run calibration. """
-    ui.logger.info("Calculating calibration")
-
     manager.send_notification(
-        {"pause_process": "world.CircleDetector"}, streams=["world"],
+        {"pause_process": f"{stream}.CircleDetector"}, streams=[stream],
     )
     manager.send_notification({"calculate_calibration": True})
-
-    ui.keymap[key] = (
-        "collect calibration data",
-        lambda: collect_calibration_data(ui, manager, key),
-    )
 
 
 @click.command("calibrate")
@@ -56,15 +43,17 @@ def calibrate(config_file, verbose):
 
     # init manager
     manager = pri.StreamManager(stream_configs, folder=folder, policy="here")
-    ui.attach(
-        manager,
-        statusmap={"fps": "{:.2f} Hz"},
-        keymap={
-            "c": (
-                "collect calibration data",
-                lambda: collect_calibration_data(ui, manager, "c"),
-            ),
-        },
+    ui.attach(manager, statusmap={"fps": "{:.2f} Hz"})
+
+    # add keyboard commands
+    ui.add_key(
+        "c",
+        "collect calibration data",
+        collect_calibration_data,
+        msg="Collecting calibration data",
+        alt_description="calculate calibration",
+        alt_fn=calculate_calibration,
+        alt_msg="Calculating calibration",
     )
 
     # spin

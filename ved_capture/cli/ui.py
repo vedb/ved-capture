@@ -74,6 +74,15 @@ class TerminalUI:
         refresh(self.term, flush_log_buffer(self.f_stdout), None)
         print(self.term.bold(self.term.firebrick("Stopped")))
 
+    def _replace_key(self, key, desc, call_fn, new_key=None, new_desc=None):
+        """ Replace a key in the keymap while maintaining its order. """
+        self.keymap = {
+            (new_key or key if k == key else k): (
+                (new_desc or desc, call_fn) if k == key else v
+            )
+            for k, v in self.keymap.items()
+        }
+
     def add_key(
         self,
         key,
@@ -95,18 +104,21 @@ class TerminalUI:
             if msg:
                 self.logger.info(msg)
             if alt_fn:
-                self.keymap.pop(key)
-                self.keymap[alt_key or key] = (
-                    alt_description or description,
-                    call_alt_fn,
+                self._replace_key(
+                    key, description, call_alt_fn, alt_key, alt_description
                 )
 
         def call_alt_fn():
             alt_fn(self.manager, *(alt_args or args))
             if alt_msg or msg:
                 self.logger.info(alt_msg or msg)
-            self.keymap.pop(alt_key or key)
-            self.keymap[key] = (description, call_fn)
+            self._replace_key(
+                alt_key or key,
+                alt_description or description,
+                call_fn,
+                key,
+                description,
+            )
 
         if alt_default:
             self.keymap[alt_key] = (

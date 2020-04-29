@@ -7,7 +7,7 @@ from ved_capture.cli.ui import TerminalUI
 from ved_capture.config import ConfigParser
 
 
-def acquire_pattern(ui, manager):
+def acquire_pattern(manager):
     """ Acquire a new calibration pattern. """
     manager.send_notification({"acquire_pattern": True})
 
@@ -39,13 +39,10 @@ def estimate_cam_params(streams, config_file, extrinsics, verbose):
 
     # init manager
     manager = pri.StreamManager(stream_configs, folder=folder, policy="here")
-    ui.attach(
-        manager,
-        statusmap={"fps": "{:.2f} Hz"},
-        keymap={
-            "i": ("acquire pattern", lambda: acquire_pattern(ui, manager)),
-        },
-    )
+    ui.attach(manager, statusmap={"fps": "{:.2f} Hz"})
+
+    # add keyboard commands
+    ui.add_key("i", "acquire pattern", acquire_pattern)
 
     # spin
     with ui, manager:

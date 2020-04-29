@@ -62,6 +62,11 @@ def record(config_file, verbose):
     manager = pri.StreamManager(stream_configs, folder=folder, policy=policy)
     ui.attach(manager, statusmap={"fps": "{:.2f} Hz"})
 
+    print(f"{ui.term.bold('Started recording')} to {manager.folder}")
+    if len(metadata) > 0:
+        save_metadata(manager.folder, metadata)
+        ui.logger.debug(f"Saved user_info.csv to {manager.folder}")
+
     # set keyboard commands
     ui.add_key(
         "s",
@@ -87,8 +92,4 @@ def record(config_file, verbose):
 
     # spin
     with ui, manager:
-        print(f"{ui.term.bold('Started recording')} to {manager.folder}")
-        if len(metadata) > 0:
-            save_metadata(manager.folder, metadata)
-            ui.logger.debug(f"Saved user_info.csv to {manager.folder}")
         ui.spin()
