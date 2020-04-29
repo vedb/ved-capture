@@ -2,11 +2,16 @@ import inspect
 
 import click
 import pupil_recording_interface as pri
-from blessed import Terminal
 from confuse import ConfigTypeError, NotFoundError
 
-from ved_capture.cli.utils import init_logger, raise_error
+from ved_capture.cli.ui import TerminalUI
+from ved_capture.cli.utils import raise_error
 from ved_capture.config import ConfigParser
+
+
+def acquire_pattern(ui, manager):
+    """"""
+    manager.send_notification({"acquire_pattern": True})
 
 
 @click.command("estimate_cam_params")
@@ -25,10 +30,7 @@ from ved_capture.config import ConfigParser
 )
 def estimate_cam_params(streams, config_file, extrinsics, verbose):
     """ Estimate camera parameters. """
-
-    # set up output
-    t = Terminal()
-    logger = init_logger(inspect.stack()[0][3], verbosity=verbose)
+    ui = TerminalUI(inspect.stack()[0][3], verbosity=verbose)
 
     # parse config
     try:
@@ -38,26 +40,19 @@ def estimate_cam_params(streams, config_file, extrinsics, verbose):
         )
         folder = config_parser.get_folder("estimate_cam_params", None)
     except (ConfigTypeError, NotFoundError, KeyError) as e:
-        raise_error(f"Error parsing configuration: {e.msg}", logger)
+        raise_error(f"Error parsing configuration: {e}", ui.logger)
 
     # init manager
     manager = pri.StreamManager(stream_configs, folder=folder, policy="here")
+    ui.attach(
+        manager,
+        statusmap={"fps": "{:.2f} Hz"},
+        keymap={
+            "i": ("acquire pattern", lambda: acquire_pattern(ui, manager),),
+            "ctrl+c": ("quit", ui.nop),
+        },
+    )
 
     # run manager
     with manager:
-        while not manager.stopped:
-            if manager.all_streams_running:
-                response = input(
-                    t.bold(
-                        "Press enter to capture a pattern or type 's' to "
-                        "stop: "
-                    )
-                )
-                if response == "s":
-                    break
-                else:
-                    manager.send_notification({"acquire_pattern": True})
-                    manager.await_status(streams[0], pattern_acquired=True)
-
-    # stop
-    print(t.clear_eol + t.bold(t.firebrick("Stopped")))
+        ui.spin()

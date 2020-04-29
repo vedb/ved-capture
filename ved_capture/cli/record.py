@@ -1,18 +1,11 @@
 import inspect
-import io
 
 import click
 import pupil_recording_interface as pri
-from blessed import Terminal
 from confuse import ConfigTypeError, NotFoundError
 
-from ved_capture.cli.utils import (
-    init_logger,
-    raise_error,
-    flush_log_buffer,
-    print_log_buffer,
-)
-from ved_capture.cli.ui import refresh
+from ved_capture.cli.ui import TerminalUI
+from ved_capture.cli.utils import raise_error
 from ved_capture.config import ConfigParser, save_metadata
 
 
@@ -25,16 +18,7 @@ from ved_capture.config import ConfigParser, save_metadata
 )
 def record(config_file, verbose):
     """ Run recording. """
-
-    # set up output
-    t = Terminal()
-    f_stdout = io.StringIO()
-    logger = init_logger(
-        inspect.stack()[0][3],
-        verbosity=verbose,
-        stream=f_stdout,
-        stream_format="[%(levelname)s] %(message)s",
-    )
+    ui = TerminalUI(inspect.stack()[0][3], verbosity=verbose)
 
     # parse config
     try:
@@ -44,37 +28,22 @@ def record(config_file, verbose):
         folder = config_parser.get_folder("record", None, **metadata)
         policy = config_parser.get_policy("record")
     except (ConfigTypeError, NotFoundError, KeyError) as e:
-        raise_error(f"Error parsing configuration: {e.msg}", logger)
+        raise_error(f"Error parsing configuration: {e}", ui.logger)
 
     # init manager
     manager = pri.StreamManager(stream_configs, folder=folder, policy=policy)
+    ui.attach(
+        manager,
+        statusmap={"fps": "{:.2f} Hz"},
+        keymap={"ctrl+c": ("quit", ui.nop)},
+    )
 
     # run manager
     with manager:
-        print(
-            t.bold(t.turquoise3("Started recording")) + f" to {manager.folder}"
-        )
+        print(f"{ui.term.bold('Started recording')} to {manager.folder}")
+
         if len(metadata) > 0:
             save_metadata(manager.folder, metadata)
-            logger.debug(f"Saved user_info.csv to {manager.folder}")
+            ui.logger.debug(f"Saved user_info.csv to {manager.folder}")
 
-        while not manager.stopped:
-            log_buffer = flush_log_buffer(f_stdout)
-            if manager.all_streams_running:
-                status_str = manager.format_status(
-                    "fps", format="{:.2f} Hz", max_cols=t.width
-                )
-                refresh(
-                    t,
-                    log_buffer,
-                    t.bold(t.turquoise3("Sampling rates:"))
-                    + "\n"
-                    + t.bold(status_str),
-                )
-            else:
-                if log_buffer is not None:
-                    print(log_buffer)
-
-    # stop
-    print_log_buffer(f_stdout)
-    print(t.bold(t.firebrick("Stopped recording")))
+        ui.spin()

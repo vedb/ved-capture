@@ -161,7 +161,9 @@ class ConfigParser(object):
             config["pipeline"].append(pri.Calibration.Config(save=True))
             config["pipeline"].append(pri.GazeMapper.Config())
             config["pipeline"].append(
-                pri.VideoDisplay.Config(overlay_gaze=True)
+                pri.VideoDisplay.Config(
+                    overlay_circle_marker=True, overlay_gaze=True
+                )
             )
         elif cam_type == "eye0":
             config["pipeline"].append(pri.PupilDetector.Config())

@@ -60,7 +60,13 @@ def generate_config(folder, verbose):
                 "folder": "~/pupil_capture_settings",
                 "streams": {},
             },
-            "calibration": {"folder": "~/pupil_capture_settings"},
+            # TODO overwrite with configured streams
+            "calibrate": {
+                "folder": "~/pupil_capture_settings",
+                "world": "world",
+                "eye0": "eye0",
+                "eye1": "eye1",
+            },
         },
         "streams": {"video": {}, "motion": {}},
     }

@@ -95,7 +95,7 @@ def flush_log_buffer(stream):
     buffer = stream.getvalue()
     stream.truncate(0)
     if len(buffer):
-        return buffer
+        return buffer.rstrip("\n")
 
 
 def print_log_buffer(stream):
