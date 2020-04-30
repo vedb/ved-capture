@@ -4,6 +4,7 @@ import click
 import pupil_recording_interface as pri
 
 from ved_capture.cli.ui import TerminalUI
+from ved_capture.cli.utils import raise_error
 from ved_capture.config import ConfigParser
 
 
@@ -29,6 +30,11 @@ def acquire_pattern(manager):
 def estimate_cam_params(streams, config_file, extrinsics, verbose):
     """ Estimate camera parameters. """
     ui = TerminalUI(inspect.stack()[0][3], verbosity=verbose)
+
+    if len(streams) == 0:
+        raise_error(
+            "Please specify at least one stream for parameter estimation"
+        )
 
     # parse config
     with ConfigParser(config_file) as config_parser:
