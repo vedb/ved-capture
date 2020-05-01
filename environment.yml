@@ -12,7 +12,7 @@ dependencies:
   - xarray
   - netcdf4
   # video
-  - ffmpeg=4.1.3
+  - ffmpeg=3.4.2
   - x264=1!152.20180806
   # pupil
   - libusb=1.0.23
@@ -23,6 +23,7 @@ dependencies:
   # realsense
   - librealsense2=2.32.1
   # flir
+  - spinnaker-sdk=1.27.0.48
   - pyspin=1.27.0.48
   # vedc
   - confuse=1.0.0

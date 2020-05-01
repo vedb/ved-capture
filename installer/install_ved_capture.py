@@ -320,17 +320,8 @@ def password_prompt():
     return password
 
 
-def install_spinnaker_sdk(folder, password, groupname="flirimaging"):
+def configure_spinnaker(password, groupname="flirimaging"):
     """"""
-    # Install dependencies
-    run_as_sudo(["apt-get", "update"], password)
-    libs = ["libswscale-dev", "libavcodec-dev", "libavformat-dev"]
-    run_as_sudo(["apt-get", "install", "-y"] + libs, password)
-
-    # Install packages
-    deb_files = glob(os.path.join(folder, "*.deb"))
-    run_as_sudo(["dpkg", "-i"] + deb_files, password)
-
     # Create flir group
     run_as_sudo(["groupadd", "-f", groupname], password)
     run_as_sudo(["usermod", "-a", "-G", groupname, getuser()], password)
@@ -349,7 +340,7 @@ def install_spinnaker_sdk(folder, password, groupname="flirimaging"):
 
     # Increase USB-FS size
     old_params = '"quiet splash"'
-    new_params = '"quiet splash usbcore.usbfs_memory_mb=160000"'
+    new_params = '"quiet splash usbcore.usbfs_memory_mb=1000"'
     run_as_sudo(
         [
             "sed",
@@ -363,24 +354,8 @@ def install_spinnaker_sdk(folder, password, groupname="flirimaging"):
     run_as_sudo(["update-grub"], password)
 
 
-def install_pupil_detectors_deps(password):
+def configure_libuvc(password):
     """"""
-    run_as_sudo(["apt-get", "update"], password)
-    libs = ["libopencv-dev", "libeigen3-dev", "libceres-dev"]
-    run_as_sudo(["apt-get", "install", "-y"] + libs, password)
-
-
-def install_libuvc_deps(password):
-    """"""
-    # Install libudev0
-    filename, _ = urllib.request.urlretrieve(
-        "http://mirrors.kernel.org/ubuntu/pool/main/u/udev/"
-        "libudev0_175-0ubuntu9_amd64.deb"
-    )
-
-    run_as_sudo(["dpkg", "-i", filename], password)
-
-    # Create udev rules
     udev_file = "/etc/udev/rules.d/10-libuvc.rules"
     udev_rules = (
         'SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", '
@@ -390,6 +365,13 @@ def install_libuvc_deps(password):
     write_file_as_sudo(udev_file, udev_rules)
 
     run_as_sudo(["udevadm", "trigger"], password)
+
+
+def install_pupil_detectors_deps(password):
+    """"""
+    run_as_sudo(["apt-get", "update"], password)
+    libs = ["libopencv-dev", "libeigen3-dev", "libceres-dev"]
+    run_as_sudo(["apt-get", "install", "-y"] + libs, password)
 
 
 # -- CONDA -- #
@@ -539,16 +521,13 @@ if __name__ == "__main__":
         else:
             password = None
 
-        # Install Spinnaker SDK
-        show_header("Installing Spinnaker SDK")
-        sdk_folder = os.path.join(
-            vedc_repo_folder, "installer", "spinnaker_sdk_1.27.0.48_amd64",
-        )
-        install_spinnaker_sdk(sdk_folder, password)
+        # Configure Spinnaker SDK
+        show_header("Configuring Spinnaker SDK")
+        configure_spinnaker(password)
 
         # Install libuvc and pupil detectors dependencies
         show_header("Installing pupil software dependencies")
-        install_libuvc_deps(password)
+        configure_libuvc(password)
         install_pupil_detectors_deps(password)
 
     else:
