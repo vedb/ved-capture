@@ -16,7 +16,7 @@ jobs:
         with:
           python-version: 3.6
       - name: Run installer
-        run: python installer/install_ved_capture.py -y -v --no_ssh --no_version_check
+        run: python installer/install_ved_capture.py -y -v -b ${GITHUB_REF##*/} --no_ssh --no_version_check
 
   test_app:
     runs-on: ubuntu-18.04

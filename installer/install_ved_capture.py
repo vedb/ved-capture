@@ -29,8 +29,7 @@ import re
 import hashlib
 
 
-__installer_version = "0.2.0"
-__vedc_tag = None
+__installer_version = "0.2.1"
 __maintainer_email = "peter.hausamann@tum.de"
 
 
@@ -243,11 +242,14 @@ def get_repo_folder(base_folder, repo_url):
     return os.path.join(base_folder, repo_url.rsplit("/", 1)[-1].split(".")[0])
 
 
-def clone_repo(base_folder, repo_folder, repo_url):
+def clone_repo(base_folder, repo_folder, repo_url, branch="master"):
     """"""
     os.makedirs(base_folder, exist_ok=True)
     error_msg = "Could not clone the repository. Did you set up the SSH key?"
-    run_command(["git", "clone", repo_url, repo_folder], error_msg=error_msg)
+    run_command(
+        ["git", "clone", "-b", branch, repo_url, repo_folder],
+        error_msg=error_msg,
+    )
 
 
 def update_repo(repo_folder):
@@ -435,6 +437,12 @@ if __name__ == "__main__":
         help="Install from the parent folder instead of the remote repository",
     )
     parser.add_argument(
+        "-b",
+        "--branch",
+        default="master",
+        help="Install from this branch or tag",
+    )
+    parser.add_argument(
         "--no_ssh", action="store_true", help="Disable check for SSH key",
     )
     parser.add_argument(
@@ -451,9 +459,7 @@ if __name__ == "__main__":
 
     # Set up paths
     base_folder = os.path.expanduser(args.folder)
-    vedc_repo_url = "ssh://git@github.com/vedb/ved-capture"
-    if __vedc_tag is not None:
-        vedc_repo_url += f"@{__vedc_tag}"
+    vedc_repo_url = f"ssh://git@github.com/vedb/ved-capture"
     if args.local:
         vedc_repo_folder = str(pathlib.Path(os.path.dirname(__file__)).parent)
     else:
@@ -501,7 +507,7 @@ if __name__ == "__main__":
             "Cloning repository",
             f"Retrieving git repository from {vedc_repo_url}",
         )
-        clone_repo(base_folder, vedc_repo_folder, vedc_repo_url)
+        clone_repo(base_folder, vedc_repo_folder, vedc_repo_url, args.branch)
     elif not args.local:
         show_header(
             "Updating repository", f"Pulling new changes from {vedc_repo_url}"
