@@ -32,11 +32,7 @@ jobs:
           which python
       - name: Install system dependencies
         run: |
-          wget http://mirrors.kernel.org/ubuntu/pool/main/u/udev/libudev0_175-0ubuntu9_amd64.deb
-          sudo dpkg -i libudev0_175-0ubuntu9_amd64.deb
           sudo apt-get update
-          sudo apt-get install -y libswscale-dev libavcodec-dev libavformat-dev
-          sudo dpkg -i installer/spinnaker_sdk_*/*.deb
           sudo apt-get install libopencv-dev libeigen3-dev libceres-dev
       - name: Create environment
         run: conda env create
