@@ -10,8 +10,9 @@ dependencies:
   - scipy
   - pandas
   - xarray
-  - netcdf4
+#  - netcdf4
   # video
+  - phausamann::opencv=4.2.0
   - ffmpeg=3.4.2
   - x264=1!152.20180806
   # pupil
@@ -20,6 +21,7 @@ dependencies:
   - libjpeg-turbo=2.0.3
   - pyuvc=0.13
   - msgpack-python=0.6.2
+  - pupil-detectors=1.0.5
   # realsense
   - librealsense2=2.32.1
   # flir
@@ -33,8 +35,6 @@ dependencies:
   - tqdm
   # pip
   - pip:
-    - opencv-python==4.1.0.25
-    - pupil-detectors==1.0.4
     - blessed==1.17.4
     - multiprocessing-logging==0.3.1
     - pyrealsense2==2.32.1.1346

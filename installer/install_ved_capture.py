@@ -247,7 +247,7 @@ def clone_repo(base_folder, repo_folder, repo_url, branch="master"):
     os.makedirs(base_folder, exist_ok=True)
     error_msg = "Could not clone the repository. Did you set up the SSH key?"
     run_command(
-        ["git", "clone", "-b", branch, repo_url, repo_folder],
+        ["git", "clone", "--depth", "1", "-b", branch, repo_url, repo_folder],
         error_msg=error_msg,
     )
 
@@ -312,7 +312,7 @@ def password_prompt():
     """"""
     show_header("Installing system-wide dependencies")
     logger.info(
-        "Some dependencies need to be installed system wide. In order for "
+        "Some things need to be configured system wide. In order for "
         "this to work, the current user must have root access to the "
         "machine. You will need to enter your password once. The password "
         "will not be stored anywhere.\n"
@@ -367,13 +367,6 @@ def configure_libuvc(password):
     write_file_as_sudo(udev_file, udev_rules)
 
     run_as_sudo(["udevadm", "trigger"], password)
-
-
-def install_pupil_detectors_deps(password):
-    """"""
-    run_as_sudo(["apt-get", "update"], password)
-    libs = ["libopencv-dev", "libeigen3-dev", "libceres-dev"]
-    run_as_sudo(["apt-get", "install", "-y"] + libs, password)
 
 
 # -- CONDA -- #
@@ -518,27 +511,6 @@ if __name__ == "__main__":
     if not args.no_version_check:
         verify_latest_version(vedc_repo_folder)
 
-    # Steps with root access
-    if not args.no_root:
-
-        # Get password for sudo stuff
-        if not args.yes:
-            password = password_prompt()
-        else:
-            password = None
-
-        # Configure Spinnaker SDK
-        show_header("Configuring Spinnaker SDK")
-        configure_spinnaker(password)
-
-        # Install libuvc and pupil detectors dependencies
-        show_header("Installing pupil software dependencies")
-        configure_libuvc(password)
-        install_pupil_detectors_deps(password)
-
-    else:
-        logger.debug("Skipping installation of system-wide dependencies.")
-
     # Install miniconda if necessary
     if not os.path.exists(conda_binary):
         show_header(
@@ -570,8 +542,22 @@ if __name__ == "__main__":
             shell=True,
         )
 
-    # Create link to vedc binary
+    # Steps with root access
     if not args.no_root:
+
+        # Get password for sudo stuff
+        if not args.yes:
+            password = password_prompt()
+        else:
+            password = None
+
+        # Configure USB settings
+        show_header("Configuring USB settings")
+        configure_spinnaker(password)
+        configure_libuvc(password)
+
+        # Create link to vedc binary
+        show_header("Installing command line interface")
         vedc_binary = "/usr/local/bin/vedc"
         show_header(
             "Creating vedc excecutable", f"Installing to {vedc_binary}.",
@@ -583,8 +569,9 @@ if __name__ == "__main__":
             f'. {conda_script} && conda activate vedc && vedc "$@"\n',
         )
         run_as_sudo(["chmod", "+x", vedc_binary], password)
+
     else:
-        logger.debug("Skipping installation of vedc binary.")
+        logger.debug("Skipping steps with root access.")
 
     # Write paths
     write_paths(conda_binary, conda_script, vedc_repo_folder)
