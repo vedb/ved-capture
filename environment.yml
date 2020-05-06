@@ -4,15 +4,14 @@ channels:
   - phausamann
 dependencies:
   - python=3.6
-  - pip
+  - pip=20.1
   # scientific stack
-  - numpy
-  - scipy
-  - pandas
-  - xarray
-#  - netcdf4
+  - numpy=1.18.4
+  - scipy=1.4.1
+  - pandas=1.0.3
+  - xarray=0.15.1
   # video
-  - phausamann::opencv=4.2.0
+  - opencv=4.2.0
   - ffmpeg=3.4.2
   - x264=1!152.20180806
   # pupil
@@ -32,9 +31,11 @@ dependencies:
   - click=7.1.1
   # other
   - gitpython=3.1.0
-  - tqdm
+  - tqdm=4.46.0
   # pip
   - pip:
+    - opencv-python==4.2.0.34 # necessary until pri can be installed w/ --no-deps
+    - netcdf4==1.5.3
     - blessed==1.17.4
     - multiprocessing-logging==0.3.1
     - pyrealsense2==2.32.1.1346
