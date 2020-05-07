@@ -34,7 +34,6 @@ dependencies:
   - tqdm=4.46.0
   # pip
   - pip:
-    - opencv-python==4.2.0.34 # necessary until pri can be installed w/ --no-deps
     - netcdf4==1.5.3
     - blessed==1.17.4
     - multiprocessing-logging==0.3.1

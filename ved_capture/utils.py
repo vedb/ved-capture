@@ -7,7 +7,6 @@ from select import select
 
 import git
 import pupil_recording_interface as pri
-import pyrealsense2 as rs
 
 logger = logging.getLogger(__name__)
 
@@ -129,6 +128,8 @@ def get_realsense_devices(suffix="T265"):
 
     based on https://github.com/IntelRealSense/librealsense/issues/2332
     """
+    import pyrealsense2 as rs
+
     # TODO move to pri.RealsenseDeviceT265
     serials = []
     context = rs.context()
