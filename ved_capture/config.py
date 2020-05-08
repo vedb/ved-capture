@@ -249,6 +249,18 @@ class ConfigParser(object):
 
         return configs
 
+    def get_show_configs(self, *streams):
+        """ Get list of configurations for showing camera streams. """
+        configs = []
+
+        for idx, name in enumerate(streams):
+            config = self.get_stream_config("video", name)
+            config["resolution"] = literal_eval(config["resolution"])
+            config["pipeline"] = [pri.VideoDisplay.Config()]
+            configs.append(pri.VideoStream.Config(name=name, **config))
+
+        return configs
+
 
 def save_metadata(folder, metadata):
     """ Save metadata to user_info.csv. """

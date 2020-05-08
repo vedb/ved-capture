@@ -41,7 +41,7 @@ def hide_video_streams(manager):
 
 @click.command("record")
 @click.option(
-    "-c", "--config-file", default=None, help="Path to recording config file.",
+    "-c", "--config-file", default=None, help="Path to config file.",
 )
 @click.option(
     "-v", "--verbose", default=False, help="Verbose output.", count=True,

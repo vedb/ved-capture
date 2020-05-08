@@ -16,7 +16,7 @@ def acquire_pattern(manager):
 @click.command("estimate_cam_params")
 @click.argument("streams", nargs=-1)
 @click.option(
-    "-c", "--config-file", default=None, help="Path to recording config file.",
+    "-c", "--config-file", default=None, help="Path to config file.",
 )
 @click.option(
     "-e",

@@ -8,6 +8,7 @@ from ved_capture.cli.calibrate import calibrate
 from ved_capture.cli.cam_params import estimate_cam_params
 from ved_capture.cli.config import generate_config
 from ved_capture.cli.record import record
+from ved_capture.cli.show import show
 
 
 @click.group("vedc")
@@ -23,6 +24,7 @@ def vedc():
 vedc.add_command(record)
 vedc.add_command(calibrate)
 vedc.add_command(estimate_cam_params)
+vedc.add_command(show)
 vedc.add_command(generate_config)
 vedc.add_command(update)
 vedc.add_command(check_install)
