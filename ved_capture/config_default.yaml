@@ -39,9 +39,6 @@ commands:
   estimate_cam_params:
     folder: ~/pupil_capture_settings
     streams:
-      world: null
-      eye0: null
-      eye1: null
       t265:
         stereo: True
 
@@ -49,10 +46,13 @@ streams:
   video:
     world:
       resolution: (2048, 1536)
-      fps: 50
+      fps: 30
       device_type: flir
       device_uid: null
-      color_format: bgr24
+      color_format: bayer_rggb8
+      settings:
+        ExposureAuto: Continuous
+        GainAuto: Continuous
     eye0:
       resolution: (192, 192)
       fps: 200

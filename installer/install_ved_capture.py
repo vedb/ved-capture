@@ -29,8 +29,7 @@ import re
 import hashlib
 
 
-__installer_version = "0.2.0"
-__vedc_tag = None
+__installer_version = "0.2.2"
 __maintainer_email = "peter.hausamann@tum.de"
 
 
@@ -243,11 +242,14 @@ def get_repo_folder(base_folder, repo_url):
     return os.path.join(base_folder, repo_url.rsplit("/", 1)[-1].split(".")[0])
 
 
-def clone_repo(base_folder, repo_folder, repo_url):
+def clone_repo(base_folder, repo_folder, repo_url, branch="master"):
     """"""
     os.makedirs(base_folder, exist_ok=True)
     error_msg = "Could not clone the repository. Did you set up the SSH key?"
-    run_command(["git", "clone", repo_url, repo_folder], error_msg=error_msg)
+    run_command(
+        ["git", "clone", "--depth", "1", "-b", branch, repo_url, repo_folder],
+        error_msg=error_msg,
+    )
 
 
 def update_repo(repo_folder):
@@ -310,7 +312,7 @@ def password_prompt():
     """"""
     show_header("Installing system-wide dependencies")
     logger.info(
-        "Some dependencies need to be installed system wide. In order for "
+        "Some things need to be configured system wide. In order for "
         "this to work, the current user must have root access to the "
         "machine. You will need to enter your password once. The password "
         "will not be stored anywhere.\n"
@@ -320,17 +322,8 @@ def password_prompt():
     return password
 
 
-def install_spinnaker_sdk(folder, password, groupname="flirimaging"):
+def configure_spinnaker(password, groupname="flirimaging"):
     """"""
-    # Install dependencies
-    run_as_sudo(["apt-get", "update"], password)
-    libs = ["libswscale-dev", "libavcodec-dev", "libavformat-dev"]
-    run_as_sudo(["apt-get", "install", "-y"] + libs, password)
-
-    # Install packages
-    deb_files = glob(os.path.join(folder, "*.deb"))
-    run_as_sudo(["dpkg", "-i"] + deb_files, password)
-
     # Create flir group
     run_as_sudo(["groupadd", "-f", groupname], password)
     run_as_sudo(["usermod", "-a", "-G", groupname, getuser()], password)
@@ -349,7 +342,7 @@ def install_spinnaker_sdk(folder, password, groupname="flirimaging"):
 
     # Increase USB-FS size
     old_params = '"quiet splash"'
-    new_params = '"quiet splash usbcore.usbfs_memory_mb=160000"'
+    new_params = '"quiet splash usbcore.usbfs_memory_mb=1000"'
     run_as_sudo(
         [
             "sed",
@@ -363,24 +356,8 @@ def install_spinnaker_sdk(folder, password, groupname="flirimaging"):
     run_as_sudo(["update-grub"], password)
 
 
-def install_pupil_detectors_deps(password):
+def configure_libuvc(password):
     """"""
-    run_as_sudo(["apt-get", "update"], password)
-    libs = ["libopencv-dev", "libeigen3-dev", "libceres-dev"]
-    run_as_sudo(["apt-get", "install", "-y"] + libs, password)
-
-
-def install_libuvc_deps(password):
-    """"""
-    # Install libudev0
-    filename, _ = urllib.request.urlretrieve(
-        "http://mirrors.kernel.org/ubuntu/pool/main/u/udev/"
-        "libudev0_175-0ubuntu9_amd64.deb"
-    )
-
-    run_as_sudo(["dpkg", "-i", filename], password)
-
-    # Create udev rules
     udev_file = "/etc/udev/rules.d/10-libuvc.rules"
     udev_rules = (
         'SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", '
@@ -453,6 +430,18 @@ if __name__ == "__main__":
         help="Install from the parent folder instead of the remote repository",
     )
     parser.add_argument(
+        "-b",
+        "--branch",
+        default="master",
+        help="Install from this branch or tag",
+    )
+    parser.add_argument(
+        "-u",
+        "--update",
+        action="store_true",
+        help="Update conda environment instead of reinstalling",
+    )
+    parser.add_argument(
         "--no_ssh", action="store_true", help="Disable check for SSH key",
     )
     parser.add_argument(
@@ -469,9 +458,7 @@ if __name__ == "__main__":
 
     # Set up paths
     base_folder = os.path.expanduser(args.folder)
-    vedc_repo_url = "ssh://git@github.com/vedb/ved-capture"
-    if __vedc_tag is not None:
-        vedc_repo_url += f"@{__vedc_tag}"
+    vedc_repo_url = f"ssh://git@github.com/vedb/ved-capture"
     if args.local:
         vedc_repo_folder = str(pathlib.Path(os.path.dirname(__file__)).parent)
     else:
@@ -519,7 +506,7 @@ if __name__ == "__main__":
             "Cloning repository",
             f"Retrieving git repository from {vedc_repo_url}",
         )
-        clone_repo(base_folder, vedc_repo_folder, vedc_repo_url)
+        clone_repo(base_folder, vedc_repo_folder, vedc_repo_url, args.branch)
     elif not args.local:
         show_header(
             "Updating repository", f"Pulling new changes from {vedc_repo_url}"
@@ -529,30 +516,6 @@ if __name__ == "__main__":
     # Check script version
     if not args.no_version_check:
         verify_latest_version(vedc_repo_folder)
-
-    # Steps with root access
-    if not args.no_root:
-
-        # Get password for sudo stuff
-        if not args.yes:
-            password = password_prompt()
-        else:
-            password = None
-
-        # Install Spinnaker SDK
-        show_header("Installing Spinnaker SDK")
-        sdk_folder = os.path.join(
-            vedc_repo_folder, "installer", "spinnaker_sdk_1.27.0.48_amd64",
-        )
-        install_spinnaker_sdk(sdk_folder, password)
-
-        # Install libuvc and pupil detectors dependencies
-        show_header("Installing pupil software dependencies")
-        install_libuvc_deps(password)
-        install_pupil_detectors_deps(password)
-
-    else:
-        logger.debug("Skipping installation of system-wide dependencies.")
 
     # Install miniconda if necessary
     if not os.path.exists(conda_binary):
@@ -567,7 +530,11 @@ if __name__ == "__main__":
         )
 
     # Create or update environment
-    if not os.path.exists(os.path.join(miniconda_prefix, "envs", "vedc")):
+    env_path = os.path.join(miniconda_prefix, "envs", "vedc")
+    if not args.update and os.path.exists(env_path):
+        run_command([conda_binary, "env", "remove", "-n", "vedc"])
+
+    if not os.path.exists(env_path):
         show_header(
             "Creating environment", "This will take a couple of minutes. ☕",
         )
@@ -585,8 +552,22 @@ if __name__ == "__main__":
             shell=True,
         )
 
-    # Create link to vedc binary
+    # Steps with root access
     if not args.no_root:
+
+        # Get password for sudo stuff
+        if not args.yes:
+            password = password_prompt()
+        else:
+            password = None
+
+        # Configure USB settings
+        show_header("Configuring USB settings")
+        configure_spinnaker(password)
+        configure_libuvc(password)
+
+        # Create link to vedc binary
+        show_header("Installing command line interface")
         vedc_binary = "/usr/local/bin/vedc"
         show_header(
             "Creating vedc excecutable", f"Installing to {vedc_binary}.",
@@ -598,8 +579,9 @@ if __name__ == "__main__":
             f'. {conda_script} && conda activate vedc && vedc "$@"\n',
         )
         run_as_sudo(["chmod", "+x", vedc_binary], password)
+
     else:
-        logger.debug("Skipping installation of vedc binary.")
+        logger.debug("Skipping steps with root access.")
 
     # Write paths
     write_paths(conda_binary, conda_script, vedc_repo_folder)

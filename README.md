@@ -34,13 +34,18 @@ This will check your connected devices and ask you several questions. At
  the end it will create a config file `~/.config/vedc/config.yaml` that will
  work for your current setup.
 
+### Streaming video
+
+To show one or more configured video streams, run:
+
+    $ vedc show <stream1> <stream2> ...
+
+
 ### Recording
 
-Once you have generated a configuration, run:
+For recording the configured streams, run:
 
     $ vedc record
-    
-to start recording. 
 
 By default, the data is recorded to `~/recordings/<today>/<no>`. After 
  recording, the data can be loaded into Pupil Player for inspection.

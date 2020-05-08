@@ -7,8 +7,6 @@ from select import select
 
 import git
 import pupil_recording_interface as pri
-import pyrealsense2 as rs
-import PySpin
 
 logger = logging.getLogger(__name__)
 
@@ -130,6 +128,8 @@ def get_realsense_devices(suffix="T265"):
 
     based on https://github.com/IntelRealSense/librealsense/issues/2332
     """
+    import pyrealsense2 as rs
+
     # TODO move to pri.RealsenseDeviceT265
     serials = []
     context = rs.context()
@@ -143,6 +143,8 @@ def get_realsense_devices(suffix="T265"):
 
 def get_flir_devices():
     """ Get serial numbers connected FLIR cameras. """
+    import PySpin
+
     system = PySpin.System.GetInstance()
     cam_list = system.GetCameras()
     logger.debug(f"Number of cameras detected: {cam_list.GetSize()}")

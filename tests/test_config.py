@@ -109,3 +109,13 @@ class TestConfigParser(object):
             config_list[1].pipeline[0].process_type == "circle_grid_detector"
         )
         assert config_list[1].pipeline[1].process_type == "video_display"
+
+    def test_get_show_configs(self, parser):
+        """"""
+        config_list = parser.get_show_configs("world", "t265")
+
+        assert config_list[0].stream_type == "video"
+        assert config_list[0].pipeline[0].process_type == "video_display"
+
+        assert config_list[1].device_type == "t265"
+        assert config_list[1].pipeline[0].process_type == "video_display"

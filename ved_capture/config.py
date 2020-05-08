@@ -35,7 +35,8 @@ class ConfigParser(object):
 
         if exc_type is not None:
             raise_error(
-                f"Error parsing configuration: {exc_type}: {exc_val}", logger
+                f"Error parsing configuration: {exc_type.__name__}: {exc_val}",
+                logger,
             )
 
     def get_command_config(self, command, *subkeys):
@@ -209,9 +210,13 @@ class ConfigParser(object):
         if "pipeline" not in config:
             config["pipeline"] = []
 
-        command_config = self.get_command_config(
-            "estimate_cam_params", "streams", name
-        )
+        try:
+            command_config = self.get_command_config(
+                "estimate_cam_params", "streams", name
+            )
+        except KeyError:
+            command_config = None
+
         config["pipeline"].append(
             pri.CircleGridDetector.Config(**(command_config or {}))
         )
@@ -240,6 +245,18 @@ class ConfigParser(object):
             config = self._get_cam_param_pipeline(
                 config or {}, name, streams, idx == 0, extrinsics
             )
+            configs.append(pri.VideoStream.Config(name=name, **config))
+
+        return configs
+
+    def get_show_configs(self, *streams):
+        """ Get list of configurations for showing camera streams. """
+        configs = []
+
+        for idx, name in enumerate(streams):
+            config = self.get_stream_config("video", name)
+            config["resolution"] = literal_eval(config["resolution"])
+            config["pipeline"] = [pri.VideoDisplay.Config()]
             configs.append(pri.VideoStream.Config(name=name, **config))
 
         return configs
