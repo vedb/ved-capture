@@ -436,6 +436,12 @@ if __name__ == "__main__":
         help="Install from this branch or tag",
     )
     parser.add_argument(
+        "-u",
+        "--update",
+        action="store_true",
+        help="Update conda environment instead of reinstalling",
+    )
+    parser.add_argument(
         "--no_ssh", action="store_true", help="Disable check for SSH key",
     )
     parser.add_argument(
@@ -524,7 +530,11 @@ if __name__ == "__main__":
         )
 
     # Create or update environment
-    if not os.path.exists(os.path.join(miniconda_prefix, "envs", "vedc")):
+    env_path = os.path.join(miniconda_prefix, "envs", "vedc")
+    if not args.update and os.path.exists(env_path):
+        run_command([conda_binary, "env", "remove", "-n", "vedc"])
+
+    if not os.path.exists(env_path):
         show_header(
             "Creating environment", "This will take a couple of minutes. ☕",
         )
