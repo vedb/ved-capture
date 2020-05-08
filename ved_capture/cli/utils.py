@@ -267,10 +267,14 @@ def get_flir_config(
         )
         config["streams"]["video"][stream_name] = {
             "resolution": str(resolution),  # TODO get from cam
-            "fps": fps_prompt(50.0),  # TODO get default from cam
+            "fps": fps_prompt(30.0),  # TODO get default from cam
             "device_type": device_type,
             "device_uid": serial,
             "color_format": "bayer_rggb8",
+            "settings": {
+                "GainAuto": "Continuous",
+                "ExposureAuto": "Continuous",
+            },
         }
         record_prompt(config, "video", stream_name)
         config["commands"]["estimate_cam_params"]["streams"][
