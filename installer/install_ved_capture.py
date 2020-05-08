@@ -29,7 +29,7 @@ import re
 import hashlib
 
 
-__installer_version = "0.2.1"
+__installer_version = "0.2.2"
 __maintainer_email = "peter.hausamann@tum.de"
 
 
