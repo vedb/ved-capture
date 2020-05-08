@@ -40,6 +40,8 @@ def calibrate(config_file, verbose):
     with ConfigParser(config_file) as config_parser:
         stream_configs = config_parser.get_calibration_configs()
         folder = config_parser.get_folder("calibrate", None)
+        # TODO make this more robust
+        world_stream = stream_configs[0].name
 
     # init manager
     manager = pri.StreamManager(stream_configs, folder=folder, policy="here")
@@ -49,10 +51,10 @@ def calibrate(config_file, verbose):
     ui.add_key(
         "c",
         "collect calibration data",
-        collect_calibration_data,
+        lambda x: collect_calibration_data(x, world_stream),
         msg="Collecting calibration data",
         alt_description="calculate calibration",
-        alt_fn=calculate_calibration,
+        alt_fn=lambda x: calculate_calibration(x, world_stream),
         alt_msg="Calculating calibration",
     )
 
