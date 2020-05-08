@@ -46,10 +46,10 @@ streams:
   video:
     world:
       resolution: (2048, 1536)
-      fps: 50
+      fps: 30
       device_type: flir
       device_uid: null
-      color_format: bgr24
+      color_format: bayer_rggb8
     eye0:
       resolution: (192, 192)
       fps: 200

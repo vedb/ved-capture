@@ -270,6 +270,7 @@ def get_flir_config(
             "fps": fps_prompt(50.0),  # TODO get default from cam
             "device_type": device_type,
             "device_uid": serial,
+            "color_format": "bayer_rggb8",
         }
         record_prompt(config, "video", stream_name)
         config["commands"]["estimate_cam_params"]["streams"][
