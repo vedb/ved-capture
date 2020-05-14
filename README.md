@@ -24,7 +24,7 @@ have enough space.
 ## Usage
 
 The central tool of this app is the command line tool `vedc`. You can use it
- to generate recording configurations, make recordings and update the app.
+to generate recording configurations, make recordings, update the app and more.
  
 ### Generating a configuration
 
@@ -42,41 +42,12 @@ To show one or more configured video streams, run:
 
     $ vedc show <stream1> <stream2> ...
 
+### Other commands
 
-### Recording
+Check out the [wiki](https://github.com/vedb/ved-capture/wiki) for a 
+comprehensive list of available commands.
 
-For recording the configured streams, run:
-
-    $ vedc record
-
-By default, the data is recorded to `~/recordings/<today>/<no>`. After 
-recording, the data can be loaded into Pupil Player for inspection.
- 
-
-### Calibration
-
-The gaze mapper can be calibrated with:
-
-    $ vedc calibrate
-    
-
-### Estimating camera parameters
-
-Camera intrinsics can be estimated with:
-
-    $ vedc estimate_cam_params <stream>
-    
-where `<stream>` is the name of one of the streams you've set up, e.g. `world`.
-
-  
-### Updating
-
-To update the app, run:
- 
-    $ vedc update
-
-
-### Getting help
+## Getting help
 
 Contact one of the developers (Peter or Kamran) for assistance. You can export
 the application logs with:
