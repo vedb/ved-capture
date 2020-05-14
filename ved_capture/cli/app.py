@@ -14,6 +14,13 @@ from ved_capture.utils import get_paths, update_repo, update_environment
     "-v", "--verbose", default=False, help="Verbose output.", count=True,
 )
 @click.option(
+    "-i",
+    "--inplace",
+    default=False,
+    help="Update the conda environment rather than recreating it.",
+    is_flag=True,
+)
+@click.option(
     "-l",
     "--local",
     default=False,
@@ -23,7 +30,7 @@ from ved_capture.utils import get_paths, update_repo, update_environment
 @click.option(
     "-s", "--stash", default=False, help="Stash local changes.", count=True,
 )
-def update(verbose, local, stash):
+def update(verbose, inplace, local, stash):
     """ Update installation. """
     logger = init_logger(inspect.stack()[0][3], verbosity=verbose)
 
@@ -49,6 +56,7 @@ def update(verbose, local, stash):
         paths["conda_binary"],
         paths["conda_script"],
         paths["vedc_repo_folder"],
+        inplace=inplace,
         local=local,
     )
     if return_code != 0:

@@ -88,19 +88,32 @@ def update_environment(
     conda_binary,
     conda_script,
     repo_folder,
+    inplace=False,
     env_file="environment.yml",
     local=False,
 ):
     """ Update conda environment. """
-    return_code = run_command(
-        [
-            conda_binary,
-            "env",
-            "update",
-            "-f",
-            os.path.join(repo_folder, env_file),
-        ]
-    )
+    if inplace:
+        return_code = run_command(
+            [
+                conda_binary,
+                "env",
+                "update",
+                "-f",
+                os.path.join(repo_folder, env_file),
+            ]
+        )
+    else:
+        run_command([conda_binary, "env", "remove", "-n", "vedc"])
+        return_code = run_command(
+            [
+                conda_binary,
+                "env",
+                "create",
+                "-f",
+                os.path.join(repo_folder, env_file),
+            ]
+        )
 
     if local:
         run_command(
