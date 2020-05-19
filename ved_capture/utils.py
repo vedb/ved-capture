@@ -138,22 +138,9 @@ def get_pupil_devices():
     return pupil_cams
 
 
-def get_realsense_devices(suffix="T265"):
-    """ Get serial numbers of connected RealSense devices.
-
-    based on https://github.com/IntelRealSense/librealsense/issues/2332
-    """
-    import pyrealsense2 as rs
-
-    # TODO move to pri.RealsenseDeviceT265
-    serials = []
-    context = rs.context()
-    for d in context.devices:
-        if suffix and not d.get_info(rs.camera_info.name).endswith(suffix):
-            continue
-        serials.append(d.get_info(rs.camera_info.serial_number))
-
-    return serials
+def get_realsense_devices():
+    """ Get serial numbers of connected RealSense devices. """
+    return pri.RealSenseDeviceT265.get_serial_numbers()
 
 
 def get_flir_devices():
