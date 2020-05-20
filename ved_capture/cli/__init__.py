@@ -9,6 +9,7 @@ from ved_capture.cli.cam_params import estimate_cam_params
 from ved_capture.cli.config import generate_config, edit_config
 from ved_capture.cli.record import record
 from ved_capture.cli.show import show
+from ved_capture.cli.export import export
 
 
 @click.group("vedc")
@@ -30,3 +31,4 @@ vedc.add_command(edit_config)
 vedc.add_command(update)
 vedc.add_command(check_install)
 vedc.add_command(save_logs)
+vedc.add_command(export)
