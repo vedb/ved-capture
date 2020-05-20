@@ -2,11 +2,13 @@
 import os
 import json
 import logging
+import shutil
 import subprocess
 from select import select
 
 import git
 import pupil_recording_interface as pri
+from pupil_recording_interface.externals.file_methods import load_object
 
 logger = logging.getLogger(__name__)
 
@@ -123,22 +125,9 @@ def get_pupil_devices():
     return pupil_cams
 
 
-def get_realsense_devices(suffix="T265"):
-    """ Get serial numbers of connected RealSense devices.
-
-    based on https://github.com/IntelRealSense/librealsense/issues/2332
-    """
-    import pyrealsense2 as rs
-
-    # TODO move to pri.RealsenseDeviceT265
-    serials = []
-    context = rs.context()
-    for d in context.devices:
-        if suffix and not d.get_info(rs.camera_info.name).endswith(suffix):
-            continue
-        serials.append(d.get_info(rs.camera_info.serial_number))
-
-    return serials
+def get_realsense_devices():
+    """ Get serial numbers of connected RealSense devices. """
+    return pri.RealSenseDeviceT265.get_serial_numbers()
 
 
 def get_flir_devices():
@@ -166,3 +155,32 @@ def get_flir_devices():
     cam_list.Clear()
 
     return serials
+
+
+def copy_intrinsics(stream, src_folder, dst_folder):
+    """ Copy intrinsics for a stream. """
+    if isinstance(stream, pri.VideoStream):
+        src_file = os.path.join(
+            src_folder,
+            f"{stream.device.device_uid.replace(' ', '_')}.intrinsics",
+        )
+        if not os.path.exists(src_file):
+            logger.warning(
+                f"No intrinsics for device '{stream.device.device_uid}' "
+                f"found in {src_folder}"
+            )
+        else:
+            intrinsics = load_object(src_file)
+            resolution = tuple(stream.device.resolution)
+            if str(resolution) not in intrinsics:
+                logger.warning(
+                    f"Intrinsics for device '{stream.device.device_uid}' "
+                    f"at resolution {resolution} not found in "
+                    f"{src_file}"
+                )
+            else:
+                dst_file = os.path.join(
+                    dst_folder, f"{stream.name}.intrinsics"
+                )
+                shutil.copyfile(src_file, dst_file)
+                logger.debug(f"Copied {src_file} to {dst_file}")

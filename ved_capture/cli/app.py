@@ -1,12 +1,15 @@
+import os
 import importlib
 import inspect
 import traceback
+import tarfile
 
 import click
 from git import GitError
 
 from ved_capture.cli.utils import init_logger, raise_error
 from ved_capture.utils import get_paths, update_repo, update_environment
+from ved_capture.config import ConfigParser
 
 
 @click.command("update")
@@ -80,3 +83,28 @@ def check_install(verbose):
         logger.info("Installation check OK.")
     else:
         raise_error("Installation check failed!", logger)
+
+
+@click.command("save_logs")
+@click.option(
+    "-f", "--filepath", default="~/vedc_logs.tar.gz", help="Output file path.",
+)
+@click.option(
+    "-o",
+    "--overwrite",
+    default=False,
+    help="Overwrite existing file.",
+    is_flag=True,
+)
+def save_logs(filepath, overwrite):
+    """ Save logs to a gzipped tar archive. """
+    filepath = os.path.expanduser(filepath)
+    source_dir = ConfigParser.config_dir()
+
+    if os.path.exists(filepath) and not overwrite:
+        raise click.ClickException(
+            f"{filepath} exists, set -o/--overwrite flag to overwrite"
+        )
+
+    with tarfile.open(filepath, "w:gz") as tar:
+        tar.add(source_dir, arcname=os.path.basename(source_dir))

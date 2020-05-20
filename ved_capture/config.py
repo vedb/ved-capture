@@ -71,7 +71,7 @@ class ConfigParser(object):
             folder = self.config["commands"][command].get(dict)["folder"]
             if folder is not None:
                 try:
-                    return folder.format(
+                    folder = folder.format(
                         cwd=os.getcwd(),
                         cfgd=os.path.dirname(
                             self.config_file or self.config.config_dir()
@@ -79,6 +79,7 @@ class ConfigParser(object):
                         today=datetime.datetime.today(),
                         **metadata,
                     )
+                    return os.path.expanduser(folder)
                 except KeyError as e:
                     raise ValueError(
                         f"Invalid folder config: '{e}' is missing in metadata"

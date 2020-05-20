@@ -1,5 +1,6 @@
 import inspect
 import os
+import subprocess
 
 import click
 
@@ -37,7 +38,7 @@ def generate_config(folder, verbose):
     logger = init_logger(inspect.stack()[0][3], verbosity=verbose)
 
     # check folder
-    folder = folder or ConfigParser.config_dir()
+    folder = os.path.expanduser(folder or ConfigParser.config_dir())
     if not os.path.exists(folder):
         raise_error(f"No such folder: {folder}", logger)
     else:
@@ -104,3 +105,38 @@ def generate_config(folder, verbose):
         raise_error("No devices selected!", logger)
     else:
         save_config(folder, config)
+
+
+@click.command("edit_config")
+@click.option(
+    "-f",
+    "--folder",
+    default=None,
+    help="Folder where the config file is stored. "
+    "Defaults to the application config folder.",
+)
+@click.option(
+    "-e",
+    "--editor",
+    default="nano",
+    help="Editor to use for editing. Defaults to 'nano'.",
+)
+@click.option(
+    "-v", "--verbose", default=False, help="Verbose output.", count=True,
+)
+def edit_config(folder, editor, verbose):
+    """ Edit configuration. """
+    logger = init_logger(inspect.stack()[0][3], verbosity=verbose)
+
+    # check file
+    folder = os.path.expanduser(folder or ConfigParser.config_dir())
+    filepath = os.path.join(folder, "config.yaml")
+    if not os.path.exists(filepath):
+        raise_error(
+            f"{filepath} not found, please run 'vedc generate_config' first",
+            logger,
+        )
+    else:
+        logger.debug(f"Editing config file {filepath}")
+
+    subprocess.call([editor, filepath])

@@ -1,5 +1,6 @@
 tests/test_data/user_config
 scratch
+.idea
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

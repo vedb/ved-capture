@@ -4,6 +4,7 @@ import click
 import pupil_recording_interface as pri
 
 from ved_capture.cli.ui import TerminalUI
+from ved_capture.utils import copy_intrinsics
 from ved_capture.config import ConfigParser, save_metadata
 
 
@@ -55,6 +56,9 @@ def record(config_file, verbose):
         metadata = config_parser.get_metadata()
         stream_configs = config_parser.get_recording_configs()
         folder = config_parser.get_folder("record", None, **metadata)
+        intrinsics_folder = config_parser.get_folder(
+            "estimate_cam_params", None, **metadata
+        )
         policy = config_parser.get_policy("record")
         show_video = config_parser.get_show_video()
 
@@ -66,6 +70,9 @@ def record(config_file, verbose):
     if len(metadata) > 0:
         save_metadata(manager.folder, metadata)
         ui.logger.debug(f"Saved user_info.csv to {manager.folder}")
+
+    for stream in manager.streams.values():
+        copy_intrinsics(stream, intrinsics_folder, folder)
 
     # set keyboard commands
     ui.add_key(
