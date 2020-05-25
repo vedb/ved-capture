@@ -31,6 +31,8 @@ jobs:
           conda --version
           which python
       - name: Create environment
+        env:
+          VEDC_DEV: true
         run: |
           conda install -y -c conda-forge conda-devenv
           conda devenv
