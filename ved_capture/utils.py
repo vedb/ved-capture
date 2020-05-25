@@ -5,6 +5,7 @@ import logging
 import shutil
 import subprocess
 from select import select
+from pkg_resources import parse_version
 
 import git
 import pupil_recording_interface as pri
@@ -73,17 +74,24 @@ def get_paths(config_folder="~/.config/vedc"):
         return None
 
 
-def update_repo(repo_folder, stash=False):
+def update_repo(repo_folder, branch=None, stash=False):
     """ Update repository. """
     repo = git.Repo(repo_folder)
     current_hash = repo.head.object.hexsha
 
+    # fetch updates
+    repo.remotes.origin.fetch()
     if stash:
         repo.git.stash()
-    repo.remotes.origin.pull()
-    pull_hash = repo.head.object.hexsha
 
-    return current_hash != pull_hash
+    # get latest version or specified branch
+    repo.git.checkout(
+        branch or sorted(repo.tags, key=lambda t: parse_version(t.name))[-1]
+    )
+    logger.info(f"Checked out {branch}")
+
+    # Return True if the repo was updated
+    return current_hash != repo.head.object.hexsha
 
 
 def update_environment(

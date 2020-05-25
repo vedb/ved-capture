@@ -31,15 +31,13 @@ jobs:
           conda --version
           which python
       - name: Create environment
-        run: conda env create
-      - name: Install dev dependencies
         run: |
-          source activate vedc
-          conda install --file requirements_dev.txt
+          conda install -y -c conda-forge conda-devenv
+          conda devenv
       - name: Install package
         run: |
           source activate vedc
-          pip install --no-deps -e .
+          pip install --no-deps .
       - name: Copy paths.json
         run: |
           mkdir -p /home/runner/.config/vedc

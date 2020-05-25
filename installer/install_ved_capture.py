@@ -14,13 +14,13 @@ For a list of additional options run:
 Copyright 2020 Peter Hausamann / The Visual Experience Database
 """
 import os
+from pathlib import Path
 import time
 import subprocess
 import argparse
 import pathlib
 import urllib.request
 from getpass import getuser, getpass
-from glob import glob
 import logging
 from select import select
 import json
@@ -29,14 +29,16 @@ import re
 import hashlib
 
 
-__installer_version = "0.2.3"
+__installer_version = "0.2.4"
 __maintainer_email = "peter.hausamann@tum.de"
 
 
 # -- LOGGING -- #
-def init_logger(log_folder, name="install_ved_capture", verbose=False):
+logger = logging.getLogger(Path(__file__).stem)
+
+
+def init_logger(log_folder, verbose=False):
     """"""
-    logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
 
     # stream handler
@@ -53,7 +55,7 @@ def init_logger(log_folder, name="install_ved_capture", verbose=False):
     file_formatter = logging.Formatter(
         "%(asctime)s | %(levelname)s: %(message)s"
     )
-    log_file_path = os.path.join(log_folder, name + ".log")
+    log_file_path = os.path.join(log_folder, logger.name + ".log")
     file_handler = logging.FileHandler(filename=log_file_path)
     file_handler.setFormatter(file_formatter)
     file_handler.setLevel(logging.DEBUG)
@@ -242,21 +244,50 @@ def get_repo_folder(base_folder, repo_url):
     return os.path.join(base_folder, repo_url.rsplit("/", 1)[-1].split(".")[0])
 
 
-def clone_repo(base_folder, repo_folder, repo_url, branch="master"):
+def get_version_or_branch(repo_folder, branch=None, default="master"):
     """"""
-    os.makedirs(base_folder, exist_ok=True)
-    error_msg = "Could not clone the repository. Did you set up the SSH key?"
-    run_command(
-        ["git", "clone", "--depth", "1", "-b", branch, repo_url, repo_folder],
-        error_msg=error_msg,
+    if branch is not None:
+        return branch
+
+    versions = (
+        subprocess.check_output(
+            [
+                "git",
+                f"--work-tree={repo_folder}",
+                f"--git-dir={repo_folder}/.git",
+                "tag",
+                "-l",
+                "--sort",
+                "-version:refname",
+            ]
+        )
+        .decode()
+        .split("\n")[:-1]
     )
 
+    if len(versions) == 0:
+        return default
+    else:
+        return versions[0]
 
-def update_repo(repo_folder):
+
+def update_repo(repo_folder, branch):
     """"""
+    branch = get_version_or_branch(repo_folder, branch)
+
     error_msg = (
         f"Could not update {repo_folder}. "
         f"You might need to delete the folder and try again."
+    )
+    run_command(
+        [
+            "git",
+            f"--work-tree={repo_folder}",
+            f"--git-dir={repo_folder}/.git",
+            "checkout",
+            branch,
+        ],
+        error_msg=error_msg,
     )
     run_command(
         [
@@ -267,6 +298,18 @@ def update_repo(repo_folder):
         ],
         error_msg=error_msg,
     )
+
+
+def clone_repo(base_folder, repo_folder, repo_url, branch=None):
+    """"""
+    os.makedirs(base_folder, exist_ok=True)
+    error_msg = "Could not clone the repository. Did you set up the SSH key?"
+    run_command(
+        ["git", "clone", "--depth", "1", repo_url, repo_folder],
+        error_msg=error_msg,
+    )
+
+    update_repo(repo_folder, branch)
 
 
 def md5(fname):
@@ -430,10 +473,7 @@ if __name__ == "__main__":
         help="Install from the parent folder instead of the remote repository",
     )
     parser.add_argument(
-        "-b",
-        "--branch",
-        default="master",
-        help="Install from this branch or tag",
+        "-b", "--branch", default=None, help="Install from this branch or tag",
     )
     parser.add_argument(
         "-u",
@@ -511,7 +551,7 @@ if __name__ == "__main__":
         show_header(
             "Updating repository", f"Pulling new changes from {vedc_repo_url}"
         )
-        update_repo(vedc_repo_folder)
+        update_repo(vedc_repo_folder, args.branch)
 
     # Check script version
     if not args.no_version_check:
@@ -530,7 +570,10 @@ if __name__ == "__main__":
         )
 
     # Create or update environment
-    os.environ["VEDC_PIN"] = args.branch
+    if args.branch is not None:
+        os.environ["VEDC_PIN"] = get_version_or_branch(
+            vedc_repo_folder, args.branch
+        )
     if args.local:  # TODO: rename flag to develop or introduce new flag
         os.environ["VEDC_DEV"] = ""
 

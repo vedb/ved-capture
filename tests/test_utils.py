@@ -21,7 +21,7 @@ class TestUtils:
             "vedc_repo_folder": "/home/runner/work/ved-capture/ved-capture",
         }
 
-    @pytest.mark.xfail(reason="Fails on tags", raises=GitCommandError)
+    # @pytest.mark.xfail(reason="Fails on tags", raises=GitCommandError)
     def test_update_repo(self, user_config_dir):
         """"""
         # update once
@@ -29,6 +29,14 @@ class TestUtils:
 
         # update again and assert no changes
         assert not update_repo(get_paths(user_config_dir)["vedc_repo_folder"])
+
+        # checkout branch
+        assert update_repo(
+            get_paths(user_config_dir)["vedc_repo_folder"], "devel"
+        )
+        assert not update_repo(
+            get_paths(user_config_dir)["vedc_repo_folder"], "devel"
+        )
 
         # wrong folder
         with pytest.raises(GitError):
