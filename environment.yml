@@ -1,6 +1,7 @@
 name: vedc
 channels:
   - conda-forge
+  - loopbio
   - phausamann
 dependencies:
   - python=3.6
@@ -12,8 +13,9 @@ dependencies:
   - xarray=0.15.1
   # video
   - opencv=4.2.0
-  - ffmpeg=3.4.2
+  - ffmpeg=3.4.2=x265_0
   - x264=1!152.20180806
+  - x265=2.8
   # pupil
   - libusb=1.0.23
   - libuvc=0.0.7
