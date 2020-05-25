@@ -29,7 +29,7 @@ import re
 import hashlib
 
 
-__installer_version = "0.2.4"
+__installer_version = "0.2.5"
 __maintainer_email = "peter.hausamann@tum.de"
 
 
@@ -284,8 +284,7 @@ def update_repo(repo_folder, branch):
             "git",
             f"--work-tree={repo_folder}",
             f"--git-dir={repo_folder}/.git",
-            "checkout",
-            branch,
+            "fetch",
         ],
         error_msg=error_msg,
     )
@@ -294,7 +293,8 @@ def update_repo(repo_folder, branch):
             "git",
             f"--work-tree={repo_folder}",
             f"--git-dir={repo_folder}/.git",
-            "pull",
+            "checkout",
+            branch,
         ],
         error_msg=error_msg,
     )
@@ -304,11 +304,7 @@ def clone_repo(base_folder, repo_folder, repo_url, branch=None):
     """"""
     os.makedirs(base_folder, exist_ok=True)
     error_msg = "Could not clone the repository. Did you set up the SSH key?"
-    run_command(
-        ["git", "clone", "--depth", "1", repo_url, repo_folder],
-        error_msg=error_msg,
-    )
-
+    run_command(["git", "clone", repo_url, repo_folder], error_msg=error_msg)
     update_repo(repo_folder, branch)
 
 

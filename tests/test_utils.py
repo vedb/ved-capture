@@ -21,7 +21,6 @@ class TestUtils:
             "vedc_repo_folder": "/home/runner/work/ved-capture/ved-capture",
         }
 
-    # @pytest.mark.xfail(reason="Fails on tags", raises=GitCommandError)
     def test_update_repo(self, user_config_dir):
         """"""
         # update once
