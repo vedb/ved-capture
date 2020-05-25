@@ -29,7 +29,7 @@ import re
 import hashlib
 
 
-__installer_version = "0.2.2"
+__installer_version = "0.2.3"
 __maintainer_email = "peter.hausamann@tum.de"
 
 
@@ -464,7 +464,7 @@ if __name__ == "__main__":
     else:
         vedc_repo_folder = get_repo_folder(base_folder, vedc_repo_url)
 
-    env_file = os.path.join(vedc_repo_folder, "environment.yml")
+    env_file = os.path.join(vedc_repo_folder, "environment.devenv.yml")
     miniconda_prefix = os.path.expanduser(
         args.miniconda_prefix.format(base_folder=base_folder),
     )
@@ -530,20 +530,21 @@ if __name__ == "__main__":
         )
 
     # Create or update environment
+    os.environ["VEDC_PIN"] = args.branch
+    if args.local:  # TODO: rename flag to develop or introduce new flag
+        os.environ["VEDC_DEV"] = ""
+
     env_path = os.path.join(miniconda_prefix, "envs", "vedc")
     if not args.update and os.path.exists(env_path):
         run_command([conda_binary, "env", "remove", "-n", "vedc"])
 
-    if not os.path.exists(env_path):
-        show_header(
-            "Creating environment", "This will take a couple of minutes. ☕",
-        )
-        run_command([conda_binary, "env", "create", "-f", env_file])
-    else:
-        show_header(
-            "Updating environment", "This will take a couple of minutes. ☕",
-        )
-        run_command([conda_binary, "env", "update", "-f", env_file])
+    show_header(
+        "Creating environment", "This will take a couple of minutes. ☕",
+    )
+    run_command(
+        [conda_binary, "install", "-y", "-c", "conda-forge", "conda-devenv"]
+    )
+    run_command([conda_binary, "devenv", "-f", env_file])
 
     if args.local:
         run_command(

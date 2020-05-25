@@ -55,7 +55,11 @@ def update(verbose, local, stash):
         local=local,
     )
     if return_code != 0:
-        raise_error("Environment update failed", logger)
+        raise_error(
+            f"Environment update failed, please try running: python3 "
+            f"{paths['vedc_repo_folder']}/installer/install_ved_capture.py",
+            logger,
+        )
 
 
 @click.command("check_install")

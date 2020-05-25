@@ -4,6 +4,7 @@ from distutils.util import convert_path
 requirements = [
     "click",
     "confuse",
+    "blessed",
     "pupil_recording_interface",
 ]
 

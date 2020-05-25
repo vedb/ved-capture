@@ -90,18 +90,12 @@ def update_environment(
     conda_binary,
     conda_script,
     repo_folder,
-    env_file="environment.yml",
+    env_file="environment.devenv.yml",
     local=False,
 ):
     """ Update conda environment. """
     return_code = run_command(
-        [
-            conda_binary,
-            "env",
-            "update",
-            "-f",
-            os.path.join(repo_folder, env_file),
-        ]
+        [conda_binary, "devenv", "-f", os.path.join(repo_folder, env_file)]
     )
 
     if local:
