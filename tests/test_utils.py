@@ -1,6 +1,6 @@
 import pytest
 
-from git.exc import GitError, GitCommandError
+from git.exc import GitError
 
 from ved_capture.utils import (
     get_paths,

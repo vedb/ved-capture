@@ -3,10 +3,18 @@
 {% set pri_pin = os.environ.get("PRI_PIN", "master") %}
 
 name: vedc
+
+environment:
+  # config dir override
+  {% if "VEDCDIR" in os.environ %}
+  - VEDCDIR: {{ os.environ["VEDCDIR"]}}
+  {% endif %}
+
 channels:
   - conda-forge
   - loopbio
   - phausamann
+
 dependencies:
   - python=3.6
   - pip=20.1

@@ -18,7 +18,6 @@ from pathlib import Path
 import time
 import subprocess
 import argparse
-import pathlib
 import urllib.request
 from getpass import getuser, getpass
 import logging
@@ -29,7 +28,7 @@ import re
 import hashlib
 
 
-__installer_version = "0.2.5"
+__installer_version = "0.2.6"
 __maintainer_email = "peter.hausamann@tum.de"
 
 
@@ -55,7 +54,7 @@ def init_logger(log_folder, verbose=False):
     file_formatter = logging.Formatter(
         "%(asctime)s | %(levelname)s: %(message)s"
     )
-    log_file_path = os.path.join(log_folder, logger.name + ".log")
+    log_file_path = log_folder / (logger.name + ".log")
     file_handler = logging.FileHandler(filename=log_file_path)
     file_handler.setFormatter(file_formatter)
     file_handler.setLevel(logging.DEBUG)
@@ -166,7 +165,7 @@ def handle_process(process, command, error_msg, n_bytes=4096):
                 f"above for more information. If you don't know how to fix "
                 f"this by yourself, please send an email with the "
                 f"'install_ved_capture.log' file located in "
-                f"{os.path.dirname(__file__)} to {__maintainer_email}.",
+                f"{Path(__file__).parent} to {__maintainer_email}.",
             )
         else:
             logger.error(error_msg)
@@ -212,8 +211,8 @@ def write_file_as_sudo(file_path, contents):
 # -- GIT -- #
 def check_ssh_pubkey(filename="id_ecdsa.pub"):
     """"""
-    filepath = os.path.join(os.path.expanduser("~/.ssh"), filename)
-    if os.path.exists(filepath):
+    filepath = Path("~/.ssh").expanduser() / filename
+    if filepath.exists():
         with open(filepath) as f:
             return f.read()
     else:
@@ -222,7 +221,7 @@ def check_ssh_pubkey(filename="id_ecdsa.pub"):
 
 def generate_ssh_keypair(spec="-b 521 -t ecdsa", filename="id_ecdsa"):
     """"""
-    filepath = os.path.join(os.path.expanduser("~/.ssh"), filename)
+    filepath = Path("~/.ssh").expanduser() / filename
     run_command(
         "ssh-keygen -q -P".split() + ["", "-f", filepath] + spec.split(),
     )
@@ -241,7 +240,7 @@ def show_github_ssh_instructions(ssh_key):
 
 def get_repo_folder(base_folder, repo_url):
     """"""
-    return os.path.join(base_folder, repo_url.rsplit("/", 1)[-1].split(".")[0])
+    return base_folder / repo_url.rsplit("/", 1)[-1].split(".")[0]
 
 
 def get_version_or_branch(repo_folder, branch=None, default="master"):
@@ -321,9 +320,7 @@ def md5(fname):
 
 def verify_latest_version(vedc_repo_folder):
     """"""
-    repo_script = os.path.join(
-        vedc_repo_folder, "installer", "install_ved_capture.py"
-    )
+    repo_script = vedc_repo_folder / "installer" / "install_ved_capture.py"
 
     installer_version = LooseVersion(__installer_version)
     with open(repo_script, "rt") as f:
@@ -411,28 +408,33 @@ def configure_libuvc(password):
 # -- CONDA -- #
 def install_miniconda(prefix="~/miniconda3"):
     """"""
-    prefix = os.path.expanduser(prefix)
+    prefix = Path(prefix).expanduser()
 
     filename, _ = urllib.request.urlretrieve(
         "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"
     )
 
-    run_command(["/bin/bash", filename, "-b", "-p", prefix])
+    run_command(["/bin/bash", filename, "-b", "-p", str(prefix)])
 
 
-def write_paths(conda_binary, conda_script, vedc_repo_folder):
+def write_paths(
+    conda_binary,
+    conda_script,
+    vedc_repo_folder,
+    config_folder="~/.config/vedc",
+):
     """"""
-    config_folder = os.path.expanduser("~/.config/vedc")
+    config_folder = Path(config_folder).expanduser()
     os.makedirs(config_folder, exist_ok=True)
-    json_file = os.path.join(config_folder, "paths.json")
+    json_file = config_folder / "paths.json"
     logger.debug(f"Writing paths to {json_file}")
     with open(json_file, "w") as f:
         f.write(
             json.dumps(
                 {
-                    "conda_binary": conda_binary,
-                    "conda_script": conda_script,
-                    "vedc_repo_folder": vedc_repo_folder,
+                    "conda_binary": str(conda_binary),
+                    "conda_script": str(conda_script),
+                    "vedc_repo_folder": str(vedc_repo_folder),
                 }
             )
         )
@@ -447,11 +449,6 @@ if __name__ == "__main__":
         "--folder",
         default="~/vedb",
         help="Base folder for installation",
-    )
-    parser.add_argument(
-        "--miniconda_prefix",
-        default="{base_folder}/miniconda3",
-        help="Base folder for miniconda installation",
     )
     parser.add_argument(
         "-y", "--yes", action="store_true", help="Install non-interactively",
@@ -472,10 +469,21 @@ if __name__ == "__main__":
         "-b", "--branch", default=None, help="Install from this branch or tag",
     )
     parser.add_argument(
+        "-c",
+        "--config_folder",
+        default="~/.config/vedc",
+        help="Path to the application config folder",
+    )
+    parser.add_argument(
         "-u",
         "--update",
         action="store_true",
         help="Update conda environment instead of reinstalling",
+    )
+    parser.add_argument(
+        "--miniconda_prefix",
+        default="{base_folder}/miniconda3",
+        help="Base folder for miniconda installation",
     )
     parser.add_argument(
         "--no_ssh", action="store_true", help="Disable check for SSH key",
@@ -493,24 +501,21 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Set up paths
-    base_folder = os.path.expanduser(args.folder)
+    base_folder = Path(args.folder).expanduser()
     vedc_repo_url = f"ssh://git@github.com/vedb/ved-capture"
     if args.local:
-        vedc_repo_folder = str(pathlib.Path(os.path.dirname(__file__)).parent)
+        vedc_repo_folder = Path(__file__).parents[1]
     else:
         vedc_repo_folder = get_repo_folder(base_folder, vedc_repo_url)
 
-    env_file = os.path.join(vedc_repo_folder, "environment.devenv.yml")
-    miniconda_prefix = os.path.expanduser(
-        args.miniconda_prefix.format(base_folder=base_folder),
-    )
-    conda_binary = os.path.join(miniconda_prefix, "bin", "conda")
-    conda_script = os.path.join(
-        miniconda_prefix, "etc", "profile.d", "conda.sh",
-    )
+    miniconda_prefix = Path(
+        args.miniconda_prefix.format(base_folder=base_folder)
+    ).expanduser()
+    conda_binary = miniconda_prefix / "bin" / "conda"
+    conda_script = miniconda_prefix / "etc" / "profile.d" / "conda.sh"
 
     # Set up logger
-    logger = init_logger(os.path.dirname(__file__), verbose=args.verbose)
+    logger = init_logger(Path(__file__).parent, verbose=args.verbose)
 
     # Welcome message
     if not show_welcome_message(args.yes):
@@ -537,7 +542,7 @@ if __name__ == "__main__":
             input("When you're done, press Enter.\n")
 
     # Clone or update repository
-    if not os.path.exists(vedc_repo_folder):
+    if not vedc_repo_folder.exists():
         show_header(
             "Cloning repository",
             f"Retrieving git repository from {vedc_repo_url}",
@@ -554,7 +559,7 @@ if __name__ == "__main__":
         verify_latest_version(vedc_repo_folder)
 
     # Install miniconda if necessary
-    if not os.path.exists(conda_binary):
+    if not conda_binary.exists():
         show_header(
             "Installing miniconda", f"Install location: {miniconda_prefix}",
         )
@@ -573,8 +578,8 @@ if __name__ == "__main__":
     if args.local:  # TODO: rename flag to develop or introduce new flag
         os.environ["VEDC_DEV"] = ""
 
-    env_path = os.path.join(miniconda_prefix, "envs", "vedc")
-    if not args.update and os.path.exists(env_path):
+    env_path = miniconda_prefix / "envs" / "vedc"
+    if not args.update and env_path.exists():
         run_command([conda_binary, "env", "remove", "-n", "vedc"])
 
     show_header(
@@ -583,7 +588,19 @@ if __name__ == "__main__":
     run_command(
         [conda_binary, "install", "-y", "-c", "conda-forge", "conda-devenv"]
     )
-    run_command([conda_binary, "devenv", "-f", env_file])
+    devenv_file = vedc_repo_folder / "environment.devenv.yml"
+    if devenv_file.exists():
+        os.environ["VEDCDIR"] = str(Path(args.config_folder).expanduser())
+        run_command([conda_binary, "devenv", "-f", devenv_file])
+    else:
+        run_command(
+            [
+                conda_binary,
+                "devenv",
+                "-f",
+                vedc_repo_folder / "environment.yml",
+            ]
+        )
 
     if args.local:
         run_command(
@@ -624,14 +641,23 @@ if __name__ == "__main__":
         logger.debug("Skipping steps with root access.")
 
     # Write paths
-    write_paths(conda_binary, conda_script, vedc_repo_folder)
+    write_paths(
+        conda_binary, conda_script, vedc_repo_folder, args.config_folder
+    )
 
     # Check installation
     show_header("Checking installation")
-    if args.verbose:
-        run_command(["vedc", "check_install", "-v"])
+    if not args.no_root:
+        if args.verbose:
+            run_command(["vedc", "check_install", "-v"])
+        else:
+            run_command(["vedc", "check_install"])
     else:
-        run_command(["vedc", "check_install"])
+        run_command(
+            f"/bin/bash -c '. {conda_script} && conda activate vedc "
+            f"&& vedc check_install'",
+            shell=True,
+        )
 
     # Success
     logger.info("Installation successful. Congratulations! 🎉🎉🎉")

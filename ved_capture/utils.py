@@ -4,6 +4,7 @@ import json
 import logging
 import shutil
 import subprocess
+from pathlib import Path
 from select import select
 from pkg_resources import parse_version
 
@@ -66,9 +67,7 @@ def run_command(command, shell=False, n_bytes=4096):
 def get_paths(config_folder="~/.config/vedc"):
     """ Get dictionary with application paths. """
     try:
-        with open(
-            os.path.join(os.path.expanduser(config_folder), "paths.json")
-        ) as f:
+        with open(Path(config_folder).expanduser() / "paths.json") as f:
             return json.loads(f.read())
     except FileNotFoundError:
         return None
@@ -102,9 +101,11 @@ def update_environment(
     local=False,
 ):
     """ Update conda environment. """
-    return_code = run_command(
-        [conda_binary, "devenv", "-f", os.path.join(repo_folder, env_file)]
-    )
+    env_file = Path(repo_folder) / env_file
+    if not env_file.exists():
+        env_file = Path(repo_folder) / "environment.yml"
+
+    return_code = run_command([conda_binary, "devenv", "-f", str(env_file)])
 
     if local:
         run_command(
@@ -162,17 +163,17 @@ def get_flir_devices():
 def copy_intrinsics(stream, src_folder, dst_folder):
     """ Copy intrinsics for a stream. """
     if isinstance(stream, pri.VideoStream):
-        src_file = os.path.join(
-            src_folder,
-            f"{stream.device.device_uid.replace(' ', '_')}.intrinsics",
+        src_file = (
+            Path(src_folder)
+            / f"{stream.device.device_uid.replace(' ', '_')}.intrinsics"
         )
-        if not os.path.exists(src_file):
+        if not src_file.exists():
             logger.warning(
                 f"No intrinsics for device '{stream.device.device_uid}' "
                 f"found in {src_folder}"
             )
         else:
-            intrinsics = load_object(src_file)
+            intrinsics = load_object(str(src_file))
             resolution = tuple(stream.device.resolution)
             if str(resolution) not in intrinsics:
                 logger.warning(
@@ -181,8 +182,6 @@ def copy_intrinsics(stream, src_folder, dst_folder):
                     f"{src_file}"
                 )
             else:
-                dst_file = os.path.join(
-                    dst_folder, f"{stream.name}.intrinsics"
-                )
+                dst_file = Path(dst_folder) / f"{stream.name}.intrinsics"
                 shutil.copyfile(src_file, dst_file)
                 logger.debug(f"Copied {src_file} to {dst_file}")
