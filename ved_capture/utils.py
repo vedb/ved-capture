@@ -84,9 +84,10 @@ def update_repo(repo_folder, branch=None, stash=False):
         repo.git.stash()
 
     # get latest version or specified branch
-    repo.git.checkout(
+    branch = (
         branch or sorted(repo.tags, key=lambda t: parse_version(t.name))[-1]
     )
+    repo.git.checkout(branch)
     logger.info(f"Checked out {branch}")
 
     # Return True if the repo was updated
