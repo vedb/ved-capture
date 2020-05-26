@@ -28,7 +28,7 @@ import re
 import hashlib
 
 
-__installer_version = "0.2.8"
+__installer_version = "0.2.9"
 __maintainer_email = "peter.hausamann@tum.de"
 
 
@@ -165,7 +165,7 @@ def handle_process(process, command, error_msg, n_bytes=4096):
                 f"above for more information. If you don't know how to fix "
                 f"this by yourself, please send an email with the "
                 f"'install_ved_capture.log' file located in "
-                f"{Path(__file__).parent} to {__maintainer_email}.",
+                f"{Path(__file__).resolve().parent} to {__maintainer_email}.",
             )
         else:
             logger.error(error_msg)
@@ -471,7 +471,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-c",
         "--config_folder",
-        default="{base_folder}/config/vedc",
+        default="{repo_folder}/.config",
         help="Path to the application config folder",
     )
     parser.add_argument(
@@ -501,12 +501,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Set up paths
-    base_folder = Path(args.folder).expanduser()
+    base_folder = Path(args.folder).expanduser().resolve()
     vedc_repo_url = f"ssh://git@github.com/vedb/ved-capture"
     if args.local:
-        vedc_repo_folder = Path(__file__).parents[1]
+        vedc_repo_folder = Path(__file__).resolve().parents[1]
     else:
         vedc_repo_folder = get_repo_folder(base_folder, vedc_repo_url)
+    config_folder = Path(
+        args.config_folder.format(repo_folder=vedc_repo_folder)
+    ).expanduser()
 
     miniconda_prefix = Path(
         args.miniconda_prefix.format(base_folder=base_folder)
@@ -587,7 +590,7 @@ if __name__ == "__main__":
             vedc_repo_folder, args.branch
         )
     if args.local:  # TODO: rename flag to develop or introduce new flag
-        os.environ["VEDC_DEV"] = ""
+        os.environ["VEDC_DEV"] = str(vedc_repo_folder)
 
     env_path = miniconda_prefix / "envs" / "vedc"
     if not args.update and env_path.exists():
@@ -601,7 +604,7 @@ if __name__ == "__main__":
     )
     devenv_file = vedc_repo_folder / "environment.devenv.yml"
     if devenv_file.exists():
-        os.environ["VEDCDIR"] = str(Path(args.config_folder).expanduser())
+        os.environ["VEDCDIR"] = str(config_folder)
         run_command([conda_binary, "devenv", "-f", devenv_file])
     else:
         run_command(
@@ -652,9 +655,7 @@ if __name__ == "__main__":
         logger.debug("Skipping steps with root access.")
 
     # Write paths
-    write_paths(
-        conda_binary, conda_script, vedc_repo_folder, args.config_folder
-    )
+    write_paths(conda_binary, conda_script, vedc_repo_folder, config_folder)
 
     # Check installation
     show_header("Checking installation")
