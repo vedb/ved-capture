@@ -28,7 +28,7 @@ import re
 import hashlib
 
 
-__installer_version = "0.2.6"
+__installer_version = "0.2.7"
 __maintainer_email = "peter.hausamann@tum.de"
 
 
@@ -160,7 +160,7 @@ def handle_process(process, command, error_msg, n_bytes=4096):
     if return_code != 0:
         if error_msg is None:
             logger.error(
-                " ".join(command)
+                " ".join([str(c) for c in command])
                 + f" failed with exit code {return_code}. See the output "
                 f"above for more information. If you don't know how to fix "
                 f"this by yourself, please send an email with the "
@@ -591,7 +591,7 @@ if __name__ == "__main__":
     devenv_file = vedc_repo_folder / "environment.devenv.yml"
     if devenv_file.exists():
         os.environ["VEDCDIR"] = str(Path(args.config_folder).expanduser())
-        run_command([conda_binary, "devenv", "-f", str(devenv_file)])
+        run_command([conda_binary, "devenv", "-f", devenv_file])
     else:
         run_command(
             [
