@@ -31,7 +31,7 @@ jobs:
           conda --version
           which python
       - name: Set VEDC_PIN
-        run: ::set-env name=VEDC_PIN::$(echo GITHUB_REF##*/)
+        run: echo ::set-env name=VEDC_PIN::$(echo GITHUB_REF##*/)
       - name: Create environment
         env:
           VEDC_DEV: true
