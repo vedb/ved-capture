@@ -12,6 +12,8 @@ import git
 import pupil_recording_interface as pri
 from pupil_recording_interface.externals.file_methods import load_object
 
+from ved_capture.config import ConfigParser
+
 logger = logging.getLogger(__name__)
 
 
@@ -64,10 +66,10 @@ def run_command(command, shell=False, n_bytes=4096):
         return process.wait()
 
 
-def get_paths(config_folder="~/.config/vedc"):
+def get_paths():
     """ Get dictionary with application paths. """
     try:
-        with open(Path(config_folder).expanduser() / "paths.json") as f:
+        with open(Path(ConfigParser.config_dir()) / "paths.json") as f:
             return json.loads(f.read())
     except FileNotFoundError:
         return None

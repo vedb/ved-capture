@@ -30,11 +30,14 @@ jobs:
         run: |
           conda --version
           which python
-      - name: Set VEDC_PIN
-        run: echo ::set-env name=VEDC_PIN::$(echo ${GITHUB_REF##*/})
+      - name: Extract branch name
+        shell: bash
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF##*/})"
+        id: extract_branch
       - name: Create environment
         env:
           VEDC_DEV: true
+          VEDC_PIN: ${{ steps.extract_branch.outputs.branch }}
         run: |
           conda install -y -c conda-forge conda-devenv
           conda devenv
