@@ -66,10 +66,11 @@ def run_command(command, shell=False, n_bytes=4096):
         return process.wait()
 
 
-def get_paths():
+def get_paths(config_dir=None):
     """ Get dictionary with application paths. """
+    config_dir = Path(config_dir or ConfigParser.config_dir())
     try:
-        with open(Path(ConfigParser.config_dir()) / "paths.json") as f:
+        with open(config_dir / "paths.json") as f:
             return json.loads(f.read())
     except FileNotFoundError:
         return None
