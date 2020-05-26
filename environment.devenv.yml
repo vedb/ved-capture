@@ -7,7 +7,7 @@ name: vedc
 environment:
   # config dir override
   {% if "VEDCDIR" in os.environ %}
-  - VEDCDIR: {{ os.environ["VEDCDIR"]}}
+  VEDCDIR: {{ os.environ["VEDCDIR"]}}
   {% endif %}
 
 channels:

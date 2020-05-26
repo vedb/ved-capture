@@ -591,7 +591,7 @@ if __name__ == "__main__":
     devenv_file = vedc_repo_folder / "environment.devenv.yml"
     if devenv_file.exists():
         os.environ["VEDCDIR"] = str(Path(args.config_folder).expanduser())
-        run_command([conda_binary, "devenv", "-f", devenv_file])
+        run_command([conda_binary, "devenv", "-f", str(devenv_file)])
     else:
         run_command(
             [
