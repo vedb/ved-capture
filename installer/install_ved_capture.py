@@ -28,7 +28,7 @@ import re
 import hashlib
 
 
-__installer_version = "0.2.9"
+__installer_version = "1.0.0"
 __maintainer_email = "peter.hausamann@tum.de"
 
 
@@ -471,7 +471,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-c",
         "--config_folder",
-        default="{repo_folder}/.config",
+        default="~/.config/vedc",
         help="Path to the application config folder",
     )
     parser.add_argument(
