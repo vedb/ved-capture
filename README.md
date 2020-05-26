@@ -33,8 +33,8 @@ Plug in your hardware (Pupil core system, RealSense T265, FLIR camera) and run:
     $ vedc generate_config
     
 This will check your connected devices and ask you several questions. At
-the end it will create a config file `~/vedb/ved-capture/.config/config.yaml` 
-that will work for your current setup.
+the end it will create a config file `~/.config/vedc/config.yaml` that will
+work for your current setup.
 
 ### Streaming video
 
