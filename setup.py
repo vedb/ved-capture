@@ -1,5 +1,4 @@
 from setuptools import setup, find_packages
-from distutils.util import convert_path
 
 requirements = [
     "click",
@@ -8,14 +7,9 @@ requirements = [
     "pupil_recording_interface",
 ]
 
-main_ns = {}
-ver_path = convert_path("ved_capture/_version.py")
-with open(ver_path) as ver_file:
-    exec(ver_file.read(), main_ns)
-
 setup(
     name="ved-capture",
-    version=main_ns["__version__"],
+    version="0.2.0",
     packages=find_packages(),
     long_description=open("README.md").read(),
     entry_points="""

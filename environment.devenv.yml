@@ -1,5 +1,6 @@
 {{ min_conda_devenv_version("1.1") }}
-{% set vedc_pin = os.environ.get("VEDC_PIN", "master") %}
+{% set vedc_version = 0.2.0 }
+{% set vedc_pin = os.environ.get("VEDC_PIN", {{ vedc_version }}) %}
 {% set pri_pin = os.environ.get("PRI_PIN", "master") %}
 
 name: vedc
@@ -58,4 +59,5 @@ dependencies:
   # development
   {% if "VEDC_DEV" in os.environ %}
   - pytest
+  - bump2version
   {% endif %}
