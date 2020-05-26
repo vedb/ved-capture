@@ -28,7 +28,7 @@ import re
 import hashlib
 
 
-__installer_version = "0.2.7"
+__installer_version = "0.2.8"
 __maintainer_email = "peter.hausamann@tum.de"
 
 
@@ -471,7 +471,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-c",
         "--config_folder",
-        default="~/.config/vedc",
+        default="{base_folder}/config/vedc",
         help="Path to the application config folder",
     )
     parser.add_argument(
@@ -516,6 +516,17 @@ if __name__ == "__main__":
 
     # Set up logger
     logger = init_logger(Path(__file__).parent, verbose=args.verbose)
+
+    # Make sure that not running from activated conda env
+    if (
+        "CONDA_PREFIX" in os.environ
+        and Path(os.environ["CONDA_PREFIX"]) != miniconda_prefix
+    ):
+        logger.error(
+            "You are running the installer from an activated conda "
+            "environment. Please run 'conda deactivate' and try again."
+        )
+        abort()
 
     # Welcome message
     if not show_welcome_message(args.yes):
