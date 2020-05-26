@@ -33,13 +33,10 @@ jobs:
       - name: Create environment
         env:
           VEDC_DEV: true
+          VEDC_PIN: ${GITHUB_REF##*/}
         run: |
           conda install -y -c conda-forge conda-devenv
           conda devenv
-      - name: Install package
-        run: |
-          source activate vedc
-          pip install --no-deps .
       - name: Copy paths.json
         run: |
           mkdir -p /home/runner/.config/vedc

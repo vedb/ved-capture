@@ -4,11 +4,11 @@
 
 name: vedc
 
+# config dir override
+{% if "VEDCDIR" in os.environ %}
 environment:
-  # config dir override
-  {% if "VEDCDIR" in os.environ %}
   VEDCDIR: {{ os.environ["VEDCDIR"]}}
-  {% endif %}
+{% endif %}
 
 channels:
   - conda-forge
