@@ -8,6 +8,9 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
+      - uses: allenevans/set-env@v1.0.0
+        with:
+          BRANCH: ${GITHUB_REF##*/}
       - uses: webfactory/ssh-agent@v0.2.0
         with:
           ssh-private-key: ${{ secrets.VEDC_PRIVATE_KEY }}
@@ -16,12 +19,15 @@ jobs:
         with:
           python-version: 3.6
       - name: Run installer
-        run: python installer/install_ved_capture.py -y -v -b ${GITHUB_REF##*/} --no_ssh --no_version_check
+        run: python installer/install_ved_capture.py -y -v -b ${{ env.BRANCH }} --no_ssh --no_version_check
 
   test_app:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
+      - uses: allenevans/set-env@v1.0.0
+        with:
+          BRANCH: ${GITHUB_REF##*/}
       - uses: webfactory/ssh-agent@v0.2.0
         with:
           ssh-private-key: ${{ secrets.VEDC_PRIVATE_KEY }}
@@ -33,7 +39,7 @@ jobs:
       - name: Create environment
         env:
           VEDC_DEV: true
-          VEDC_PIN: ${GITHUB_REF##*/}
+          VEDC_PIN: ${{ env.BRANCH }}
         run: |
           conda install -y -c conda-forge conda-devenv
           conda devenv
