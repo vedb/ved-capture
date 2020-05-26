@@ -9,7 +9,7 @@
 {% set pri_pin = os.environ.get("PRI_PIN", pri_version) %}
 {% if "VEDCDIR" in os.environ %}
 environment:
-  VEDCDIR: {{ os.environ["VEDCDIR"]}}
+  VEDCDIR: {{ os.environ["VEDCDIR"] }}
 {% endif %}
 
 name: vedc

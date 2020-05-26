@@ -4,7 +4,7 @@ requirements = [
     "click",
     "confuse",
     "blessed",
-    "pupil_recording_interface",
+    # TODO once released: "pupil_recording_interface",
 ]
 
 setup(
