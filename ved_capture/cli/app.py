@@ -52,10 +52,7 @@ def update(verbose, local, branch, stash):
     # update environment
     logger.info("Updating environment.\nThis will take a couple of minutes. ☕")
     return_code = update_environment(
-        paths["conda_binary"],
-        paths["conda_script"],
-        paths["vedc_repo_folder"],
-        local=local,
+        paths["conda_binary"], paths["vedc_repo_folder"], local=local,
     )
     if return_code != 0:
         raise_error(

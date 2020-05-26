@@ -590,7 +590,7 @@ if __name__ == "__main__":
             vedc_repo_folder, args.branch
         )
     if args.local:  # TODO: rename flag to develop or introduce new flag
-        os.environ["VEDC_DEV"] = str(vedc_repo_folder)
+        os.environ["VEDC_DEV"] = ""
 
     env_path = miniconda_prefix / "envs" / "vedc"
     if not args.update and env_path.exists():
@@ -614,13 +614,6 @@ if __name__ == "__main__":
                 "-f",
                 vedc_repo_folder / "environment.yml",
             ]
-        )
-
-    if args.local:
-        run_command(
-            f"/bin/bash -c '. {conda_script} && conda activate vedc "
-            f"&& pip install --no-deps -U -e {vedc_repo_folder}'",
-            shell=True,
         )
 
     # Steps with root access

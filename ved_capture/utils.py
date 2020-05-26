@@ -95,25 +95,17 @@ def update_repo(repo_folder, branch=None, stash=False):
 
 
 def update_environment(
-    conda_binary,
-    conda_script,
-    repo_folder,
-    env_file="environment.devenv.yml",
-    local=False,
+    conda_binary, repo_folder, env_file="environment.devenv.yml", local=False,
 ):
     """ Update conda environment. """
     env_file = Path(repo_folder) / env_file
     if not env_file.exists():
         env_file = Path(repo_folder) / "environment.yml"
 
-    return_code = run_command([conda_binary, "devenv", "-f", str(env_file)])
-
     if local:
-        run_command(
-            f"/bin/bash -c '. {conda_script} && conda activate vedc "
-            f"&& pip install --no-deps -U -e {repo_folder}'",
-            shell=True,
-        )
+        os.environ["VEDC_DEV"] = ""
+
+    return_code = run_command([conda_binary, "devenv", "-f", str(env_file)])
 
     return return_code
 
