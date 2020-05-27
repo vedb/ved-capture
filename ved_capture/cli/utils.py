@@ -163,12 +163,15 @@ def record_prompt(config, stream_type, stream_name):
     """ Ask the user whether they want to record a stream. """
     choice = input("Do you want to record this stream? ([y]/n): ")
     if choice.lower() != "n":
-        if "video" not in config["commands"]["record"]:
+        if stream_type not in config["commands"]["record"]:
             config["commands"]["record"][stream_type] = {}
-        config["commands"]["record"][stream_type][stream_name] = {
-            "codec": "libx264",
-            "encoder_kwargs": {"crf": "18", "preset": "ultrafast"},
-        }
+        if stream_type == "video":
+            config["commands"]["record"][stream_type][stream_name] = {
+                "codec": "libx264",
+                "encoder_kwargs": {"crf": "18", "preset": "ultrafast"},
+            }
+        else:
+            config["commands"]["record"][stream_type][stream_name] = None
 
 
 def get_uvc_config(config, name, uid):
