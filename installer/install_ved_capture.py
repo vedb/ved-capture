@@ -14,13 +14,12 @@ For a list of additional options run:
 Copyright 2020 Peter Hausamann / The Visual Experience Database
 """
 import os
+from pathlib import Path
 import time
 import subprocess
 import argparse
-import pathlib
 import urllib.request
 from getpass import getuser, getpass
-from glob import glob
 import logging
 from select import select
 import json
@@ -29,14 +28,16 @@ import re
 import hashlib
 
 
-__installer_version = "0.2.2"
+__installer_version = "1.0.0"
 __maintainer_email = "peter.hausamann@tum.de"
 
 
 # -- LOGGING -- #
-def init_logger(log_folder, name="install_ved_capture", verbose=False):
+logger = logging.getLogger(Path(__file__).stem)
+
+
+def init_logger(log_folder, verbose=False):
     """"""
-    logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
 
     # stream handler
@@ -53,7 +54,7 @@ def init_logger(log_folder, name="install_ved_capture", verbose=False):
     file_formatter = logging.Formatter(
         "%(asctime)s | %(levelname)s: %(message)s"
     )
-    log_file_path = os.path.join(log_folder, name + ".log")
+    log_file_path = log_folder / (logger.name + ".log")
     file_handler = logging.FileHandler(filename=log_file_path)
     file_handler.setFormatter(file_formatter)
     file_handler.setLevel(logging.DEBUG)
@@ -159,12 +160,12 @@ def handle_process(process, command, error_msg, n_bytes=4096):
     if return_code != 0:
         if error_msg is None:
             logger.error(
-                " ".join(command)
+                " ".join([str(c) for c in command])
                 + f" failed with exit code {return_code}. See the output "
                 f"above for more information. If you don't know how to fix "
                 f"this by yourself, please send an email with the "
                 f"'install_ved_capture.log' file located in "
-                f"{os.path.dirname(__file__)} to {__maintainer_email}.",
+                f"{Path(__file__).resolve().parent} to {__maintainer_email}.",
             )
         else:
             logger.error(error_msg)
@@ -210,8 +211,8 @@ def write_file_as_sudo(file_path, contents):
 # -- GIT -- #
 def check_ssh_pubkey(filename="id_ecdsa.pub"):
     """"""
-    filepath = os.path.join(os.path.expanduser("~/.ssh"), filename)
-    if os.path.exists(filepath):
+    filepath = Path("~/.ssh").expanduser() / filename
+    if filepath.exists():
         with open(filepath) as f:
             return f.read()
     else:
@@ -220,7 +221,7 @@ def check_ssh_pubkey(filename="id_ecdsa.pub"):
 
 def generate_ssh_keypair(spec="-b 521 -t ecdsa", filename="id_ecdsa"):
     """"""
-    filepath = os.path.join(os.path.expanduser("~/.ssh"), filename)
+    filepath = Path("~/.ssh").expanduser() / filename
     run_command(
         "ssh-keygen -q -P".split() + ["", "-f", filepath] + spec.split(),
     )
@@ -239,21 +240,40 @@ def show_github_ssh_instructions(ssh_key):
 
 def get_repo_folder(base_folder, repo_url):
     """"""
-    return os.path.join(base_folder, repo_url.rsplit("/", 1)[-1].split(".")[0])
+    return base_folder / repo_url.rsplit("/", 1)[-1].split(".")[0]
 
 
-def clone_repo(base_folder, repo_folder, repo_url, branch="master"):
+def get_version_or_branch(repo_folder, branch=None, default="master"):
     """"""
-    os.makedirs(base_folder, exist_ok=True)
-    error_msg = "Could not clone the repository. Did you set up the SSH key?"
-    run_command(
-        ["git", "clone", "--depth", "1", "-b", branch, repo_url, repo_folder],
-        error_msg=error_msg,
+    if branch is not None:
+        return branch
+
+    versions = (
+        subprocess.check_output(
+            [
+                "git",
+                f"--work-tree={repo_folder}",
+                f"--git-dir={repo_folder}/.git",
+                "tag",
+                "-l",
+                "--sort",
+                "-version:refname",
+            ]
+        )
+        .decode()
+        .split("\n")[:-1]
     )
 
+    if len(versions) == 0:
+        return default
+    else:
+        return versions[0]
 
-def update_repo(repo_folder):
+
+def update_repo(repo_folder, branch):
     """"""
+    branch = get_version_or_branch(repo_folder, branch)
+
     error_msg = (
         f"Could not update {repo_folder}. "
         f"You might need to delete the folder and try again."
@@ -263,10 +283,28 @@ def update_repo(repo_folder):
             "git",
             f"--work-tree={repo_folder}",
             f"--git-dir={repo_folder}/.git",
-            "pull",
+            "fetch",
         ],
         error_msg=error_msg,
     )
+    run_command(
+        [
+            "git",
+            f"--work-tree={repo_folder}",
+            f"--git-dir={repo_folder}/.git",
+            "checkout",
+            branch,
+        ],
+        error_msg=error_msg,
+    )
+
+
+def clone_repo(base_folder, repo_folder, repo_url, branch=None):
+    """"""
+    os.makedirs(base_folder, exist_ok=True)
+    error_msg = "Could not clone the repository. Did you set up the SSH key?"
+    run_command(["git", "clone", repo_url, repo_folder], error_msg=error_msg)
+    update_repo(repo_folder, branch)
 
 
 def md5(fname):
@@ -282,9 +320,7 @@ def md5(fname):
 
 def verify_latest_version(vedc_repo_folder):
     """"""
-    repo_script = os.path.join(
-        vedc_repo_folder, "installer", "install_ved_capture.py"
-    )
+    repo_script = vedc_repo_folder / "installer" / "install_ved_capture.py"
 
     installer_version = LooseVersion(__installer_version)
     with open(repo_script, "rt") as f:
@@ -372,28 +408,33 @@ def configure_libuvc(password):
 # -- CONDA -- #
 def install_miniconda(prefix="~/miniconda3"):
     """"""
-    prefix = os.path.expanduser(prefix)
+    prefix = Path(prefix).expanduser()
 
     filename, _ = urllib.request.urlretrieve(
         "https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"
     )
 
-    run_command(["/bin/bash", filename, "-b", "-p", prefix])
+    run_command(["/bin/bash", filename, "-b", "-p", str(prefix)])
 
 
-def write_paths(conda_binary, conda_script, vedc_repo_folder):
+def write_paths(
+    conda_binary,
+    conda_script,
+    vedc_repo_folder,
+    config_folder="~/.config/vedc",
+):
     """"""
-    config_folder = os.path.expanduser("~/.config/vedc")
+    config_folder = Path(config_folder).expanduser()
     os.makedirs(config_folder, exist_ok=True)
-    json_file = os.path.join(config_folder, "paths.json")
+    json_file = config_folder / "paths.json"
     logger.debug(f"Writing paths to {json_file}")
     with open(json_file, "w") as f:
         f.write(
             json.dumps(
                 {
-                    "conda_binary": conda_binary,
-                    "conda_script": conda_script,
-                    "vedc_repo_folder": vedc_repo_folder,
+                    "conda_binary": str(conda_binary),
+                    "conda_script": str(conda_script),
+                    "vedc_repo_folder": str(vedc_repo_folder),
                 }
             )
         )
@@ -408,11 +449,6 @@ if __name__ == "__main__":
         "--folder",
         default="~/vedb",
         help="Base folder for installation",
-    )
-    parser.add_argument(
-        "--miniconda_prefix",
-        default="{base_folder}/miniconda3",
-        help="Base folder for miniconda installation",
     )
     parser.add_argument(
         "-y", "--yes", action="store_true", help="Install non-interactively",
@@ -430,16 +466,24 @@ if __name__ == "__main__":
         help="Install from the parent folder instead of the remote repository",
     )
     parser.add_argument(
-        "-b",
-        "--branch",
-        default="master",
-        help="Install from this branch or tag",
+        "-b", "--branch", default=None, help="Install from this branch or tag",
+    )
+    parser.add_argument(
+        "-c",
+        "--config_folder",
+        default="~/.config/vedc",
+        help="Path to the application config folder",
     )
     parser.add_argument(
         "-u",
         "--update",
         action="store_true",
         help="Update conda environment instead of reinstalling",
+    )
+    parser.add_argument(
+        "--miniconda_prefix",
+        default="{base_folder}/miniconda3",
+        help="Base folder for miniconda installation",
     )
     parser.add_argument(
         "--no_ssh", action="store_true", help="Disable check for SSH key",
@@ -457,24 +501,35 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Set up paths
-    base_folder = os.path.expanduser(args.folder)
+    base_folder = Path(args.folder).expanduser().resolve()
     vedc_repo_url = f"ssh://git@github.com/vedb/ved-capture"
     if args.local:
-        vedc_repo_folder = str(pathlib.Path(os.path.dirname(__file__)).parent)
+        vedc_repo_folder = Path(__file__).resolve().parents[1]
     else:
         vedc_repo_folder = get_repo_folder(base_folder, vedc_repo_url)
+    config_folder = Path(
+        args.config_folder.format(repo_folder=vedc_repo_folder)
+    ).expanduser()
 
-    env_file = os.path.join(vedc_repo_folder, "environment.yml")
-    miniconda_prefix = os.path.expanduser(
-        args.miniconda_prefix.format(base_folder=base_folder),
-    )
-    conda_binary = os.path.join(miniconda_prefix, "bin", "conda")
-    conda_script = os.path.join(
-        miniconda_prefix, "etc", "profile.d", "conda.sh",
-    )
+    miniconda_prefix = Path(
+        args.miniconda_prefix.format(base_folder=base_folder)
+    ).expanduser()
+    conda_binary = miniconda_prefix / "bin" / "conda"
+    conda_script = miniconda_prefix / "etc" / "profile.d" / "conda.sh"
 
     # Set up logger
-    logger = init_logger(os.path.dirname(__file__), verbose=args.verbose)
+    logger = init_logger(Path(__file__).parent, verbose=args.verbose)
+
+    # Make sure that not running from activated conda env
+    if (
+        "CONDA_PREFIX" in os.environ
+        and Path(os.environ["CONDA_PREFIX"]) != miniconda_prefix
+    ):
+        logger.error(
+            "You are running the installer from an activated conda "
+            "environment. Please run 'conda deactivate' and try again."
+        )
+        abort()
 
     # Welcome message
     if not show_welcome_message(args.yes):
@@ -501,7 +556,7 @@ if __name__ == "__main__":
             input("When you're done, press Enter.\n")
 
     # Clone or update repository
-    if not os.path.exists(vedc_repo_folder):
+    if not vedc_repo_folder.exists():
         show_header(
             "Cloning repository",
             f"Retrieving git repository from {vedc_repo_url}",
@@ -511,14 +566,14 @@ if __name__ == "__main__":
         show_header(
             "Updating repository", f"Pulling new changes from {vedc_repo_url}"
         )
-        update_repo(vedc_repo_folder)
+        update_repo(vedc_repo_folder, args.branch)
 
     # Check script version
     if not args.no_version_check:
         verify_latest_version(vedc_repo_folder)
 
     # Install miniconda if necessary
-    if not os.path.exists(conda_binary):
+    if not conda_binary.exists():
         show_header(
             "Installing miniconda", f"Install location: {miniconda_prefix}",
         )
@@ -530,26 +585,35 @@ if __name__ == "__main__":
         )
 
     # Create or update environment
-    env_path = os.path.join(miniconda_prefix, "envs", "vedc")
-    if not args.update and os.path.exists(env_path):
+    if args.branch is not None:
+        os.environ["VEDC_PIN"] = get_version_or_branch(
+            vedc_repo_folder, args.branch
+        )
+    if args.local:  # TODO: rename flag to develop or introduce new flag
+        os.environ["VEDC_DEV"] = ""
+
+    env_path = miniconda_prefix / "envs" / "vedc"
+    if not args.update and env_path.exists():
         run_command([conda_binary, "env", "remove", "-n", "vedc"])
 
-    if not os.path.exists(env_path):
-        show_header(
-            "Creating environment", "This will take a couple of minutes. ☕",
-        )
-        run_command([conda_binary, "env", "create", "-f", env_file])
+    show_header(
+        "Creating environment", "This will take a couple of minutes. ☕",
+    )
+    run_command(
+        [conda_binary, "install", "-y", "-c", "conda-forge", "conda-devenv"]
+    )
+    devenv_file = vedc_repo_folder / "environment.devenv.yml"
+    if devenv_file.exists():
+        os.environ["VEDCDIR"] = str(config_folder)
+        run_command([conda_binary, "devenv", "-f", devenv_file])
     else:
-        show_header(
-            "Updating environment", "This will take a couple of minutes. ☕",
-        )
-        run_command([conda_binary, "env", "update", "-f", env_file])
-
-    if args.local:
         run_command(
-            f"/bin/bash -c '. {conda_script} && conda activate vedc "
-            f"&& pip install --no-deps -U -e {vedc_repo_folder}'",
-            shell=True,
+            [
+                conda_binary,
+                "devenv",
+                "-f",
+                vedc_repo_folder / "environment.yml",
+            ]
         )
 
     # Steps with root access
@@ -584,14 +648,21 @@ if __name__ == "__main__":
         logger.debug("Skipping steps with root access.")
 
     # Write paths
-    write_paths(conda_binary, conda_script, vedc_repo_folder)
+    write_paths(conda_binary, conda_script, vedc_repo_folder, config_folder)
 
     # Check installation
     show_header("Checking installation")
-    if args.verbose:
-        run_command(["vedc", "check_install", "-v"])
+    if not args.no_root:
+        if args.verbose:
+            run_command(["vedc", "check_install", "-v"])
+        else:
+            run_command(["vedc", "check_install"])
     else:
-        run_command(["vedc", "check_install"])
+        run_command(
+            f"/bin/bash -c '. {conda_script} && conda activate vedc "
+            f"&& vedc check_install'",
+            shell=True,
+        )
 
     # Success
     logger.info("Installation successful. Congratulations! 🎉🎉🎉")

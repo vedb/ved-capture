@@ -4,11 +4,15 @@ import json
 import logging
 import shutil
 import subprocess
+from pathlib import Path
 from select import select
+from pkg_resources import parse_version
 
 import git
 import pupil_recording_interface as pri
 from pupil_recording_interface.externals.file_methods import load_object
+
+from ved_capture.config import ConfigParser
 
 logger = logging.getLogger(__name__)
 
@@ -62,54 +66,49 @@ def run_command(command, shell=False, n_bytes=4096):
         return process.wait()
 
 
-def get_paths(config_folder="~/.config/vedc"):
+def get_paths(config_dir=None):
     """ Get dictionary with application paths. """
+    config_dir = Path(config_dir or ConfigParser.config_dir())
     try:
-        with open(
-            os.path.join(os.path.expanduser(config_folder), "paths.json")
-        ) as f:
+        with open(config_dir / "paths.json") as f:
             return json.loads(f.read())
     except FileNotFoundError:
         return None
 
 
-def update_repo(repo_folder, stash=False):
+def update_repo(repo_folder, branch=None, stash=False):
     """ Update repository. """
     repo = git.Repo(repo_folder)
     current_hash = repo.head.object.hexsha
 
+    # fetch updates
+    repo.remotes.origin.fetch()
     if stash:
         repo.git.stash()
-    repo.remotes.origin.pull()
-    pull_hash = repo.head.object.hexsha
 
-    return current_hash != pull_hash
+    # get latest version or specified branch
+    branch = (
+        branch or sorted(repo.tags, key=lambda t: parse_version(t.name))[-1]
+    )
+    repo.git.checkout(branch)
+    logger.info(f"Checked out {branch}")
+
+    # Return True if the repo was updated
+    return current_hash != repo.head.object.hexsha
 
 
 def update_environment(
-    conda_binary,
-    conda_script,
-    repo_folder,
-    env_file="environment.yml",
-    local=False,
+    conda_binary, repo_folder, env_file="environment.devenv.yml", local=False,
 ):
     """ Update conda environment. """
-    return_code = run_command(
-        [
-            conda_binary,
-            "env",
-            "update",
-            "-f",
-            os.path.join(repo_folder, env_file),
-        ]
-    )
+    env_file = Path(repo_folder) / env_file
+    if not env_file.exists():
+        env_file = Path(repo_folder) / "environment.yml"
 
     if local:
-        run_command(
-            f"/bin/bash -c '. {conda_script} && conda activate vedc "
-            f"&& pip install --no-deps -U -e {repo_folder}'",
-            shell=True,
-        )
+        os.environ["VEDC_DEV"] = ""
+
+    return_code = run_command([conda_binary, "devenv", "-f", str(env_file)])
 
     return return_code
 
@@ -160,17 +159,17 @@ def get_flir_devices():
 def copy_intrinsics(stream, src_folder, dst_folder):
     """ Copy intrinsics for a stream. """
     if isinstance(stream, pri.VideoStream):
-        src_file = os.path.join(
-            src_folder,
-            f"{stream.device.device_uid.replace(' ', '_')}.intrinsics",
+        src_file = (
+            Path(src_folder)
+            / f"{stream.device.device_uid.replace(' ', '_')}.intrinsics"
         )
-        if not os.path.exists(src_file):
+        if not src_file.exists():
             logger.warning(
                 f"No intrinsics for device '{stream.device.device_uid}' "
                 f"found in {src_folder}"
             )
         else:
-            intrinsics = load_object(src_file)
+            intrinsics = load_object(str(src_file))
             resolution = tuple(stream.device.resolution)
             if str(resolution) not in intrinsics:
                 logger.warning(
@@ -179,8 +178,6 @@ def copy_intrinsics(stream, src_folder, dst_folder):
                     f"{src_file}"
                 )
             else:
-                dst_file = os.path.join(
-                    dst_folder, f"{stream.name}.intrinsics"
-                )
+                dst_file = Path(dst_folder) / f"{stream.name}.intrinsics"
                 shutil.copyfile(src_file, dst_file)
                 logger.debug(f"Copied {src_file} to {dst_file}")

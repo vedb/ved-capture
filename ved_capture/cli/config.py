@@ -1,10 +1,10 @@
 import inspect
-import os
 import subprocess
+from pathlib import Path
 
 import click
+import yaml
 
-from ved_capture import __version__
 from ved_capture.cli.utils import (
     init_logger,
     raise_error,
@@ -18,8 +18,6 @@ from ved_capture.utils import (
     get_realsense_devices,
     get_flir_devices,
 )
-
-_config_version = __version__
 
 
 @click.command("generate_config")
@@ -38,15 +36,19 @@ def generate_config(folder, verbose):
     logger = init_logger(inspect.stack()[0][3], verbosity=verbose)
 
     # check folder
-    folder = os.path.expanduser(folder or ConfigParser.config_dir())
-    if not os.path.exists(folder):
+    folder = Path(folder or ConfigParser.config_dir()).expanduser()
+    if not folder.exists():
         raise_error(f"No such folder: {folder}", logger)
     else:
         logger.debug(f"Saving config file to {folder}")
 
+    # get version from config_default
+    with open(Path(__file__).parents[1] / "config_default.yaml") as f:
+        version = yaml.safe_load(f)["version"]
+
     # default config
     config = {
-        "version": _config_version,
+        "version": version,
         "commands": {
             "record": {
                 "folder": "~/recordings/{today:%Y_%m_%d}",
@@ -129,9 +131,9 @@ def edit_config(folder, editor, verbose):
     logger = init_logger(inspect.stack()[0][3], verbosity=verbose)
 
     # check file
-    folder = os.path.expanduser(folder or ConfigParser.config_dir())
-    filepath = os.path.join(folder, "config.yaml")
-    if not os.path.exists(filepath):
+    folder = Path(folder or ConfigParser.config_dir()).expanduser()
+    filepath = folder / "config.yaml"
+    if not filepath.exists():
         raise_error(
             f"{filepath} not found, please run 'vedc generate_config' first",
             logger,
@@ -139,4 +141,4 @@ def edit_config(folder, editor, verbose):
     else:
         logger.debug(f"Editing config file {filepath}")
 
-    subprocess.call([editor, filepath])
+    subprocess.call([editor, str(filepath)])

@@ -24,9 +24,12 @@ from ved_capture.config import ConfigParser
     is_flag=True,
 )
 @click.option(
+    "-b", "--branch", default=None, help="Update from this branch or tag.",
+)
+@click.option(
     "-s", "--stash", default=False, help="Stash local changes.", count=True,
 )
-def update(verbose, local, stash):
+def update(verbose, local, branch, stash):
     """ Update installation. """
     logger = init_logger(inspect.stack()[0][3], verbosity=verbose)
 
@@ -42,20 +45,21 @@ def update(verbose, local, stash):
     if not local:
         logger.info(f"Updating {paths['vedc_repo_folder']}")
         try:
-            update_repo(paths["vedc_repo_folder"], stash)
+            update_repo(paths["vedc_repo_folder"], branch, stash)
         except GitError as e:
             raise_error(f"Repository update failed. Reason: {str(e)}", logger)
 
     # update environment
     logger.info("Updating environment.\nThis will take a couple of minutes. ☕")
     return_code = update_environment(
-        paths["conda_binary"],
-        paths["conda_script"],
-        paths["vedc_repo_folder"],
-        local=local,
+        paths["conda_binary"], paths["vedc_repo_folder"], local=local,
     )
     if return_code != 0:
-        raise_error("Environment update failed", logger)
+        raise_error(
+            f"Environment update failed, please try running: python3 "
+            f"{paths['vedc_repo_folder']}/installer/install_ved_capture.py",
+            logger,
+        )
 
 
 @click.command("check_install")

@@ -30,16 +30,17 @@ jobs:
         run: |
           conda --version
           which python
+      - name: Extract branch name
+        shell: bash
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF##*/})"
+        id: extract_branch
       - name: Create environment
-        run: conda env create
-      - name: Install dev dependencies
+        env:
+          VEDC_DEV: true
+          VEDC_PIN: ${{ steps.extract_branch.outputs.branch }}
         run: |
-          source activate vedc
-          conda install --file requirements_dev.txt
-      - name: Install package
-        run: |
-          source activate vedc
-          pip install --no-deps -e .
+          conda install -y -c conda-forge conda-devenv
+          conda devenv
       - name: Copy paths.json
         run: |
           mkdir -p /home/runner/.config/vedc

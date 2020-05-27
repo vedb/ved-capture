@@ -114,7 +114,7 @@ def raise_error(msg, logger=None):
 
 
 def setup_stream_prompt(device_type, device_uid, stream_type):
-    """"""
+    """ Ask the user whether they want to set up a stream. """
     choice = input(
         f"Found {device_type} device '{device_uid}'\n"
         f"Do you want to set up {stream_type} streaming for this device? "
@@ -130,7 +130,7 @@ def setup_stream_prompt(device_type, device_uid, stream_type):
 
 
 def stream_name_prompt(config, default):
-    """"""
+    """ Ask the user for the name of the stream. """
     stream_name = (
         input(
             f"Enter stream name or press Enter to use the name '{default}': "
@@ -148,7 +148,7 @@ def stream_name_prompt(config, default):
 
 
 def fps_prompt(default):
-    """"""
+    """ Ask the user for the desired fps. """
     try:
         choice = (
             input(f"Enter FPS or press enter to set to {default}: ") or default
@@ -160,12 +160,15 @@ def fps_prompt(default):
 
 
 def record_prompt(config, stream_type, stream_name):
-    """"""
+    """ Ask the user whether they want to record a stream. """
     choice = input("Do you want to record this stream? ([y]/n): ")
     if choice.lower() != "n":
         if "video" not in config["commands"]["record"]:
             config["commands"]["record"][stream_type] = {}
-        config["commands"]["record"][stream_type][stream_name] = None
+        config["commands"]["record"][stream_type][stream_name] = {
+            "codec": "libx264",
+            "encoder_kwargs": {"crf": "18", "preset": "ultrafast"},
+        }
 
 
 def get_uvc_config(config, name, uid):

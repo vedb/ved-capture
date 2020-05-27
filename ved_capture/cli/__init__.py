@@ -2,7 +2,6 @@
 
 import click
 
-from ved_capture._version import __version__
 from ved_capture.cli.app import update, check_install, save_logs
 from ved_capture.cli.calibrate import calibrate
 from ved_capture.cli.cam_params import estimate_cam_params
@@ -13,7 +12,7 @@ from ved_capture.cli.export import export
 
 
 @click.group("vedc")
-@click.version_option(version=__version__)
+@click.version_option()
 def vedc():
     """ Visual Experience Data Capture.
 

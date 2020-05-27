@@ -1,4 +1,4 @@
-version: 0.2.0
+version: 1.0.0
 
 commands:
   record:
@@ -8,12 +8,24 @@ commands:
     video:
       world:
         codec: libx264
+        encoder_kwargs:
+          crf: '18'
+          preset: ultrafast
       eye0:
         codec: libx264
+        encoder_kwargs:
+          crf: '18'
+          preset: ultrafast
       eye1:
         codec: libx264
+        encoder_kwargs:
+          crf: '18'
+          preset: ultrafast
       t265:
         codec: libx264
+        encoder_kwargs:
+          crf: '18'
+          preset: ultrafast
     motion:
       odometry: null
       accel: null

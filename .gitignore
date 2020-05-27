@@ -1,5 +1,8 @@
+environment.yml
+**/out/
 tests/test_data/user_config
 scratch
+.config
 .idea
 
 # Byte-compiled / optimized / DLL files
