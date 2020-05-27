@@ -40,12 +40,21 @@ def repo_folder(repo_url, output_folder):
     """"""
     folder = output_folder / "ved-capture"
     run_command(["git", "clone", "--depth", "1", repo_url, folder])
+    run_command(
+        [
+            "git",
+            f"--work-tree={folder}",
+            f"--git-dir={folder}/.git",
+            "fetch",
+            "--tags",
+        ]
+    )
 
     return folder
 
 
 class TestMethods:
-    @pytest.mark.skip(reason="Fails on GitHub actions")
+    @pytest.mark.xfail(reason="Fails on GitHub actions")
     def test_check_ssh_pubkey(self):
         """"""
         assert check_ssh_pubkey() is not None
