@@ -28,7 +28,7 @@ import re
 import hashlib
 
 
-__installer_version = "1.0.0"
+__installer_version = "1.0.1"
 __maintainer_email = "peter.hausamann@tum.de"
 
 
@@ -263,6 +263,10 @@ def get_version_or_branch(repo_folder, branch=None, default="master"):
         .decode()
         .split("\n")[:-1]
     )
+
+    # don't match pre-releases
+    pattern = re.compile("^v[0-9]+\.[0-9]+\.[0-9]+$")
+    versions = [v for v in versions if re.match(pattern, v)]
 
     if len(versions) == 0:
         return default
