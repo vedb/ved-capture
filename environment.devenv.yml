@@ -1,7 +1,7 @@
 {{ min_conda_devenv_version("1.1") }}
 
 # set app and library version
-{% set vedc_version = "v0.2.0" %}
+{% set vedc_version = "v0.2.1" %}
 {% set pri_version = "v0.1.0" %}
 
 # versions and config dir can be overridden by env vars
