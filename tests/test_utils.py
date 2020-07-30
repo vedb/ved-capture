@@ -30,9 +30,7 @@ class TestUtils:
         assert not update_repo(get_paths(user_config_dir)["vedc_repo_folder"])
 
         # checkout branch
-        assert update_repo(
-            get_paths(user_config_dir)["vedc_repo_folder"], "devel"
-        )
+        update_repo(get_paths(user_config_dir)["vedc_repo_folder"], "devel")
         assert not update_repo(
             get_paths(user_config_dir)["vedc_repo_folder"], "devel"
         )

@@ -71,7 +71,10 @@ class TestMethods:
 
     def test_get_version_or_branch(self, repo_folder):
         """"""
-        assert get_version_or_branch(repo_folder).startswith("v")
+        import re
+
+        pattern = re.compile("^v[0-9]+\.[0-9]+\.[0-9]+$")
+        assert re.match(pattern, get_version_or_branch(repo_folder))
         assert get_version_or_branch(repo_folder, "devel") == "devel"
 
     def test_clone_repo(self, output_folder, repo_url):
