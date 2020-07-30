@@ -2,7 +2,7 @@
 
 # set app and library version
 {% set vedc_version = "v0.2.0" %}
-{% set pri_version = "v0.0.3" %}
+{% set pri_version = "v0.1.0" %}
 
 # versions and config dir can be overridden by env vars
 {% set vedc_pin = os.environ.get("VEDC_PIN", vedc_version) %}
