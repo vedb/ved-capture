@@ -181,15 +181,15 @@ class TerminalUI:
                 "StreamManager first"
             )
 
+        while not self.manager.all_streams_running:
+            # TODO not calling refresh here because C-level stdout writes
+            #  are not handled
+            print_log_buffer(self.f_stdout)
+
         while not self.manager.stopped:
-            if self.manager.all_streams_running:
-                log_buffer = flush_log_buffer(self.f_stdout)
-                status_str = self._get_status_str()
-                with self.term.hidden_cursor():
-                    key = refresh(self.term, log_buffer, status_str)
-                    if key in self.keymap:
-                        self.keymap[key][1]()
-            else:
-                # TODO not calling refresh here because C-level stdout writes
-                #  are not handled
-                print_log_buffer(self.f_stdout)
+            log_buffer = flush_log_buffer(self.f_stdout)
+            status_str = self._get_status_str()
+            with self.term.hidden_cursor():
+                key = refresh(self.term, log_buffer, status_str)
+                if key in self.keymap:
+                    self.keymap[key][1]()
