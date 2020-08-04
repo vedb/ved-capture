@@ -4,11 +4,7 @@ import io
 from blessed import Terminal
 import multiprocessing_logging
 
-from ved_capture.cli.utils import (
-    init_logger,
-    flush_log_buffer,
-    print_log_buffer,
-)
+from ved_capture.cli.utils import init_logger, flush_log_buffer
 
 
 def refresh(t, stream_buffer, status_buffer, timeout=0.1, num_empty_lines=1):
@@ -150,15 +146,15 @@ class TerminalUI:
 
     def _get_status_str(self):
         """ Get status and key mappings. """
+        status_list = [
+            self.manager.format_status(
+                val, format=fmt, max_cols=self.term.width
+            )
+            for val, fmt in self.statusmap.items()
+        ]
+
         status_str = "\n".join(
-            [
-                self.term.bold(
-                    self.manager.format_status(
-                        val, format=fmt, max_cols=self.term.width
-                    )
-                )
-                for val, fmt in self.statusmap.items()
-            ]
+            self.term.bold(s) for s in status_list if s is not None
         )
 
         key_str = " - ".join(
@@ -180,11 +176,6 @@ class TerminalUI:
                 "You need to call 'attach' to attach this UI to a "
                 "StreamManager first"
             )
-
-        while not self.manager.all_streams_running:
-            # TODO not calling refresh here because C-level stdout writes
-            #  are not handled
-            print_log_buffer(self.f_stdout)
 
         while not self.manager.stopped:
             log_buffer = flush_log_buffer(self.f_stdout)
