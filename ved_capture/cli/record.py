@@ -30,7 +30,7 @@ def resume_recording(manager):
 def beep(freq=440, fs=44100, seconds=0.1): 
     """Make a beep noise to indicate recording state"""
     import numpy as np
-    t = np.linspace(0, seconds, fs*seconds) 
+    t = np.linspace(0, seconds, int(fs*seconds)) 
     if not isinstance(freq, list): 
         freq = [freq] 
     notes = np.hstack([np.sin(f*t*2*np.pi) for f in freq]) 
