@@ -1,5 +1,5 @@
 import inspect
-
+import simpleaudio
 import click
 import pupil_recording_interface as pri
 
@@ -11,6 +11,7 @@ from ved_capture.config import ConfigParser, save_metadata
 
 def pause_recording(manager):
     """ Pause video recording. """
+    beep([880, 660, 440])
     for stream in manager.streams:
         manager.send_notification(
             {"pause_process": f"{stream}.VideoRecorder"}, streams=[stream],
@@ -19,11 +20,23 @@ def pause_recording(manager):
 
 def resume_recording(manager):
     """ Resume video recording. """
+    beep([440, 660, 880])
     for stream in manager.streams:
         manager.send_notification(
             {"resume_process": f"{stream}.VideoRecorder"}, streams=[stream],
         )
 
+
+def beep(freq=440, fs=44100, seconds=0.1): 
+    """Make a beep noise to indicate recording state"""
+    import numpy as np
+    t = np.linspace(0, seconds, fs*seconds) 
+    if not isinstance(freq, list): 
+        freq = [freq] 
+    notes = np.hstack([np.sin(f*t*2*np.pi) for f in freq]) 
+    audio = (notes * (2**15 -1) / np.max(np.abs(notes))).astype(np.int16) 
+    play_obj = simpleaudio.play_buffer(audio, 1, 2, fs)
+           
 
 def show_video_streams(manager):
     """ Show video streams. """
@@ -95,6 +108,16 @@ def record(config_file, verbose):
         pause_recording,
         msg="Pausing video recording",
         alt_key="r",
+        alt_description="resume recording",
+        alt_fn=resume_recording,
+        alt_msg="Resuming video recording",
+    )
+    ui.add_key(
+        "KEY_PGUP",
+        "pause recording",
+        pause_recording,
+        msg="Pausing video recording",
+        #alt_key="r",
         alt_description="resume recording",
         alt_fn=resume_recording,
         alt_msg="Resuming video recording",

@@ -38,7 +38,11 @@ def refresh(t, stream_buffer, status_buffer, timeout=0.1, num_empty_lines=1):
 
     # wait for keypress
     with t.cbreak():
-        return t.inkey(timeout)
+        key = t.inkey(timeout)
+        if key.is_sequence:
+            return key.name
+        else:
+            return key
 
 
 class TerminalUI:
