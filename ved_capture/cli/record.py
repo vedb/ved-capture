@@ -27,16 +27,17 @@ def resume_recording(manager):
         )
 
 
-def beep(freq=440, fs=44100, seconds=0.1): 
-    """Make a beep noise to indicate recording state"""
+def beep(freq=440, fs=44100, seconds=0.1):
+    """ Make a beep noise to indicate recording state. """
     import numpy as np
-    t = np.linspace(0, seconds, int(fs*seconds)) 
-    if not isinstance(freq, list): 
-        freq = [freq] 
-    notes = np.hstack([np.sin(f*t*2*np.pi) for f in freq]) 
-    audio = (notes * (2**15 -1) / np.max(np.abs(notes))).astype(np.int16) 
-    play_obj = simpleaudio.play_buffer(audio, 1, 2, fs)
-           
+
+    t = np.linspace(0, seconds, int(fs * seconds))
+    if not isinstance(freq, list):
+        freq = [freq]
+    notes = np.hstack([np.sin(f * t * 2 * np.pi) for f in freq])
+    audio = (notes * (2 ** 15 - 1) / np.max(np.abs(notes))).astype(np.int16)
+    simpleaudio.play_buffer(audio, 1, 2, fs)
+
 
 def show_video_streams(manager):
     """ Show video streams. """
@@ -103,21 +104,10 @@ def record(config_file, verbose):
         alt_default=show_video,
     )
     ui.add_key(
-        "p",
-        "pause recording",
-        pause_recording,
-        msg="Pausing video recording",
-        alt_key="r",
-        alt_description="resume recording",
-        alt_fn=resume_recording,
-        alt_msg="Resuming video recording",
-    )
-    ui.add_key(
         "KEY_PGUP",
         "pause recording",
         pause_recording,
         msg="Pausing video recording",
-        #alt_key="r",
         alt_description="resume recording",
         alt_fn=resume_recording,
         alt_msg="Resuming video recording",
