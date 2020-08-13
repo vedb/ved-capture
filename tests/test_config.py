@@ -1,22 +1,23 @@
 import os
+from pathlib import Path
 
 import pytest
 
-from ved_capture.config import ConfigParser
+from ved_capture.config import APPNAME, ConfigParser
 
 
-class TestConfigParser(object):
+class TestConfigParser:
     @pytest.fixture()
     def config_file(self, config_dir):
         """"""
-        yield os.path.join(config_dir, "config.yaml")
+        yield Path(config_dir) / "config.yaml"
 
     @pytest.fixture()
     def parser(self, config_file):
         """"""
         yield ConfigParser(config_file)
 
-    def test_constructor(self, config_file):
+    def test_constructor(self, config_dir, config_file):
         """"""
         parser = ConfigParser(config_file)
         assert (
@@ -28,6 +29,14 @@ class TestConfigParser(object):
         assert (
             parser.config["commands"]["record"]["metadata"].get()[0]
             == "location"
+        )
+
+        # config name
+        os.environ[APPNAME.upper() + "DIR"] = config_dir
+        parser = ConfigParser("config_minimal")
+        assert (
+            parser.config["streams"]["video"]["world"]["device_type"].get()
+            == "uvc"
         )
 
     def test_get_folder(self, parser, config_dir):

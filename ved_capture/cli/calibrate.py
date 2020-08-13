@@ -27,7 +27,12 @@ def calculate_calibration(manager, stream="world"):
 
 @click.command("calibrate")
 @click.option(
-    "-c", "--config-file", default=None, help="Path to config file.",
+    "-c",
+    "--config-file",
+    default=None,
+    help="Path or name of config file. If the arguments ends with '.yaml', it "
+    "is assumed to be a path. Otherwise, it will look for a file called "
+    "'<CONFIG_FILE>.yaml in the app config folder.'",
 )
 @click.option(
     "-v", "--verbose", default=False, help="Verbose output.", count=True,

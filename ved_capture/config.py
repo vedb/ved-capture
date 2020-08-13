@@ -3,6 +3,7 @@ import os
 import datetime
 from collections import OrderedDict
 from ast import literal_eval
+from pathlib import Path
 import csv
 import logging
 
@@ -15,17 +16,24 @@ APPNAME = "vedc"
 logger = logging.getLogger(__name__)
 
 
-class ConfigParser(object):
+class ConfigParser:
     """ Parser for application config. """
 
     def __init__(self, config_file=None):
         """ Constructor. """
         self.config = Configuration(APPNAME, "ved_capture")
 
-        self.config_file = config_file
         if config_file is not None:
-            self.config.set_file(config_file)
+            if str(config_file).endswith(".yaml"):
+                self.config_file = config_file
+            else:
+                self.config_file = (
+                    Path(self.config.config_dir()) / f"{config_file}.yaml"
+                )
+            self.config.set_file(self.config_file)
             logger.debug(f"Loaded configuration from {config_file}")
+        else:
+            self.config_file = None
 
     def __enter__(self):
         return self
@@ -271,8 +279,8 @@ def save_metadata(folder, metadata):
         w.writerows(metadata.items())
 
 
-def save_config(folder, config):
-    """ Save configuration to config.yaml. """
+def save_config(folder, config, name="config"):
+    """ Save configuration to yaml file. """
 
     def ordered_dump(data, stream=None, Dumper=yaml.Dumper, **kwds):
         class OrderedDumper(Dumper):
@@ -287,5 +295,5 @@ def save_config(folder, config):
         return yaml.dump(data, stream, OrderedDumper, **kwds)
 
     # save to recording folder
-    with open(os.path.join(folder, "config.yaml"), "w") as f:
+    with open(os.path.join(folder, f"{name}.yaml"), "w") as f:
         ordered_dump(OrderedDict(config), f)

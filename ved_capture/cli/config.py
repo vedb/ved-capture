@@ -29,9 +29,16 @@ from ved_capture.utils import (
     "Defaults to the application config folder.",
 )
 @click.option(
+    "-n",
+    "--name",
+    default="config",
+    help="Name of the config file. Defaults to 'config', i.e. the file will "
+    "be called 'config.yaml'.",
+)
+@click.option(
     "-v", "--verbose", default=False, help="Verbose output.", count=True,
 )
-def generate_config(folder, verbose):
+def generate_config(folder, name, verbose):
     """ Generate configuration. """
     logger = init_logger(inspect.stack()[0][3], verbosity=verbose)
 
@@ -88,8 +95,8 @@ def generate_config(folder, verbose):
         raise_error("No devices connected!", logger)
 
     # select devices
-    for name, uid in pupil_devices.items():
-        config = get_uvc_config(config, name, uid)
+    for device_name, uid in pupil_devices.items():
+        config = get_uvc_config(config, device_name, uid)
 
     for serial in t265_devices:
         config = get_realsense_config(config, serial)
@@ -106,7 +113,7 @@ def generate_config(folder, verbose):
     if len(config["streams"]["video"]) + len(config["streams"]["motion"]) == 0:
         raise_error("No devices selected!", logger)
     else:
-        save_config(folder, config)
+        save_config(folder, config, name)
 
 
 @click.command("edit_config")
@@ -118,6 +125,13 @@ def generate_config(folder, verbose):
     "Defaults to the application config folder.",
 )
 @click.option(
+    "-n",
+    "--name",
+    default="config",
+    help="Name of the config file. Defaults to 'config', i.e. the file will "
+    "be called 'config.yaml'.",
+)
+@click.option(
     "-e",
     "--editor",
     default="nano",
@@ -126,13 +140,13 @@ def generate_config(folder, verbose):
 @click.option(
     "-v", "--verbose", default=False, help="Verbose output.", count=True,
 )
-def edit_config(folder, editor, verbose):
+def edit_config(folder, name, editor, verbose):
     """ Edit configuration. """
     logger = init_logger(inspect.stack()[0][3], verbosity=verbose)
 
     # check file
     folder = Path(folder or ConfigParser.config_dir()).expanduser()
-    filepath = folder / "config.yaml"
+    filepath = folder / f"{name}.yaml"
     if not filepath.exists():
         raise_error(
             f"{filepath} not found, please run 'vedc generate_config' first",
