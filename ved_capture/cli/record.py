@@ -94,7 +94,7 @@ def record(config_file, verbose):
         ui.logger.debug(f"Saved user_info.csv to {manager.folder}")
 
     for stream in manager.streams.values():
-        copy_intrinsics(stream, intrinsics_folder, folder)
+        copy_intrinsics(stream, intrinsics_folder, manager.folder)
 
     # set keyboard commands
     ui.add_key(
