@@ -138,6 +138,12 @@ class TerminalUI:
         self.statusmap = statusmap or {}
         self.keymap = keymap or {}
 
+        def stop_manager():
+            self.logger.info("Stopping...")
+            self.manager.stopped = True
+
+        self.keymap["q"] = ("quit", stop_manager)
+
         # Check keymap
         for key, tup in self.keymap.items():
             if not isinstance(tup, tuple) or len(tup) != 2:
@@ -166,7 +172,6 @@ class TerminalUI:
                 f"[{self.term.bold(key)}] {name}"
                 for key, (name, _) in self.keymap.items()
             ]
-            + [f"[{self.term.bold('ctrl+c')}] quit"]
         )
         if len(key_str):
             status_str += "\n" + key_str
