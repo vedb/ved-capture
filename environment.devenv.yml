@@ -58,10 +58,11 @@ dependencies:
     - multiprocessing-logging==0.3.1
     - pyrealsense2==2.36.0.2038
     - simple-pyspin==0.1.1
-    - git+ssh://git@github.com/vedb/pupil_recording_interface@{{ pri_pin }}
     {% if "VEDC_DEV" in os.environ %}
+    - git+ssh://git@github.com/vedb/pupil_recording_interface@master
     - "--editable {{ root }}"
     {% else %}
+    - git+ssh://git@github.com/vedb/pupil_recording_interface@{{ pri_pin }}
     - git+ssh://git@github.com/vedb/ved-capture@{{ vedc_pin }}
     {% endif %}
   # development
