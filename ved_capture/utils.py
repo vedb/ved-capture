@@ -46,15 +46,24 @@ def log_as_debug(data):
     logger.debug(data.rstrip(b"\n").decode("utf-8"))
 
 
-def run_command(command, shell=False, n_bytes=4096):
+def run_command(command, shell=False, f_stdout=None, n_bytes=4096):
     """ Run system command and pipe output to logger. """
     with subprocess.Popen(
-        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=shell,
+        command,
+        stdout=f_stdout or subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        shell=shell,
     ) as process:
-        readable = {
-            process.stdout.fileno(): log_as_debug,
-            process.stderr.fileno(): log_as_warning_or_debug,
-        }
+        if f_stdout is None:
+            readable = {
+                process.stdout.fileno(): log_as_debug,
+                process.stderr.fileno(): log_as_warning_or_debug,
+            }
+        else:
+            readable = {
+                process.stderr.fileno(): log_as_warning_or_debug,
+            }
+
         while readable:
             for fd in select(readable, [], [])[0]:
                 data = os.read(fd, n_bytes)  # read available
@@ -74,6 +83,13 @@ def get_paths(config_dir=None):
             return json.loads(f.read())
     except FileNotFoundError:
         return None
+
+
+def write_paths(paths, config_dir=None):
+    """ Write dictionary with application paths. """
+    config_dir = Path(config_dir or ConfigParser.config_dir())
+    with open(config_dir / "paths.json", "w") as f:
+        f.write(json.dumps(paths))
 
 
 def update_repo(repo_folder, branch=None, stash=False):
@@ -98,17 +114,81 @@ def update_repo(repo_folder, branch=None, stash=False):
 
 
 def update_environment(
-    conda_binary, repo_folder, env_file="environment.devenv.yml", local=False,
+    paths, devenv_file="environment.devenv.yml", local=False,
 ):
     """ Update conda environment. """
-    env_file = Path(repo_folder) / env_file
-    if not env_file.exists():
-        env_file = Path(repo_folder) / "environment.yml"
+    devenv_file = Path(paths["vedc_repo_folder"]) / devenv_file
+    env_file = Path(paths["vedc_repo_folder"]) / "environment.yml"
+    if not devenv_file.exists():
+        devenv_file = env_file
 
     if local:
         os.environ["VEDC_DEV"] = ""
 
-    return_code = run_command([conda_binary, "devenv", "-f", str(env_file)])
+    # Install mamba if missing
+    if "mamba_binary" not in paths:
+        logger.info("Installing mamba. 🐍")
+        run_command(
+            [
+                paths["conda_binary"],
+                "install",
+                "-y",
+                "-c",
+                "conda-forge",
+                "mamba",
+            ]
+        )
+        paths["mamba_binary"] = str(
+            Path(paths["conda_binary"]).parents[1] / "condabin" / "mamba"
+        )
+        write_paths(paths)
+
+    # Update conda devenv
+    return_code = run_command(
+        [
+            paths["mamba_binary"],
+            "install",
+            "-y",
+            "-c",
+            "conda-forge",
+            "conda-devenv",
+        ]
+    )
+    if return_code != 0:
+        return return_code
+
+    if (
+        "VECDIR" in os.environ
+        and Path(os.environ["VEDCDIR"]) != Path("~/.config/vedc").expanduser()
+    ):
+        # Can't use mamba yet if config folder is not in default location
+        return run_command(
+            [paths["conda_binary"], "devenv", "-f", devenv_file]
+        )
+    else:
+        # Update environment.yml with conda devenv
+        try:
+            env_file.unlink()
+        except FileNotFoundError:
+            pass
+        with open(env_file, "w") as f:
+            return_code = run_command(
+                [
+                    paths["conda_binary"],
+                    "devenv",
+                    "-f",
+                    devenv_file,
+                    "--print",
+                ],
+                f_stdout=f,
+            )
+            if return_code != 0:
+                return return_code
+
+    # Update environment with mamba
+    return_code = run_command(
+        [paths["mamba_binary"], "env", "update", "-f", str(env_file),]
+    )
 
     return return_code
 

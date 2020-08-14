@@ -28,7 +28,7 @@ import re
 import hashlib
 
 
-__installer_version = "1.0.1"
+__installer_version = "1.1.0"
 __maintainer_email = "peter.hausamann@tum.de"
 
 
@@ -143,10 +143,16 @@ def log_as_debug(data):
 
 def handle_process(process, command, error_msg, n_bytes=4096):
     """"""
-    readable = {
-        process.stdout.fileno(): log_as_debug,
-        process.stderr.fileno(): log_as_warning_or_debug,
-    }
+    if process.stdout is not None:
+        readable = {
+            process.stdout.fileno(): log_as_debug,
+            process.stderr.fileno(): log_as_warning_or_debug,
+        }
+    else:
+        readable = {
+            process.stderr.fileno(): log_as_warning_or_debug,
+        }
+
     while readable:
         for fd in select(readable, [], [])[0]:
             data = os.read(fd, n_bytes)  # read available
@@ -172,10 +178,13 @@ def handle_process(process, command, error_msg, n_bytes=4096):
         abort()
 
 
-def run_command(command, error_msg=None, shell=False):
+def run_command(command, error_msg=None, shell=False, f_stdout=None):
     """"""
     with subprocess.Popen(
-        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=shell,
+        command,
+        stdout=f_stdout or subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        shell=shell,
     ) as process:
         handle_process(process, command, error_msg)
 
@@ -421,9 +430,58 @@ def install_miniconda(prefix="~/miniconda3"):
     run_command(["/bin/bash", filename, "-b", "-p", str(prefix)])
 
 
+def create_environment(
+    conda_binary, mamba_binary, vedc_repo_folder, config_folder
+):
+    """ Create env. """
+    # Install mamba and conda devenv
+    run_command(
+        [
+            mamba_binary if mamba_binary.exists() else conda_binary,
+            "install",
+            "-y",
+            "-c",
+            "conda-forge",
+            "conda-devenv",
+            "mamba",
+        ]
+    )
+
+    devenv_file = vedc_repo_folder / "environment.devenv.yml"
+    if devenv_file.exists():
+        os.environ["VEDCDIR"] = str(config_folder)
+        if config_folder != Path("~/.config/vedc").expanduser():
+            # Can't use mamba yet if config folder is not in default location
+            run_command([conda_binary, "devenv", "-f", devenv_file])
+            return
+        else:
+            # Update environment.yml with conda devenv
+            try:
+                (vedc_repo_folder / "environment.yml").unlink()
+            except FileNotFoundError:
+                pass
+            with open(vedc_repo_folder / "environment.yml", "w") as f:
+                run_command(
+                    [conda_binary, "devenv", "-f", devenv_file, "--print"],
+                    f_stdout=f,
+                )
+
+    # Update environment with mamba
+    run_command(
+        [
+            mamba_binary,
+            "env",
+            "update",
+            "-f",
+            vedc_repo_folder / "environment.yml",
+        ]
+    )
+
+
 def write_paths(
     conda_binary,
     conda_script,
+    mamba_binary,
     vedc_repo_folder,
     config_folder="~/.config/vedc",
 ):
@@ -436,8 +494,10 @@ def write_paths(
         f.write(
             json.dumps(
                 {
+                    "installer_version": __installer_version,
                     "conda_binary": str(conda_binary),
                     "conda_script": str(conda_script),
+                    "mamba_binary": str(mamba_binary),
                     "vedc_repo_folder": str(vedc_repo_folder),
                 }
             )
@@ -520,6 +580,7 @@ if __name__ == "__main__":
     ).expanduser()
     conda_binary = miniconda_prefix / "bin" / "conda"
     conda_script = miniconda_prefix / "etc" / "profile.d" / "conda.sh"
+    mamba_binary = miniconda_prefix / "condabin" / "mamba"
 
     # Set up logger
     logger = init_logger(Path(__file__).parent, verbose=args.verbose)
@@ -603,22 +664,9 @@ if __name__ == "__main__":
     show_header(
         "Creating environment", "This will take a couple of minutes. ☕",
     )
-    run_command(
-        [conda_binary, "install", "-y", "-c", "conda-forge", "conda-devenv"]
+    create_environment(
+        conda_binary, mamba_binary, vedc_repo_folder, config_folder
     )
-    devenv_file = vedc_repo_folder / "environment.devenv.yml"
-    if devenv_file.exists():
-        os.environ["VEDCDIR"] = str(config_folder)
-        run_command([conda_binary, "devenv", "-f", devenv_file])
-    else:
-        run_command(
-            [
-                conda_binary,
-                "devenv",
-                "-f",
-                vedc_repo_folder / "environment.yml",
-            ]
-        )
 
     # Steps with root access
     if not args.no_root:
@@ -652,7 +700,13 @@ if __name__ == "__main__":
         logger.debug("Skipping steps with root access.")
 
     # Write paths
-    write_paths(conda_binary, conda_script, vedc_repo_folder, config_folder)
+    write_paths(
+        conda_binary,
+        conda_script,
+        mamba_binary,
+        vedc_repo_folder,
+        config_folder,
+    )
 
     # Check installation
     show_header("Checking installation")
