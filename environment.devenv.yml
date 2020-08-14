@@ -30,6 +30,7 @@ dependencies:
   # video
   - opencv=4.2.0
   - ffmpeg=3.4.2=x265_0
+  - av=6.2.0
   - x264=1!152.20180806
   - x265=2.8
   # pupil
