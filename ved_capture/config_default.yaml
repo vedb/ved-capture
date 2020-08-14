@@ -6,41 +6,18 @@ commands:
     policy: new_folder
     duration: null
     video:
-      world:
-        codec: libx264
-        encoder_kwargs:
-          crf: '18'
-          preset: ultrafast
-      eye0:
-        codec: libx264
-        encoder_kwargs:
-          crf: '18'
-          preset: ultrafast
-      eye1:
-        codec: libx264
-        encoder_kwargs:
-          crf: '18'
-          preset: ultrafast
       t265:
         codec: libx264
+        encode_every: 1800
         encoder_kwargs:
-          crf: '18'
+          crf: '30'
           preset: ultrafast
     motion:
       odometry: null
       accel: null
       gyro: null
     show_video: true
-    metadata:
-      - location
-      - experimenter
-      - experiment
-      - scene
-      - task
-      - subject_id
-      - age
-      - gender
-      - ethnicity
+    metadata: null
 
   calibrate:
     folder: ~/pupil_capture_settings
@@ -56,29 +33,9 @@ commands:
 
 streams:
   video:
-    world:
-      resolution: (2048, 1536)
-      fps: 30
-      device_type: flir
-      device_uid: null
-      color_format: bayer_rggb8
-      settings:
-        ExposureAuto: Continuous
-        GainAuto: Continuous
-    eye0:
-      resolution: (192, 192)
-      fps: 200
-      device_type: uvc
-      device_uid: Pupil Cam2 ID0
-      color_format: gray
-    eye1:
-      resolution: (192, 192)
-      fps: 200
-      device_type: uvc
-      device_uid: Pupil Cam2 ID1
-      color_format: gray
     t265:
-      resolution: (1696, 800)
+      side: left
+      resolution: (848, 800)
       fps: 30
       device_type: t265
       device_uid: t265
