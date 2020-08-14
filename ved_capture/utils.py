@@ -114,7 +114,7 @@ def update_repo(repo_folder, branch=None, stash=False):
 
 
 def update_environment(
-    paths, devenv_file="environment.devenv.yml", local=False,
+    paths, devenv_file="environment.devenv.yml", local=False, pri_path=None,
 ):
     """ Update conda environment. """
     devenv_file = Path(paths["vedc_repo_folder"]) / devenv_file
@@ -124,6 +124,13 @@ def update_environment(
 
     if local:
         os.environ["VEDC_DEV"] = ""
+
+    if pri_path is not None:
+        paths["pri_path"] = str(Path(pri_path).expanduser().resolve())
+        write_paths(paths)
+
+    if "pri_path" in paths:
+        os.environ["PRI_PATH"] = paths["pri_path"]
 
     # Install mamba if missing
     if "mamba_binary" not in paths:
@@ -187,7 +194,7 @@ def update_environment(
 
     # Update environment with mamba
     return_code = run_command(
-        [paths["mamba_binary"], "env", "update", "-f", str(env_file),]
+        [paths["mamba_binary"], "env", "update", "-f", str(env_file)]
     )
 
     return return_code

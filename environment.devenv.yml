@@ -1,4 +1,4 @@
-{{ min_conda_devenv_version("1.1") }}
+{{ min_conda_devenv_version("2.1.1") }}
 
 # set app and library version
 {% set vedc_version = "v0.2.1" %}
@@ -58,11 +58,19 @@ dependencies:
     - multiprocessing-logging==0.3.1
     - pyrealsense2==2.36.0.2038
     - simple-pyspin==0.1.1
-    {% if "VEDC_DEV" in os.environ %}
+    # install local editable version of PRI if "PRI_PATH" is set
+    {% if "PRI_PATH" in os.environ %}
+    - "--editable {{ os.environ['PRI_PATH'] }}"
+    # or master branch if "VEDC_DEV" is set
+    {% elif "VEDC_DEV" in os.environ %}
     - git+ssh://git@github.com/vedb/pupil_recording_interface@master
-    - "--editable {{ root }}"
     {% else %}
     - git+ssh://git@github.com/vedb/pupil_recording_interface@{{ pri_pin }}
+    {% endif %}
+    # install local editable version if "VEDC_DEV" is set
+    {% if "VEDC_DEV" in os.environ %}
+    - "--editable {{ root }}"
+    {% else %}
     - git+ssh://git@github.com/vedb/ved-capture@{{ vedc_pin }}
     {% endif %}
   # development

@@ -29,7 +29,12 @@ from ved_capture.config import ConfigParser
 @click.option(
     "-s", "--stash", default=False, help="Stash local changes.", count=True,
 )
-def update(verbose, local, branch, stash):
+@click.option(
+    "--pri_path",
+    default=None,
+    help="Path to local pupil_recording_interface repository.",
+)
+def update(verbose, local, branch, stash, pri_path):
     """ Update installation. """
     logger = init_logger(inspect.stack()[0][3], verbosity=verbose)
 
@@ -51,7 +56,7 @@ def update(verbose, local, branch, stash):
 
     # update environment
     logger.info("Updating environment.\nThis will take a couple of minutes. ☕")
-    return_code = update_environment(paths, local=local)
+    return_code = update_environment(paths, local=local, pri_path=pri_path)
     if return_code != 0:
         raise_error(
             f"Environment update failed, please try running: python3 "

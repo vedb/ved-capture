@@ -28,7 +28,7 @@ import re
 import hashlib
 
 
-__installer_version = "1.1.0"
+__installer_version = "1.2.0"
 __maintainer_email = "peter.hausamann@tum.de"
 
 
@@ -484,24 +484,27 @@ def write_paths(
     mamba_binary,
     vedc_repo_folder,
     config_folder="~/.config/vedc",
+    pri_path=None,
 ):
     """"""
+    paths = {
+        "installer_version": __installer_version,
+        "conda_binary": str(conda_binary),
+        "conda_script": str(conda_script),
+        "mamba_binary": str(mamba_binary),
+        "vedc_repo_folder": str(vedc_repo_folder),
+    }
+
+    if pri_path is not None:
+        paths["pri_path"] = str(Path(args.pri_path).expanduser().resolve())
+
     config_folder = Path(config_folder).expanduser()
     os.makedirs(config_folder, exist_ok=True)
     json_file = config_folder / "paths.json"
     logger.debug(f"Writing paths to {json_file}")
+
     with open(json_file, "w") as f:
-        f.write(
-            json.dumps(
-                {
-                    "installer_version": __installer_version,
-                    "conda_binary": str(conda_binary),
-                    "conda_script": str(conda_script),
-                    "mamba_binary": str(mamba_binary),
-                    "vedc_repo_folder": str(vedc_repo_folder),
-                }
-            )
-        )
+        f.write(json.dumps(paths))
 
 
 if __name__ == "__main__":
@@ -548,6 +551,11 @@ if __name__ == "__main__":
         "--miniconda_prefix",
         default="{base_folder}/miniconda3",
         help="Base folder for miniconda installation",
+    )
+    parser.add_argument(
+        "--pri_path",
+        default=None,
+        help="Path to local pupil_recording_interface repository.",
     )
     parser.add_argument(
         "--no_ssh", action="store_true", help="Disable check for SSH key",
@@ -654,6 +662,10 @@ if __name__ == "__main__":
         os.environ["VEDC_PIN"] = get_version_or_branch(
             vedc_repo_folder, args.branch
         )
+    if args.pri_path is not None:
+        os.environ["PRI_PATH"] = str(
+            Path(args.pri_path).expanduser().resolve()
+        )
     if args.local:  # TODO: rename flag to develop or introduce new flag
         os.environ["VEDC_DEV"] = ""
 
@@ -706,6 +718,7 @@ if __name__ == "__main__":
         mamba_binary,
         vedc_repo_folder,
         config_folder,
+        args.pri_path,
     )
 
     # Check installation
