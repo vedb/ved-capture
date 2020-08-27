@@ -51,8 +51,8 @@ def generate_config(folder, verbose):
         "version": version,
         "commands": {
             "record": {
-                "folder": "~/recordings/{today:%Y_%m_%d}",
-                "policy": "new_folder",
+                "folder": "~/recordings/{today:%Y_%m_%d_%H_%M_%S}",
+                "policy": "here",
                 "duration": None,
                 "metadata": None,
                 "show_video": False,
