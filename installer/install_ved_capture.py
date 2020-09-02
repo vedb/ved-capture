@@ -28,7 +28,7 @@ import re
 import hashlib
 
 
-__installer_version = "1.2.0"
+__installer_version = "1.2.1"
 __maintainer_email = "peter.hausamann@tum.de"
 
 
@@ -658,10 +658,6 @@ if __name__ == "__main__":
         )
 
     # Create or update environment
-    if args.branch is not None:
-        os.environ["VEDC_PIN"] = get_version_or_branch(
-            vedc_repo_folder, args.branch
-        )
     if args.pri_path is not None:
         os.environ["PRI_PATH"] = str(
             Path(args.pri_path).expanduser().resolve()

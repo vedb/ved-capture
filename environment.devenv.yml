@@ -1,11 +1,9 @@
 {{ min_conda_devenv_version("2.1.1") }}
 
-# set app and library version
-{% set vedc_version = "v0.2.1" %}
+# set library version
 {% set pri_version = "v0.1.0" %}
 
-# versions and config dir can be overridden by env vars
-{% set vedc_pin = os.environ.get("VEDC_PIN", vedc_version) %}
+# version and config dir can be overridden by env vars
 {% set pri_pin = os.environ.get("PRI_PIN", pri_version) %}
 {% if "VEDCDIR" in os.environ %}
 environment:
@@ -72,7 +70,7 @@ dependencies:
     {% if "VEDC_DEV" in os.environ %}
     - "--editable {{ root }}"
     {% else %}
-    - git+ssh://git@github.com/vedb/ved-capture@{{ vedc_pin }}
+    - {{ root }}
     {% endif %}
   # development
   {% if "VEDC_DEV" in os.environ %}
