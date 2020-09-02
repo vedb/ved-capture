@@ -248,7 +248,7 @@ def copy_intrinsics(stream, src_folder, dst_folder):
     if isinstance(stream, pri.VideoStream):
         src_file = (
             Path(src_folder)
-            / f"{stream.device.device_uid.replace(' ', '_')}.intrinsics"
+            / f"{str(stream.device.device_uid).replace(' ', '_')}.intrinsics"
         )
         if not src_file.exists():
             logger.warning(
