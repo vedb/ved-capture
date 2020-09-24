@@ -48,7 +48,7 @@ def refresh(t, stream_buffer, status_buffer, timeout=0.1, num_empty_lines=1):
 class TerminalUI:
     """ Terminal user interface for sub-commands. """
 
-    def __init__(self, command_name, verbosity=0):
+    def __init__(self, command_name, verbosity=0, file_handler=True):
         """ Constructor. """
         self.command_name = command_name
 
@@ -59,6 +59,7 @@ class TerminalUI:
             verbosity=verbosity,
             stream=self.f_stdout,
             stream_format="[%(levelname)s] %(message)s",
+            file_handler=file_handler,
         )
 
         multiprocessing_logging.install_mp_handler()

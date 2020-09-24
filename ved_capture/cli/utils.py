@@ -1,29 +1,40 @@
 """"""
 import logging
-import os
 import pprint
 import sys
+from pathlib import Path
 
 import click
 import pupil_recording_interface as pri
 
 from ved_capture.config import ConfigParser, logger
 
+TRACE = 5
+
+
+def add_file_handler(subcommand, folder=None):
+    """ Add a file handler to the root logger"""
+    root_logger = logging.getLogger("")
+    file_formatter = logging.Formatter(
+        "%(asctime)s | %(name)s | %(levelname)s: %(message)s"
+    )
+    file_handler = logging.FileHandler(
+        Path(folder or ConfigParser().config.config_dir())
+        / ("vedc." + subcommand + ".log")
+    )
+    file_handler.setFormatter(file_formatter)
+    file_handler.setLevel(TRACE)
+    root_logger.addHandler(file_handler)
+
 
 def init_logger(
-    subcommand, verbosity=0, stream=sys.stdout, stream_format="%(message)s"
+    subcommand,
+    verbosity=0,
+    stream=sys.stdout,
+    stream_format="%(message)s",
+    file_handler=True,
 ):
     """ Initialize logger with file and stream handler for a subcommand. """
-    TRACE = 5
-
-    # root logger with file handler
-    logging.basicConfig(
-        level=TRACE,
-        format="%(asctime)s | %(name)s | %(levelname)s: %(message)s",
-        filename=os.path.join(
-            ConfigParser().config.config_dir(), "vedc." + subcommand + ".log"
-        ),
-    )
     logging.addLevelName(TRACE, "TRACE")
     verbosity_map = {
         0: logging.INFO,
@@ -31,16 +42,20 @@ def init_logger(
         2: TRACE,
     }
 
+    # root logger
+    root_logger = logging.getLogger("")
+    root_logger.setLevel(TRACE)
+
     # stream handler
     stream_formatter = logging.Formatter(stream_format)
     stream_handler = logging.StreamHandler(stream)
     stream_handler.setLevel(verbosity_map[int(verbosity)])
     stream_handler.setFormatter(stream_formatter)
-
-    # add the handler to the root logger
-    root_logger = logging.getLogger("")
     root_logger.addHandler(stream_handler)
-    root_logger.setLevel(verbosity_map[int(verbosity)])
+
+    # file handler
+    if file_handler:
+        add_file_handler(subcommand)
 
     return logging.getLogger("vedc." + subcommand)
 

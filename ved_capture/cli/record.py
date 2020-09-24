@@ -5,6 +5,7 @@ import pupil_recording_interface as pri
 
 from ved_capture import APP_INFO
 from ved_capture.cli.ui import TerminalUI
+from ved_capture.cli.utils import add_file_handler
 from ved_capture.utils import copy_intrinsics
 from ved_capture.config import ConfigParser, save_metadata
 
@@ -69,7 +70,9 @@ def hide_video_streams(manager):
 )
 def record(config_file, verbose):
     """ Run recording. """
-    ui = TerminalUI(inspect.stack()[0][3], verbosity=verbose)
+    ui = TerminalUI(
+        inspect.stack()[0][3], verbosity=verbose, file_handler=False
+    )
 
     # parse config
     with ConfigParser(config_file) as config_parser:
@@ -87,6 +90,7 @@ def record(config_file, verbose):
         stream_configs, folder=folder, policy=policy, app_info=APP_INFO
     )
     ui.attach(manager, statusmap={"fps": "{:.2f} Hz"})
+    add_file_handler("record", manager.folder)
 
     print(f"{ui.term.bold('Started recording')} to {manager.folder}")
     if len(metadata) > 0:
