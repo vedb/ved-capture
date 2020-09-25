@@ -41,8 +41,8 @@ dependencies:
   # realsense
   - librealsense2=2.36.0
   # flir
-  - spinnaker-sdk=1.27.0.48
-  - pyspin=1.27.0.48
+  - spinnaker-sdk=2.0.0.147
+  - pyspin=2.0.0.147
   # vedc
   - confuse=1.0.0
   - click=7.1.1
