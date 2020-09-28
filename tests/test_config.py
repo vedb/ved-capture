@@ -66,7 +66,13 @@ class TestConfigParser:
 
     def test_get_metadata(self, parser, monkeypatch):
         """"""
+        # as list
         monkeypatch.setattr("builtins.input", lambda x: "000")
+        assert parser.get_metadata() == {"subject_id": "000"}
+
+        # as dict with default
+        parser.config["commands"]["record"]["metadata"] = {"subject_id": "000"}
+        monkeypatch.setattr("builtins.input", lambda x: "")
         assert parser.get_metadata() == {"subject_id": "000"}
 
     def test_get_recording_configs(self, parser):

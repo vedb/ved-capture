@@ -122,12 +122,17 @@ class ConfigParser:
     def get_metadata(self):
         """ Get recording metadata. """
         try:
-            fields = self.config["commands"]["record"]["metadata"].get(list)
-        except (NotFoundError, ConfigTypeError):
+            fields = self.config["commands"]["record"]["metadata"].get()
+        except NotFoundError:
             return {}
 
-        if fields is not None:
-            return {f: input("{}: ".format(f)) for f in fields}
+        if isinstance(fields, list):
+            return {field: input(f"{field}: ") for field in fields}
+        if isinstance(fields, dict):
+            return {
+                field: input(f"{field} [{default}]: ") or default
+                for field, default in fields.items()
+            }
         else:
             return {}
 
