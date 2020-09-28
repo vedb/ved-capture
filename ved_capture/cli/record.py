@@ -1,12 +1,11 @@
 import inspect
-import simpleaudio
 import click
 import pupil_recording_interface as pri
 
 from ved_capture import APP_INFO
 from ved_capture.cli.ui import TerminalUI
 from ved_capture.cli.utils import add_file_handler
-from ved_capture.utils import copy_intrinsics
+from ved_capture.utils import copy_intrinsics, beep
 from ved_capture.config import ConfigParser, save_metadata
 
 
@@ -26,18 +25,6 @@ def resume_recording(manager):
         manager.send_notification(
             {"resume_process": f"{stream}.VideoRecorder"}, streams=[stream],
         )
-
-
-def beep(freq=440, fs=44100, seconds=0.1):
-    """ Make a beep noise to indicate recording state. """
-    import numpy as np
-
-    t = np.linspace(0, seconds, int(fs * seconds))
-    if not isinstance(freq, list):
-        freq = [freq]
-    notes = np.hstack([np.sin(f * t * 2 * np.pi) for f in freq])
-    audio = (notes * (2 ** 15 - 1) / np.max(np.abs(notes))).astype(np.int16)
-    simpleaudio.play_buffer(audio, 1, 2, fs)
 
 
 def show_video_streams(manager):

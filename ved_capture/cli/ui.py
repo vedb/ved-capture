@@ -4,6 +4,7 @@ import io
 from blessed import Terminal
 import multiprocessing_logging
 
+from ved_capture.utils import beep
 from ved_capture.cli.utils import init_logger, flush_log_buffer
 
 
@@ -67,6 +68,8 @@ class TerminalUI:
         self.manager = None
         self.statusmap = {}
         self.keymap = {}
+
+        self._disconnect_map = {}
 
     def __enter__(self):
         return self
@@ -149,6 +152,8 @@ class TerminalUI:
             if not callable(tup[1]):
                 raise ValueError(f"Key '{key}': value[1] is not callable")
 
+        self._disconnect_map = {name: None for name in self.manager.streams}
+
     def _get_status_str(self):
         """ Get status and key mappings. """
         status_list = [
@@ -174,6 +179,25 @@ class TerminalUI:
 
         return status_str
 
+    def _check_for_disconnect(self):
+        """ Check if a stream has been disconnected. """
+        for name, was_disconnected in self._disconnect_map.copy().items():
+            try:
+                is_disconnected = not self.manager.status[name]["running"]
+            except KeyError:
+                continue
+            if was_disconnected is None and not is_disconnected:
+                self.logger.debug("Initial connect registered by UI.")
+                self._disconnect_map[name] = False
+            elif was_disconnected is False and is_disconnected:
+                self.logger.debug("Disconnect registered by UI.")
+                self._disconnect_map[name] = True
+                beep([440, 0, 0], seconds=0.2)
+            elif was_disconnected and not is_disconnected:
+                self.logger.debug("Reconnect registered by UI.")
+                self._disconnect_map[name] = False
+                beep([880, 0, 880, 0, 0, 0], seconds=0.05)
+
     def spin(self):
         """ Main loop. """
         if self.manager is None:
@@ -183,6 +207,7 @@ class TerminalUI:
             )
 
         while not self.manager.stopped:
+            self._check_for_disconnect()
             log_buffer = flush_log_buffer(self.f_stdout)
             status_str = self._get_status_str()
             with self.term.hidden_cursor():

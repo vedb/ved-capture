@@ -4,8 +4,12 @@ import json
 import logging
 import shutil
 import subprocess
+import time
 from pathlib import Path
 from select import select
+
+import numpy as np
+import simpleaudio
 from pkg_resources import parse_version
 
 import git
@@ -268,3 +272,27 @@ def copy_intrinsics(stream, src_folder, dst_folder):
                 dst_file = Path(dst_folder) / f"{stream.name}.intrinsics"
                 shutil.copyfile(src_file, dst_file)
                 logger.debug(f"Copied {src_file} to {dst_file}")
+
+
+def beep(freq=440, fs=44100, seconds=0.1):
+    """ Make a beep noise to indicate recording state. """
+
+    t = np.linspace(0, seconds, int(fs * seconds))
+
+    fade_len = int(fs * 0.01)
+    fade_window = np.hstack(
+        (
+            np.hanning(fade_len)[: fade_len // 2],
+            np.ones(len(t) - fade_len),
+            np.hanning(fade_len)[fade_len // 2 :],
+        )
+    )
+
+    if not isinstance(freq, list):
+        freq = [freq]
+
+    notes = np.hstack([np.sin(f * t * 2 * np.pi) * fade_window for f in freq])
+    audio = (notes * (2 ** 15 - 1) / np.max(np.abs(notes))).astype(np.int16)
+
+    simpleaudio.play_buffer(audio, 1, 2, fs)
+    time.sleep(len(freq) * seconds)
