@@ -4,6 +4,7 @@ import datetime
 from collections import OrderedDict
 from ast import literal_eval
 from pathlib import Path
+from copy import deepcopy
 import csv
 import logging
 
@@ -51,16 +52,16 @@ class ConfigParser:
         """ Get configuration for a CLI command. """
         # TODO user-defined command configs completely
         #  override the package default. Is that what we want?
-        value = self.config["commands"][command].get(dict)
+        value = deepcopy(self.config["commands"][command].get(dict))
         for key in subkeys:
             value = value[key]
         return value
 
     def get_stream_config(self, stream_type, name, *subkeys):
-        """ Get config for a CLI command. """
+        """ Get config for a stream. """
         # TODO user-defined stream configs completely
         #  override the package default. Is that what we want?
-        value = self.config["streams"][stream_type].get(dict)[name]
+        value = deepcopy(self.config["streams"][stream_type].get(dict))[name]
         for key in subkeys:
             value = value[key]
         return value

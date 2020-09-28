@@ -1,4 +1,5 @@
 import inspect
+
 import click
 import pupil_recording_interface as pri
 
@@ -57,6 +58,8 @@ def hide_video_streams(manager):
 )
 def record(config_file, verbose):
     """ Run recording. """
+    # TODO create temporary file handler that will be renamed once we have
+    #  the recording folder
     ui = TerminalUI(
         inspect.stack()[0][3], verbosity=verbose, file_handler=False
     )
@@ -76,10 +79,15 @@ def record(config_file, verbose):
     manager = pri.StreamManager(
         stream_configs, folder=folder, policy=policy, app_info=APP_INFO
     )
-    ui.attach(manager, statusmap={"fps": "{:.2f} Hz"})
     add_file_handler("record", manager.folder)
+    ui.attach(manager, statusmap={"fps": "{:.2f} Hz"})
 
     print(f"{ui.term.bold('Started recording')} to {manager.folder}")
+
+    # write files to recording folder
+    with open(manager.folder / "config.yaml", "w") as f:
+        f.write(config_parser.config.dump(manager.folder / "config.yaml"))
+
     if len(metadata) > 0:
         save_metadata(manager.folder, metadata)
         ui.logger.debug(f"Saved user_info.csv to {manager.folder}")
