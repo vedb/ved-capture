@@ -144,8 +144,10 @@ class ConfigParser:
         config["pipeline"].append(
             recorder_types[stream_type](**(command_config or {}))
         )
-        if self.get_show_video() and stream_type == "video":
-            config["pipeline"].append(pri.VideoDisplay.Config())
+        if stream_type == "video":
+            config["pipeline"].append(
+                pri.VideoDisplay.Config(paused=not self.get_show_video())
+            )
 
         return config
 
