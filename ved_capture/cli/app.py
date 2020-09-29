@@ -14,7 +14,11 @@ from ved_capture.config import ConfigParser
 
 @click.command("update")
 @click.option(
-    "-v", "--verbose", default=False, help="Verbose output.", count=True,
+    "-v",
+    "--verbose",
+    default=False,
+    help="Verbose output.",
+    count=True,
 )
 @click.option(
     "-l",
@@ -24,10 +28,17 @@ from ved_capture.config import ConfigParser
     is_flag=True,
 )
 @click.option(
-    "-b", "--branch", default=None, help="Update from this branch or tag.",
+    "-b",
+    "--branch",
+    default=None,
+    help="Update from this branch or tag.",
 )
 @click.option(
-    "-s", "--stash", default=False, help="Stash local changes.", count=True,
+    "-s",
+    "--stash",
+    default=False,
+    help="Stash local changes.",
+    count=True,
 )
 @click.option(
     "--pri_branch",
@@ -80,7 +91,11 @@ def update(verbose, local, branch, stash, pri_branch, pri_path):
 
 @click.command("check_install")
 @click.option(
-    "-v", "--verbose", default=False, help="Verbose output.", count=True,
+    "-v",
+    "--verbose",
+    default=False,
+    help="Verbose output.",
+    count=True,
 )
 def check_install(verbose):
     """ Test installation. """
@@ -107,7 +122,10 @@ def check_install(verbose):
 
 @click.command("save_logs")
 @click.option(
-    "-f", "--filepath", default="~/vedc_logs.tar.gz", help="Output file path.",
+    "-f",
+    "--filepath",
+    default="~/vedc_logs.tar.gz",
+    help="Output file path.",
 )
 @click.option(
     "-o",

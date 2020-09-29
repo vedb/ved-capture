@@ -71,7 +71,8 @@ class TestMethods:
         """"""
         assert (
             get_repo_folder(
-                output_folder, "ssh://git@github.com/vedb/ved-capture",
+                output_folder,
+                "ssh://git@github.com/vedb/ved-capture",
             ).stem
             == "ved-capture"
         )

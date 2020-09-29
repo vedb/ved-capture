@@ -28,7 +28,7 @@ def calculate_calibration(manager, stream="world"):
     manager.send_notification({"calculate_calibration": True})
 
 
-@click.command("calibrate")
+@click.command("validate")
 @click.option(
     "-c",
     "--config-file",
@@ -44,13 +44,13 @@ def calculate_calibration(manager, stream="world"):
     help="Verbose output.",
     count=True,
 )
-def calibrate(config_file, verbose):
+def validate(config_file, verbose):
     """ Calibrate gaze mapping. """
     ui = TerminalUI(inspect.stack()[0][3], verbosity=verbose)
 
     # parse config
     with ConfigParser(config_file) as config_parser:
-        stream_configs = config_parser.get_calibration_configs()
+        stream_configs = config_parser.get_validation_configs()
         folder = config_parser.get_folder("calibrate", None)
         # TODO make this more robust
         world_stream = stream_configs[0].name

@@ -4,6 +4,7 @@ import click
 
 from ved_capture.cli.app import update, check_install, save_logs
 from ved_capture.cli.calibrate import calibrate
+from ved_capture.cli.validate import validate
 from ved_capture.cli.cam_params import estimate_cam_params
 from ved_capture.cli.config import generate_config, edit_config
 from ved_capture.cli.record import record
@@ -14,7 +15,7 @@ from ved_capture.cli.export import export
 @click.group("vedc")
 @click.version_option()
 def vedc():
-    """ Visual Experience Data Capture.
+    """Visual Experience Data Capture.
 
     Command line tool for the Visual Experience Database.
     """
@@ -23,6 +24,7 @@ def vedc():
 # add subcommands
 vedc.add_command(record)
 vedc.add_command(calibrate)
+vedc.add_command(validate)
 vedc.add_command(estimate_cam_params)
 vedc.add_command(show)
 vedc.add_command(generate_config)

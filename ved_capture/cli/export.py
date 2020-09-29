@@ -12,7 +12,11 @@ from ved_capture.cli.utils import init_logger, raise_error
 @click.argument("topics", nargs=-1)
 @click.option("-f", "--format", default="netcdf", help="Export format.")
 @click.option(
-    "-v", "--verbose", default=False, help="Verbose output.", count=True,
+    "-v",
+    "--verbose",
+    default=False,
+    help="Verbose output.",
+    count=True,
 )
 def export(folder, topics, format, verbose):
     """ Export recording data. """
