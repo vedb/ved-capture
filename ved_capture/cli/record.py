@@ -15,7 +15,8 @@ def pause_recording(manager):
     beep([880, 660, 440])
     for stream in manager.streams:
         manager.send_notification(
-            {"pause_process": f"{stream}.VideoRecorder"}, streams=[stream],
+            {"pause_process": f"{stream}.VideoRecorder"},
+            streams=[stream],
         )
 
 
@@ -24,7 +25,8 @@ def resume_recording(manager):
     beep([440, 660, 880])
     for stream in manager.streams:
         manager.send_notification(
-            {"resume_process": f"{stream}.VideoRecorder"}, streams=[stream],
+            {"resume_process": f"{stream}.VideoRecorder"},
+            streams=[stream],
         )
 
 
@@ -32,7 +34,8 @@ def show_video_streams(manager):
     """ Show video streams. """
     for stream in manager.streams:
         manager.send_notification(
-            {"resume_process": f"{stream}.VideoDisplay"}, streams=[stream],
+            {"resume_process": f"{stream}.VideoDisplay"},
+            streams=[stream],
         )
 
 
@@ -40,7 +43,8 @@ def hide_video_streams(manager):
     """ Hide video streams. """
     for stream in manager.streams:
         manager.send_notification(
-            {"pause_process": f"{stream}.VideoDisplay"}, streams=[stream],
+            {"pause_process": f"{stream}.VideoDisplay"},
+            streams=[stream],
         )
 
 
@@ -54,7 +58,11 @@ def hide_video_streams(manager):
     "'<CONFIG_FILE>.yaml in the app config folder.'",
 )
 @click.option(
-    "-v", "--verbose", default=False, help="Verbose output.", count=True,
+    "-v",
+    "--verbose",
+    default=False,
+    help="Verbose output.",
+    count=True,
 )
 def record(config_file, verbose):
     """ Run recording. """

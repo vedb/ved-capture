@@ -180,6 +180,53 @@ class ConfigParser:
 
         return configs
 
+    def _get_validation_pipeline(self, config, cam_type):
+        """ Get validation pipelinqe for stream config. """
+        if "pipeline" not in config:
+            config["pipeline"] = []
+
+        if cam_type == "world":
+            config["pipeline"].append(
+                pri.CircleDetector.Config(
+                    scale=0.8,
+                    paused=True,
+                    detection_method="vedb",
+                    marker_size=(12, 100),
+                )
+            )
+            config["pipeline"].append(pri.Validation.Config(save=True))
+            config["pipeline"].append(pri.GazeMapper.Config())
+            config["pipeline"].append(
+                pri.VideoDisplay.Config(
+                    overlay_circle_marker=True, overlay_gaze=True
+                )
+            )
+        elif cam_type == "eye0":
+            config["pipeline"].append(pri.PupilDetector.Config())
+            config["pipeline"].append(
+                pri.VideoDisplay.Config(overlay_pupil=True, flip=True)
+            )
+        elif cam_type == "eye1":
+            config["pipeline"].append(pri.PupilDetector.Config())
+            config["pipeline"].append(
+                pri.VideoDisplay.Config(overlay_pupil=True)
+            )
+
+        return config
+
+    def get_validation_configs(self):
+        """ Get list of configurations for validation. """
+        configs = []
+
+        for cam_type in ("world", "eye0", "eye1"):
+            name = self.get_command_config("validate", cam_type)
+            config = self.get_stream_config("video", name)
+            config["resolution"] = literal_eval(config["resolution"])
+            config = self._get_validation_pipeline(config or {}, cam_type)
+            configs.append(pri.VideoStream.Config(name=name, **config))
+
+        return configs
+
     def _get_calibration_pipeline(self, config, cam_type):
         """ Get calibration pipeline for stream config. """
         if "pipeline" not in config:

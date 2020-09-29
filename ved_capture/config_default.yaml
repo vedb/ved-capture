@@ -48,6 +48,12 @@ commands:
     eye0: eye0
     eye1: eye1
 
+  validate:
+    folder: ~/pupil_capture_settings
+    world: world
+    eye0: eye0
+    eye1: eye1
+
   estimate_cam_params:
     folder: ~/pupil_capture_settings
     streams:

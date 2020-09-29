@@ -118,7 +118,10 @@ def update_repo(repo_folder, branch=None, stash=False):
 
 
 def update_environment(
-    paths, devenv_file="environment.devenv.yml", local=False, pri_path=None,
+    paths,
+    devenv_file="environment.devenv.yml",
+    local=False,
+    pri_path=None,
 ):
     """ Update conda environment. """
     devenv_file = Path(paths["vedc_repo_folder"]) / devenv_file
