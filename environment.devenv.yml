@@ -68,4 +68,5 @@ dependencies:
   {% if "VEDC_DEV" in os.environ %}
   - pytest
   - bump2version
+  - setproctitle
   {% endif %}
