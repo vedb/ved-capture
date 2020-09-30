@@ -45,6 +45,7 @@ def init_logger(
     stream=sys.stdout,
     stream_format="%(message)s",
     temp_file_handler=False,
+    return_file_handler=False,
 ):
     """ Initialize logger with file and stream handler for a subcommand. """
     logging.addLevelName(TRACE, "TRACE")
@@ -73,7 +74,10 @@ def init_logger(
     else:
         file_handler = add_file_handler(subcommand)
 
-    return logging.getLogger("vedc." + subcommand), file_handler
+    if return_file_handler:
+        return logging.getLogger("vedc." + subcommand), file_handler
+    else:
+        return logging.getLogger("vedc." + subcommand)
 
 
 def flush_log_buffer(stream):

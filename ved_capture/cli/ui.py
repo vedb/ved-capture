@@ -88,6 +88,7 @@ class TerminalUI:
             stream=self.f_stdout,
             stream_format="[%(levelname)s] %(message)s",
             temp_file_handler=temp_file_handler,
+            return_file_handler=True,
         )
         self.temp_file_handler = temp_file_handler
 
@@ -220,6 +221,7 @@ class TerminalUI:
             add_file_handler(
                 self.command_name, manager.folder, replace=self.file_handler
             )
+            self.temp_file_handler = False
 
         def stop_manager():
             self.logger.info("Stopping...")
