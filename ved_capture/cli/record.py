@@ -5,7 +5,6 @@ import pupil_recording_interface as pri
 
 from ved_capture import APP_INFO
 from ved_capture.cli.ui import TerminalUI
-from ved_capture.cli.utils import add_file_handler
 from ved_capture.utils import copy_intrinsics, beep
 from ved_capture.config import ConfigParser, save_metadata
 
@@ -58,10 +57,8 @@ def hide_video_streams(manager):
 )
 def record(config_file, verbose):
     """ Run recording. """
-    # TODO create temporary file handler that will be renamed once we have
-    #  the recording folder
     ui = TerminalUI(
-        inspect.stack()[0][3], verbosity=verbose, file_handler=False
+        inspect.stack()[0][3], verbosity=verbose, temp_file_handler=True
     )
 
     # parse config
@@ -79,7 +76,6 @@ def record(config_file, verbose):
     manager = pri.StreamManager(
         stream_configs, folder=folder, policy=policy, app_info=APP_INFO
     )
-    add_file_handler("record", manager.folder)
     ui.attach(manager, statusmap={"fps": "{:.2f} Hz"})
 
     print(f"{ui.term.bold('Started recording')} to {manager.folder}")

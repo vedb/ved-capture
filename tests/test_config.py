@@ -74,6 +74,8 @@ class TestConfigParser:
         parser.config["commands"]["record"]["metadata"] = {"subject_id": "000"}
         monkeypatch.setattr("builtins.input", lambda x: "")
         assert parser.get_metadata() == {"subject_id": "000"}
+        monkeypatch.setattr("builtins.input", lambda x: "001")
+        assert parser.get_metadata() == {"subject_id": "001"}
 
     def test_get_recording_configs(self, parser):
         """"""

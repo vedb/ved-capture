@@ -1,7 +1,9 @@
 """"""
 import logging
 import pprint
+import shutil
 import sys
+import tempfile
 from pathlib import Path
 
 import click
@@ -12,19 +14,29 @@ from ved_capture.config import ConfigParser, logger
 TRACE = 5
 
 
-def add_file_handler(subcommand, folder=None):
-    """ Add a file handler to the root logger"""
+def add_file_handler(
+    subcommand, folder=None, replace=None, level=TRACE, mode="a"
+):
+    """ Add a file handler to the root logger. """
     root_logger = logging.getLogger("")
     file_formatter = logging.Formatter(
         "%(asctime)s | %(name)s | %(levelname)s: %(message)s"
     )
-    file_handler = logging.FileHandler(
-        Path(folder or ConfigParser().config.config_dir())
-        / ("vedc." + subcommand + ".log")
+    log_file = Path(folder or ConfigParser().config.config_dir()) / (
+        "vedc." + subcommand + ".log"
     )
+
+    if replace:
+        replace.close()
+        root_logger.removeHandler(replace)
+        shutil.move(replace.baseFilename, log_file)
+
+    file_handler = logging.FileHandler(log_file, mode=mode)
     file_handler.setFormatter(file_formatter)
-    file_handler.setLevel(TRACE)
+    file_handler.setLevel(level)
     root_logger.addHandler(file_handler)
+
+    return file_handler
 
 
 def init_logger(
@@ -32,7 +44,7 @@ def init_logger(
     verbosity=0,
     stream=sys.stdout,
     stream_format="%(message)s",
-    file_handler=True,
+    temp_file_handler=False,
 ):
     """ Initialize logger with file and stream handler for a subcommand. """
     logging.addLevelName(TRACE, "TRACE")
@@ -54,10 +66,14 @@ def init_logger(
     root_logger.addHandler(stream_handler)
 
     # file handler
-    if file_handler:
-        add_file_handler(subcommand)
+    if temp_file_handler:
+        file_handler = add_file_handler(
+            subcommand, folder=tempfile.gettempdir(), mode="w"
+        )
+    else:
+        file_handler = add_file_handler(subcommand)
 
-    return logging.getLogger("vedc." + subcommand)
+    return logging.getLogger("vedc." + subcommand), file_handler
 
 
 def flush_log_buffer(stream):
