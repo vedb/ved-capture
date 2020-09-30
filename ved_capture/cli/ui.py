@@ -12,6 +12,18 @@ from ved_capture.cli.utils import (
 )
 
 
+def _format_log_buffer(t, log_buffer):
+    """ Add pretty formatting to log messages. """
+    log_buffer = log_buffer.replace("[ERROR]", t.bold(t.red2("[ERROR]")))
+    log_buffer = log_buffer.replace(
+        "[WARNING]", t.bold(t.goldenrod("[WARNING]"))
+    )
+    log_buffer = log_buffer.replace("[INFO]", t.bold(t.steelblue("[INFO]")))
+    log_buffer = log_buffer.replace("[DEBUG]", t.bold("[DEBUG]"))
+
+    return log_buffer
+
+
 def refresh(t, log_buffer, status_buffer, timeout=0.1, num_empty_lines=1):
     """ Refresh terminal output and return user input. """
     if not hasattr(refresh, "last_log_line"):
@@ -21,6 +33,7 @@ def refresh(t, log_buffer, status_buffer, timeout=0.1, num_empty_lines=1):
 
     # print log buffer
     if log_buffer is not None:
+        log_buffer = _format_log_buffer(t, log_buffer)
         print(t.move_xy(0, refresh.last_log_line) + t.clear_eos + log_buffer)
     else:
         print(t.move_xy(0, refresh.last_log_line) + t.move_up)
