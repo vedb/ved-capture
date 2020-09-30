@@ -44,26 +44,42 @@ class ConfigParser:
 
         if exc_type is not None:
             raise_error(
-                f"Error parsing configuration: {exc_type.__name__}: {exc_val}",
-                logger,
+                f"Could not parse configuration: {exc_val}", logger,
             )
 
     def get_command_config(self, command, *subkeys):
         """ Get configuration for a CLI command. """
         # TODO user-defined command configs completely
         #  override the package default. Is that what we want?
-        value = deepcopy(self.config["commands"][command].get(dict))
-        for key in subkeys:
-            value = value[key]
+        try:
+            value = deepcopy(self.config["commands"][command].get(dict))
+            for key in subkeys:
+                value = value[key]
+        except KeyError:
+            raise NotFoundError(
+                f"commands.{command}{'.'.join(subkeys)} not found"
+            )
+
         return value
 
     def get_stream_config(self, stream_type, name, *subkeys):
         """ Get config for a stream. """
         # TODO user-defined stream configs completely
         #  override the package default. Is that what we want?
-        value = deepcopy(self.config["streams"][stream_type].get(dict))[name]
-        for key in subkeys:
-            value = value[key]
+        try:
+            value = deepcopy(self.config["streams"][stream_type].get(dict))[
+                name
+            ]
+            for key in subkeys:
+                value = value[key]
+        except KeyError:
+            if len(subkeys):
+                raise NotFoundError(
+                    f"streams.{name}{'.'.join(subkeys)} not found"
+                )
+            else:
+                raise NotFoundError(f"Stream '{name}' is not defined")
+
         return value
 
     @classmethod
@@ -91,7 +107,8 @@ class ConfigParser:
                     return os.path.expanduser(folder)
                 except KeyError as e:
                     raise ValueError(
-                        f"Invalid folder config: '{e}' is missing in metadata"
+                        f"Format spec in commands.{command}.folder requires "
+                        f"{e} to be defined in commands.{command}.metadata"
                     )
             else:
                 return os.getcwd()
