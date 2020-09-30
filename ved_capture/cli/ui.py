@@ -254,17 +254,19 @@ class TerminalUI:
 
         self._disconnect_map = {name: None for name in self.manager.streams}
 
+    def _wrap(self, line):
+        """ Wrap long lines. """
+        return "\n".join(self.term.wrap(line, subsequent_indent=" "))
+
     def _get_status_str(self):
         """ Get status and key mappings. """
         status_list = [
-            self.manager.format_status(
-                val, format=fmt, max_cols=self.term.width
-            )
+            self.manager.format_status(val, format=fmt)
             for val, fmt in self.statusmap.items()
         ]
 
         status_str = "\n".join(
-            self.term.bold(s) for s in status_list if s is not None
+            self._wrap(self.term.bold(s)) for s in status_list if s is not None
         )
 
         key_str = " - ".join(
@@ -274,7 +276,7 @@ class TerminalUI:
             ]
         )
         if len(key_str):
-            status_str += "\n" + key_str
+            status_str += "\n" + self._wrap(key_str)
 
         return status_str
 
