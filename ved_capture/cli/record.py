@@ -83,6 +83,7 @@ def record(config_file, verbose):
     # write files to recording folder
     with open(manager.folder / "config.yaml", "w") as f:
         f.write(config_parser.config.dump(manager.folder / "config.yaml"))
+        ui.logger.debug(f"Saved config.yaml to {manager.folder}")
 
     if len(metadata) > 0:
         save_metadata(manager.folder, metadata)
