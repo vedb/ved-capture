@@ -279,14 +279,17 @@ def beep(freq=440, fs=44100, seconds=0.1):
 
     t = np.linspace(0, seconds, int(fs * seconds))
 
-    fade_len = int(fs * 0.01)
-    fade_window = np.hstack(
-        (
-            np.hanning(fade_len)[: fade_len // 2],
-            np.ones(len(t) - fade_len),
-            np.hanning(fade_len)[fade_len // 2 :],
+    if seconds > 0.02:
+        fade_len = int(fs * 0.01)
+        fade_window = np.hstack(
+            (
+                np.hanning(fade_len)[: fade_len // 2],
+                np.ones(len(t) - fade_len),
+                np.hanning(fade_len)[fade_len // 2 :],
+            )
         )
-    )
+    else:
+        fade_window = 1
 
     if not isinstance(freq, list):
         freq = [freq]
