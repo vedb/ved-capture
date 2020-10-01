@@ -28,6 +28,7 @@ def acquire_pattern(manager):
     "--extrinsics",
     default=False,
     help="Also estimate extrinsics between cameras.",
+    is_flag=True,
 )
 @click.option(
     "-v", "--verbose", default=False, help="Verbose output.", count=True,

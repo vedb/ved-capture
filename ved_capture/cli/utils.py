@@ -1,29 +1,53 @@
 """"""
 import logging
-import os
 import pprint
+import shutil
 import sys
+import tempfile
+from pathlib import Path
 
 import click
 import pupil_recording_interface as pri
 
 from ved_capture.config import ConfigParser, logger
 
+TRACE = 5
+
+
+def add_file_handler(
+    subcommand, folder=None, replace=None, level=TRACE, mode="a"
+):
+    """ Add a file handler to the root logger. """
+    root_logger = logging.getLogger("")
+    file_formatter = logging.Formatter(
+        "%(asctime)s | %(name)s | %(levelname)s: %(message)s"
+    )
+    log_file = Path(folder or ConfigParser().config.config_dir()) / (
+        "vedc." + subcommand + ".log"
+    )
+
+    if replace:
+        replace.close()
+        root_logger.removeHandler(replace)
+        shutil.move(replace.baseFilename, log_file)
+
+    file_handler = logging.FileHandler(log_file, mode=mode)
+    file_handler.setFormatter(file_formatter)
+    file_handler.setLevel(level)
+    root_logger.addHandler(file_handler)
+
+    return file_handler
+
 
 def init_logger(
-    subcommand, verbosity=0, stream=sys.stdout, stream_format="%(message)s"
+    subcommand,
+    verbosity=0,
+    stream=sys.stdout,
+    stream_format="%(message)s",
+    temp_file_handler=False,
+    return_file_handler=False,
 ):
     """ Initialize logger with file and stream handler for a subcommand. """
-    TRACE = 5
-
-    # root logger with file handler
-    logging.basicConfig(
-        level=TRACE,
-        format="%(asctime)s | %(name)s | %(levelname)s: %(message)s",
-        filename=os.path.join(
-            ConfigParser().config.config_dir(), "vedc." + subcommand + ".log"
-        ),
-    )
     logging.addLevelName(TRACE, "TRACE")
     verbosity_map = {
         0: logging.INFO,
@@ -31,18 +55,29 @@ def init_logger(
         2: TRACE,
     }
 
+    # root logger
+    root_logger = logging.getLogger("")
+    root_logger.setLevel(TRACE)
+
     # stream handler
     stream_formatter = logging.Formatter(stream_format)
     stream_handler = logging.StreamHandler(stream)
     stream_handler.setLevel(verbosity_map[int(verbosity)])
     stream_handler.setFormatter(stream_formatter)
-
-    # add the handler to the root logger
-    root_logger = logging.getLogger("")
     root_logger.addHandler(stream_handler)
-    root_logger.setLevel(verbosity_map[int(verbosity)])
 
-    return logging.getLogger("vedc." + subcommand)
+    # file handler
+    if temp_file_handler:
+        file_handler = add_file_handler(
+            subcommand, folder=tempfile.gettempdir(), mode="w"
+        )
+    else:
+        file_handler = add_file_handler(subcommand)
+
+    if return_file_handler:
+        return logging.getLogger("vedc." + subcommand), file_handler
+    else:
+        return logging.getLogger("vedc." + subcommand)
 
 
 def flush_log_buffer(stream):

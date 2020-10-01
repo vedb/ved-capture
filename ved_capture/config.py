@@ -4,6 +4,7 @@ import datetime
 from collections import OrderedDict
 from ast import literal_eval
 from pathlib import Path
+from copy import deepcopy
 import csv
 import logging
 
@@ -43,26 +44,42 @@ class ConfigParser:
 
         if exc_type is not None:
             raise_error(
-                f"Error parsing configuration: {exc_type.__name__}: {exc_val}",
-                logger,
+                f"Could not parse configuration: {exc_val}", logger,
             )
 
     def get_command_config(self, command, *subkeys):
         """ Get configuration for a CLI command. """
         # TODO user-defined command configs completely
         #  override the package default. Is that what we want?
-        value = self.config["commands"][command].get(dict)
-        for key in subkeys:
-            value = value[key]
+        try:
+            value = deepcopy(self.config["commands"][command].get(dict))
+            for key in subkeys:
+                value = value[key]
+        except KeyError:
+            raise NotFoundError(
+                f"commands.{command}{'.'.join(subkeys)} not found"
+            )
+
         return value
 
     def get_stream_config(self, stream_type, name, *subkeys):
-        """ Get config for a CLI command. """
+        """ Get config for a stream. """
         # TODO user-defined stream configs completely
         #  override the package default. Is that what we want?
-        value = self.config["streams"][stream_type].get(dict)[name]
-        for key in subkeys:
-            value = value[key]
+        try:
+            value = deepcopy(self.config["streams"][stream_type].get(dict))[
+                name
+            ]
+            for key in subkeys:
+                value = value[key]
+        except KeyError:
+            if len(subkeys):
+                raise NotFoundError(
+                    f"streams.{name}{'.'.join(subkeys)} not found"
+                )
+            else:
+                raise NotFoundError(f"Stream '{name}' is not defined")
+
         return value
 
     @classmethod
@@ -90,7 +107,8 @@ class ConfigParser:
                     return os.path.expanduser(folder)
                 except KeyError as e:
                     raise ValueError(
-                        f"Invalid folder config: '{e}' is missing in metadata"
+                        f"Format spec in commands.{command}.folder requires "
+                        f"{e} to be defined in commands.{command}.metadata"
                     )
             else:
                 return os.getcwd()
@@ -121,12 +139,17 @@ class ConfigParser:
     def get_metadata(self):
         """ Get recording metadata. """
         try:
-            fields = self.config["commands"]["record"]["metadata"].get(list)
-        except (NotFoundError, ConfigTypeError):
+            fields = self.config["commands"]["record"]["metadata"].get()
+        except NotFoundError:
             return {}
 
-        if fields is not None:
-            return {f: input("{}: ".format(f)) for f in fields}
+        if isinstance(fields, list):
+            return {field: input(f"{field}: ") for field in fields}
+        if isinstance(fields, dict):
+            return {
+                field: input(f"{field} [{default}]: ") or default
+                for field, default in fields.items()
+            }
         else:
             return {}
 
@@ -144,8 +167,10 @@ class ConfigParser:
         config["pipeline"].append(
             recorder_types[stream_type](**(command_config or {}))
         )
-        if self.get_show_video() and stream_type == "video":
-            config["pipeline"].append(pri.VideoDisplay.Config())
+        if stream_type == "video":
+            config["pipeline"].append(
+                pri.VideoDisplay.Config(paused=not self.get_show_video())
+            )
 
         return config
 
