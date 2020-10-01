@@ -265,18 +265,24 @@ class TerminalUI:
             for val, fmt in self.statusmap.items()
         ]
 
+        # format stream statuses
         status_str = "\n".join(
-            self._wrap(self.term.bold(s)) for s in status_list if s is not None
+            self._wrap(
+                self.term.bold(s.replace("no data", self.term.red2("no data")))
+            )
+            for s in status_list
+            if s is not None
         )
 
-        key_str = " - ".join(
+        # format keymap
+        keymap_str = " - ".join(
             [
                 f"[{self.term.bold(key)}] {name}"
                 for key, (name, _) in self.keymap.items()
             ]
         )
-        if len(key_str):
-            status_str += "\n" + self._wrap(key_str)
+        if len(keymap_str):
+            status_str += "\n" + self._wrap(keymap_str)
 
         return status_str
 
