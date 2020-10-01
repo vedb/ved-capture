@@ -56,7 +56,7 @@ def init_logger(
     }
 
     # root logger
-    root_logger = logging.getLogger("")
+    root_logger = logging.getLogger()
     root_logger.setLevel(TRACE)
 
     # stream handler

@@ -9,6 +9,7 @@ from ved_capture.cli.utils import (
     add_file_handler,
     init_logger,
     flush_log_buffer,
+    raise_error,
 )
 
 
@@ -91,8 +92,6 @@ class TerminalUI:
         """
         self.command_name = command_name
 
-        multiprocessing_logging.install_mp_handler()
-
         self.term = Terminal()
         self.f_stdout = io.StringIO()
         self.logger, self.file_handler = init_logger(
@@ -112,11 +111,18 @@ class TerminalUI:
         self._disconnect_map = {}
 
     def __enter__(self):
+        multiprocessing_logging.install_mp_handler()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         refresh(self.term, flush_log_buffer(self.f_stdout), None)
-        print(self.term.bold(self.term.firebrick("Stopped")))
+        multiprocessing_logging.uninstall_mp_handler()
+        if exc_type:
+            raise_error(
+                self.term.red2(self.term.bold(str(exc_val))), self.logger
+            )
+        else:
+            print(self.term.bold(self.term.firebrick("Stopped")))
 
     def _replace_key(self, key, desc, call_fn, new_key=None, new_desc=None):
         """ Replace a key in the keymap while maintaining its order. """
@@ -265,18 +271,24 @@ class TerminalUI:
             for val, fmt in self.statusmap.items()
         ]
 
+        # format stream statuses
         status_str = "\n".join(
-            self._wrap(self.term.bold(s)) for s in status_list if s is not None
+            self._wrap(
+                self.term.bold(s.replace("no data", self.term.red2("no data")))
+            )
+            for s in status_list
+            if s is not None
         )
 
-        key_str = " - ".join(
+        # format keymap
+        keymap_str = " - ".join(
             [
                 f"[{self.term.bold(key)}] {name}"
                 for key, (name, _) in self.keymap.items()
             ]
         )
-        if len(key_str):
-            status_str += "\n" + self._wrap(key_str)
+        if len(keymap_str):
+            status_str += "\n" + self._wrap(keymap_str)
 
         return status_str
 
