@@ -113,6 +113,8 @@ def update_repo(repo_folder, branch=None, stash=False):
     )
     repo.git.checkout(branch)
     logger.info(f"Checked out {branch}")
+    if not isinstance(branch, git.TagReference):
+        repo.git.merge()
 
     # Return True if the repo was updated
     return current_hash != repo.head.object.hexsha
