@@ -28,7 +28,7 @@ import re
 import hashlib
 
 
-__installer_version = "1.3.0"
+__installer_version = "1.3.1"
 __maintainer_email = "peter.hausamann@tum.de"
 
 # -- LOGGING -- #
@@ -179,6 +179,10 @@ def handle_process(process, command, error_msg, n_bytes=4096):
 
 def run_command(command, error_msg=None, shell=False, f_stdout=None):
     """"""
+    logger.debug(
+        f"Running '{command if shell else ' '.join(str(c) for c in command)}'."
+    )
+
     with subprocess.Popen(
         command,
         stdout=f_stdout or subprocess.PIPE,
@@ -190,6 +194,8 @@ def run_command(command, error_msg=None, shell=False, f_stdout=None):
 
 def run_as_sudo(command, password, error_message=None):
     """"""
+    logger.debug(f"Running '{' '.join(str(c) for c in command)}' as sudo.")
+
     if password is None:
         return run_command(["sudo"] + command)
     else:
@@ -309,6 +315,22 @@ def update_repo(repo_folder, branch):
         ],
         error_msg=error_msg,
     )
+
+    # merge if HEAD is not detached (i.e. we checked out a branch, not a tag)
+    if not subprocess.call(
+        ["git", "symbolic-ref", "-q", "HEAD"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    ):
+        run_command(
+            [
+                "git",
+                f"--work-tree={repo_folder}",
+                f"--git-dir={repo_folder}/.git",
+                "merge",
+            ],
+            error_msg=error_msg,
+        )
 
 
 def clone_repo(base_folder, repo_folder, repo_url, branch=None):
