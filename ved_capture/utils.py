@@ -2,6 +2,7 @@
 import os
 import json
 import logging
+import re
 import shutil
 import subprocess
 import time
@@ -117,8 +118,24 @@ def update_repo(repo_folder, branch=None, stash=False):
     return current_hash != repo.head.object.hexsha
 
 
+def get_min_conda_devenv_version(devenv_file):
+    """ Get minimum conda devenv version. """
+    with open(devenv_file) as f:
+        for line in f:
+            pattern = re.compile('{{ min_conda_devenv_version\("(.+)"\) }}')
+            result = re.search(pattern, line)
+            if result:
+                return result.group(1)
+        else:
+            return "2.1.1"
+
+
 def update_environment(
-    paths, devenv_file="environment.devenv.yml", local=False, pri_path=None,
+    paths,
+    devenv_file="environment.devenv.yml",
+    local=False,
+    pri_branch=None,
+    pri_path=None,
 ):
     """ Update conda environment. """
     devenv_file = Path(paths["vedc_repo_folder"]) / devenv_file
@@ -128,12 +145,15 @@ def update_environment(
 
     if local:
         os.environ["VEDC_DEV"] = ""
-
-    if pri_path is not None:
+    if pri_branch:
+        os.environ["PRI_PIN"] = pri_branch
+    if pri_path:
         paths["pri_path"] = str(Path(pri_path).expanduser().resolve())
         write_paths(paths)
 
-    if "pri_path" in paths:
+    # Only install PRI from local repo if pri_branch isn't set but local or
+    # pri_path is
+    if not pri_branch and "pri_path" in paths and (local or pri_path):
         os.environ["PRI_PATH"] = paths["pri_path"]
 
     # Install mamba if missing
@@ -162,7 +182,7 @@ def update_environment(
             "-y",
             "-c",
             "conda-forge",
-            "conda-devenv",
+            f"conda-devenv>={get_min_conda_devenv_version(devenv_file)}",
         ]
     )
     if return_code != 0:

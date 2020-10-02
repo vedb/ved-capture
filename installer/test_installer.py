@@ -10,6 +10,7 @@ from install_ved_capture import (
     get_repo_folder,
     get_version_or_branch,
     clone_repo,
+    get_min_conda_devenv_version,
     install_miniconda,
 )
 
@@ -33,6 +34,12 @@ def output_folder():
 def repo_url():
     """"""
     return "ssh://git@github.com/vedb/ved-capture"
+
+
+@pytest.fixture()
+def local_repo_folder():
+    """"""
+    return Path(__file__).parents[1]
 
 
 @pytest.fixture()
@@ -95,3 +102,8 @@ class TestMethods:
         """"""
         install_miniconda(prefix=output_folder)
         assert (output_folder / "bin" / "conda").exists()
+
+    def test_get_min_conda_devenv_version(self, local_repo_folder):
+        """"""
+        version = get_min_conda_devenv_version(local_repo_folder)
+        assert version == "2.1.1"

@@ -28,9 +28,8 @@ import re
 import hashlib
 
 
-__installer_version = "1.2.1"
+__installer_version = "1.3.0"
 __maintainer_email = "peter.hausamann@tum.de"
-
 
 # -- LOGGING -- #
 logger = logging.getLogger(Path(__file__).stem)
@@ -430,6 +429,18 @@ def install_miniconda(prefix="~/miniconda3"):
     run_command(["/bin/bash", filename, "-b", "-p", str(prefix)])
 
 
+def get_min_conda_devenv_version(repo_folder):
+    """ Get minimum conda devenv version. """
+    with open(Path(repo_folder) / "environment.devenv.yml") as f:
+        for line in f:
+            pattern = re.compile('{{ min_conda_devenv_version\("(.+)"\) }}')
+            result = re.search(pattern, line)
+            if result:
+                return result.group(1)
+        else:
+            return "2.1.1"
+
+
 def create_environment(
     conda_binary, mamba_binary, vedc_repo_folder, config_folder
 ):
@@ -442,7 +453,7 @@ def create_environment(
             "-y",
             "-c",
             "conda-forge",
-            "conda-devenv",
+            f"conda-devenv>={get_min_conda_devenv_version(vedc_repo_folder)}",
             "mamba",
         ]
     )
@@ -553,6 +564,11 @@ if __name__ == "__main__":
         help="Base folder for miniconda installation",
     )
     parser.add_argument(
+        "--pri_branch",
+        default=None,
+        help="Install pupil_recording_interface from this branch or tag.",
+    )
+    parser.add_argument(
         "--pri_path",
         default=None,
         help="Path to local pupil_recording_interface repository.",
@@ -571,6 +587,13 @@ if __name__ == "__main__":
         help="Skip checking for newer install script version",
     )
     args = parser.parse_args()
+
+    # check args
+    if args.pri_branch and args.pri_path:
+        logger.error(
+            "You cannot provide --pri_branch and --pri_path at the same time."
+        )
+        abort()
 
     # Set up paths
     base_folder = Path(args.folder).expanduser().resolve()
@@ -658,7 +681,9 @@ if __name__ == "__main__":
         )
 
     # Create or update environment
-    if args.pri_path is not None:
+    if args.pri_branch:
+        os.environ["PRI_PIN"] = args.pri_branch
+    if args.pri_path:
         os.environ["PRI_PATH"] = str(
             Path(args.pri_path).expanduser().resolve()
         )
