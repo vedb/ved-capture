@@ -28,7 +28,7 @@ import re
 import hashlib
 
 
-__installer_version = "1.3.1"
+__installer_version = "1.3.2"
 __maintainer_email = "peter.hausamann@tum.de"
 
 # -- LOGGING -- #
@@ -317,10 +317,20 @@ def update_repo(repo_folder, branch):
     )
 
     # merge if HEAD is not detached (i.e. we checked out a branch, not a tag)
-    if not subprocess.call(
-        ["git", "symbolic-ref", "-q", "HEAD"],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+    if (
+        subprocess.call(
+            [
+                "git",
+                f"--work-tree={repo_folder}",
+                f"--git-dir={repo_folder}/.git",
+                "symbolic-ref",
+                "-q",
+                "HEAD",
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        == 0
     ):
         run_command(
             [
@@ -588,12 +598,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--pri_branch",
         default=None,
-        help="Install pupil_recording_interface from this branch or tag.",
+        help="Install pupil_recording_interface from this branch or tag",
     )
     parser.add_argument(
         "--pri_path",
         default=None,
-        help="Path to local pupil_recording_interface repository.",
+        help="Path to local pupil_recording_interface repository",
     )
     parser.add_argument(
         "--no_ssh", action="store_true", help="Disable check for SSH key",
