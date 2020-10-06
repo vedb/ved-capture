@@ -9,7 +9,7 @@ requirements = [
 
 setup(
     name="ved-capture",
-    version="0.2.1",
+    version="0.3.0",
     packages=find_packages(),
     long_description=open("README.md").read(),
     entry_points="""

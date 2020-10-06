@@ -1,73 +1,53 @@
 """"""
-import ctypes
-import io
 import logging
-import os
 import pprint
+import shutil
 import sys
 import tempfile
-from contextlib import contextmanager
+from pathlib import Path
 
 import click
 import pupil_recording_interface as pri
 
 from ved_capture.config import ConfigParser, logger
 
-libc = ctypes.CDLL(None)
-c_stdout = ctypes.c_void_p.in_dll(libc, "stdout")
+TRACE = 5
 
 
-@contextmanager
-def redirect(stream):
-    # The original fd stdout points to. Usually 1 on POSIX systems.
-    original_stdout_fd = sys.stdout.fileno()
+def add_file_handler(
+    subcommand, folder=None, replace=None, level=TRACE, mode="a"
+):
+    """ Add a file handler to the root logger. """
+    root_logger = logging.getLogger("")
+    file_formatter = logging.Formatter(
+        "%(asctime)s | %(name)s | %(levelname)s: %(message)s"
+    )
+    log_file = Path(folder or ConfigParser().config.config_dir()) / (
+        "vedc." + subcommand + ".log"
+    )
 
-    def _redirect_stdout(to_fd):
-        """Redirect stdout to the given file descriptor."""
-        # Flush the C-level buffer stdout
-        libc.fflush(c_stdout)
-        # Flush and close sys.stdout - also closes the file descriptor (fd)
-        sys.stdout.close()
-        # Make original_stdout_fd point to the same file as to_fd
-        os.dup2(to_fd, original_stdout_fd)
-        # Create a new sys.stdout that points to the redirected fd
-        sys.stdout = io.TextIOWrapper(os.fdopen(original_stdout_fd, "wb"))
+    if replace:
+        replace.close()
+        root_logger.removeHandler(replace)
+        shutil.move(replace.baseFilename, log_file)
 
-    # Save a copy of the original stdout fd in saved_stdout_fd
-    saved_stdout_fd = os.dup(original_stdout_fd)
-    try:
-        # Create a temporary file and redirect stdout to it
-        tfile = tempfile.TemporaryFile(mode="w+b")
-        _redirect_stdout(tfile.fileno())
-        # Yield to caller, then redirect stdout back to the saved fd
-        yield
-        _redirect_stdout(saved_stdout_fd)
-        # Copy contents of temporary file to the given stream
-        tfile.flush()
-        tfile.seek(0, io.SEEK_SET)
-        stream.write(tfile.read().decode())
-    finally:
-        try:
-            tfile.close()
-        except UnboundLocalError:
-            pass
-        os.close(saved_stdout_fd)
+    file_handler = logging.FileHandler(log_file, mode=mode)
+    file_handler.setFormatter(file_formatter)
+    file_handler.setLevel(level)
+    root_logger.addHandler(file_handler)
+
+    return file_handler
 
 
 def init_logger(
-    subcommand, verbosity=0, stream=sys.stdout, stream_format="%(message)s"
+    subcommand,
+    verbosity=0,
+    stream=sys.stdout,
+    stream_format="%(message)s",
+    temp_file_handler=False,
+    return_file_handler=False,
 ):
     """ Initialize logger with file and stream handler for a subcommand. """
-    TRACE = 5
-
-    # root logger with file handler
-    logging.basicConfig(
-        level=TRACE,
-        format="%(asctime)s | %(name)s | %(levelname)s: %(message)s",
-        filename=os.path.join(
-            ConfigParser().config.config_dir(), "vedc." + subcommand + ".log"
-        ),
-    )
     logging.addLevelName(TRACE, "TRACE")
     verbosity_map = {
         0: logging.INFO,
@@ -75,18 +55,29 @@ def init_logger(
         2: TRACE,
     }
 
+    # root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(TRACE)
+
     # stream handler
     stream_formatter = logging.Formatter(stream_format)
     stream_handler = logging.StreamHandler(stream)
     stream_handler.setLevel(verbosity_map[int(verbosity)])
     stream_handler.setFormatter(stream_formatter)
-
-    # add the handler to the root logger
-    root_logger = logging.getLogger("")
     root_logger.addHandler(stream_handler)
-    root_logger.setLevel(verbosity_map[int(verbosity)])
 
-    return logging.getLogger("vedc." + subcommand)
+    # file handler
+    if temp_file_handler:
+        file_handler = add_file_handler(
+            subcommand, folder=tempfile.gettempdir(), mode="w"
+        )
+    else:
+        file_handler = add_file_handler(subcommand)
+
+    if return_file_handler:
+        return logging.getLogger("vedc." + subcommand), file_handler
+    else:
+        return logging.getLogger("vedc." + subcommand)
 
 
 def flush_log_buffer(stream):

@@ -81,18 +81,18 @@ streams:
       resolution: (1696, 800)
       fps: 30
       device_type: t265
-      device_uid: t265
+      device_uid: null
       color_format: gray
   motion:
     odometry:
       device_type: t265
-      device_uid: t265
+      device_uid: null
       motion_type: odometry
     accel:
       device_type: t265
-      device_uid: t265
+      device_uid: null
       motion_type: accel
     gyro:
       device_type: t265
-      device_uid: t265
+      device_uid: null
       motion_type: gyro

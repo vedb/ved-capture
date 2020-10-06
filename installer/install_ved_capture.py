@@ -28,9 +28,8 @@ import re
 import hashlib
 
 
-__installer_version = "1.0.1"
+__installer_version = "1.3.2"
 __maintainer_email = "peter.hausamann@tum.de"
-
 
 # -- LOGGING -- #
 logger = logging.getLogger(Path(__file__).stem)
@@ -143,10 +142,16 @@ def log_as_debug(data):
 
 def handle_process(process, command, error_msg, n_bytes=4096):
     """"""
-    readable = {
-        process.stdout.fileno(): log_as_debug,
-        process.stderr.fileno(): log_as_warning_or_debug,
-    }
+    if process.stdout is not None:
+        readable = {
+            process.stdout.fileno(): log_as_debug,
+            process.stderr.fileno(): log_as_warning_or_debug,
+        }
+    else:
+        readable = {
+            process.stderr.fileno(): log_as_warning_or_debug,
+        }
+
     while readable:
         for fd in select(readable, [], [])[0]:
             data = os.read(fd, n_bytes)  # read available
@@ -172,16 +177,25 @@ def handle_process(process, command, error_msg, n_bytes=4096):
         abort()
 
 
-def run_command(command, error_msg=None, shell=False):
+def run_command(command, error_msg=None, shell=False, f_stdout=None):
     """"""
+    logger.debug(
+        f"Running '{command if shell else ' '.join(str(c) for c in command)}'."
+    )
+
     with subprocess.Popen(
-        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=shell,
+        command,
+        stdout=f_stdout or subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        shell=shell,
     ) as process:
         handle_process(process, command, error_msg)
 
 
 def run_as_sudo(command, password, error_message=None):
     """"""
+    logger.debug(f"Running '{' '.join(str(c) for c in command)}' as sudo.")
+
     if password is None:
         return run_command(["sudo"] + command)
     else:
@@ -302,6 +316,32 @@ def update_repo(repo_folder, branch):
         error_msg=error_msg,
     )
 
+    # merge if HEAD is not detached (i.e. we checked out a branch, not a tag)
+    if (
+        subprocess.call(
+            [
+                "git",
+                f"--work-tree={repo_folder}",
+                f"--git-dir={repo_folder}/.git",
+                "symbolic-ref",
+                "-q",
+                "HEAD",
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        == 0
+    ):
+        run_command(
+            [
+                "git",
+                f"--work-tree={repo_folder}",
+                f"--git-dir={repo_folder}/.git",
+                "merge",
+            ],
+            error_msg=error_msg,
+        )
+
 
 def clone_repo(base_folder, repo_folder, repo_url, branch=None):
     """"""
@@ -421,27 +461,93 @@ def install_miniconda(prefix="~/miniconda3"):
     run_command(["/bin/bash", filename, "-b", "-p", str(prefix)])
 
 
+def get_min_conda_devenv_version(repo_folder):
+    """ Get minimum conda devenv version. """
+    with open(Path(repo_folder) / "environment.devenv.yml") as f:
+        for line in f:
+            pattern = re.compile('{{ min_conda_devenv_version\("(.+)"\) }}')
+            result = re.search(pattern, line)
+            if result:
+                return result.group(1)
+        else:
+            return "2.1.1"
+
+
+def create_environment(
+    conda_binary, mamba_binary, vedc_repo_folder, config_folder
+):
+    """ Create env. """
+    # Install mamba and conda devenv
+    run_command(
+        [
+            mamba_binary if mamba_binary.exists() else conda_binary,
+            "install",
+            "-y",
+            "-c",
+            "conda-forge",
+            f"conda-devenv>={get_min_conda_devenv_version(vedc_repo_folder)}",
+            "mamba",
+        ]
+    )
+
+    devenv_file = vedc_repo_folder / "environment.devenv.yml"
+    if devenv_file.exists():
+        os.environ["VEDCDIR"] = str(config_folder)
+        if config_folder != Path("~/.config/vedc").expanduser():
+            # Can't use mamba yet if config folder is not in default location
+            run_command([conda_binary, "devenv", "-f", devenv_file])
+            return
+        else:
+            # Update environment.yml with conda devenv
+            try:
+                (vedc_repo_folder / "environment.yml").unlink()
+            except FileNotFoundError:
+                pass
+            with open(vedc_repo_folder / "environment.yml", "w") as f:
+                run_command(
+                    [conda_binary, "devenv", "-f", devenv_file, "--print"],
+                    f_stdout=f,
+                )
+
+    # Update environment with mamba
+    run_command(
+        [
+            mamba_binary,
+            "env",
+            "update",
+            "-f",
+            vedc_repo_folder / "environment.yml",
+        ]
+    )
+
+
 def write_paths(
     conda_binary,
     conda_script,
+    mamba_binary,
     vedc_repo_folder,
     config_folder="~/.config/vedc",
+    pri_path=None,
 ):
     """"""
+    paths = {
+        "installer_version": __installer_version,
+        "conda_binary": str(conda_binary),
+        "conda_script": str(conda_script),
+        "mamba_binary": str(mamba_binary),
+        "vedc_repo_folder": str(vedc_repo_folder),
+    }
+
+    if pri_path is not None:
+        paths["pri_path"] = str(Path(args.pri_path).expanduser().resolve())
+
     config_folder = Path(config_folder).expanduser()
     os.makedirs(config_folder, exist_ok=True)
     json_file = config_folder / "paths.json"
     logger.debug(f"Writing paths to {json_file}")
+
     with open(json_file, "w") as f:
-        f.write(
-            json.dumps(
-                {
-                    "conda_binary": str(conda_binary),
-                    "conda_script": str(conda_script),
-                    "vedc_repo_folder": str(vedc_repo_folder),
-                }
-            )
-        )
+        f.write(json.dumps(paths))
 
 
 if __name__ == "__main__":
@@ -490,6 +596,16 @@ if __name__ == "__main__":
         help="Base folder for miniconda installation",
     )
     parser.add_argument(
+        "--pri_branch",
+        default=None,
+        help="Install pupil_recording_interface from this branch or tag",
+    )
+    parser.add_argument(
+        "--pri_path",
+        default=None,
+        help="Path to local pupil_recording_interface repository",
+    )
+    parser.add_argument(
         "--no_ssh", action="store_true", help="Disable check for SSH key",
     )
     parser.add_argument(
@@ -503,6 +619,13 @@ if __name__ == "__main__":
         help="Skip checking for newer install script version",
     )
     args = parser.parse_args()
+
+    # check args
+    if args.pri_branch and args.pri_path:
+        logger.error(
+            "You cannot provide --pri_branch and --pri_path at the same time."
+        )
+        abort()
 
     # Set up paths
     base_folder = Path(args.folder).expanduser().resolve()
@@ -520,6 +643,7 @@ if __name__ == "__main__":
     ).expanduser()
     conda_binary = miniconda_prefix / "bin" / "conda"
     conda_script = miniconda_prefix / "etc" / "profile.d" / "conda.sh"
+    mamba_binary = miniconda_prefix / "condabin" / "mamba"
 
     # Set up logger
     logger = init_logger(Path(__file__).parent, verbose=args.verbose)
@@ -589,9 +713,11 @@ if __name__ == "__main__":
         )
 
     # Create or update environment
-    if args.branch is not None:
-        os.environ["VEDC_PIN"] = get_version_or_branch(
-            vedc_repo_folder, args.branch
+    if args.pri_branch:
+        os.environ["PRI_PIN"] = args.pri_branch
+    if args.pri_path:
+        os.environ["PRI_PATH"] = str(
+            Path(args.pri_path).expanduser().resolve()
         )
     if args.local:  # TODO: rename flag to develop or introduce new flag
         os.environ["VEDC_DEV"] = ""
@@ -603,22 +729,9 @@ if __name__ == "__main__":
     show_header(
         "Creating environment", "This will take a couple of minutes. ☕",
     )
-    run_command(
-        [conda_binary, "install", "-y", "-c", "conda-forge", "conda-devenv"]
+    create_environment(
+        conda_binary, mamba_binary, vedc_repo_folder, config_folder
     )
-    devenv_file = vedc_repo_folder / "environment.devenv.yml"
-    if devenv_file.exists():
-        os.environ["VEDCDIR"] = str(config_folder)
-        run_command([conda_binary, "devenv", "-f", devenv_file])
-    else:
-        run_command(
-            [
-                conda_binary,
-                "devenv",
-                "-f",
-                vedc_repo_folder / "environment.yml",
-            ]
-        )
 
     # Steps with root access
     if not args.no_root:
@@ -652,7 +765,14 @@ if __name__ == "__main__":
         logger.debug("Skipping steps with root access.")
 
     # Write paths
-    write_paths(conda_binary, conda_script, vedc_repo_folder, config_folder)
+    write_paths(
+        conda_binary,
+        conda_script,
+        mamba_binary,
+        vedc_repo_folder,
+        config_folder,
+        args.pri_path,
+    )
 
     # Check installation
     show_header("Checking installation")

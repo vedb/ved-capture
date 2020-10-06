@@ -3,6 +3,8 @@ import os
 import datetime
 from collections import OrderedDict
 from ast import literal_eval
+from pathlib import Path
+from copy import deepcopy
 import csv
 import logging
 
@@ -15,17 +17,24 @@ APPNAME = "vedc"
 logger = logging.getLogger(__name__)
 
 
-class ConfigParser(object):
+class ConfigParser:
     """ Parser for application config. """
 
     def __init__(self, config_file=None):
         """ Constructor. """
         self.config = Configuration(APPNAME, "ved_capture")
 
-        self.config_file = config_file
         if config_file is not None:
-            self.config.set_file(config_file)
+            if str(config_file).endswith(".yaml"):
+                self.config_file = config_file
+            else:
+                self.config_file = (
+                    Path(self.config.config_dir()) / f"{config_file}.yaml"
+                )
+            self.config.set_file(self.config_file)
             logger.debug(f"Loaded configuration from {config_file}")
+        else:
+            self.config_file = None
 
     def __enter__(self):
         return self
@@ -35,26 +44,42 @@ class ConfigParser(object):
 
         if exc_type is not None:
             raise_error(
-                f"Error parsing configuration: {exc_type.__name__}: {exc_val}",
-                logger,
+                f"Could not parse configuration: {exc_val}", logger,
             )
 
     def get_command_config(self, command, *subkeys):
         """ Get configuration for a CLI command. """
         # TODO user-defined command configs completely
         #  override the package default. Is that what we want?
-        value = self.config["commands"][command].get(dict)
-        for key in subkeys:
-            value = value[key]
+        try:
+            value = deepcopy(self.config["commands"][command].get(dict))
+            for key in subkeys:
+                value = value[key]
+        except KeyError:
+            raise NotFoundError(
+                f"commands.{command}{'.'.join(subkeys)} not found"
+            )
+
         return value
 
     def get_stream_config(self, stream_type, name, *subkeys):
-        """ Get config for a CLI command. """
+        """ Get config for a stream. """
         # TODO user-defined stream configs completely
         #  override the package default. Is that what we want?
-        value = self.config["streams"][stream_type].get(dict)[name]
-        for key in subkeys:
-            value = value[key]
+        try:
+            value = deepcopy(self.config["streams"][stream_type].get(dict))[
+                name
+            ]
+            for key in subkeys:
+                value = value[key]
+        except KeyError:
+            if len(subkeys):
+                raise NotFoundError(
+                    f"streams.{name}{'.'.join(subkeys)} not found"
+                )
+            else:
+                raise NotFoundError(f"Stream '{name}' is not defined")
+
         return value
 
     @classmethod
@@ -82,7 +107,8 @@ class ConfigParser(object):
                     return os.path.expanduser(folder)
                 except KeyError as e:
                     raise ValueError(
-                        f"Invalid folder config: '{e}' is missing in metadata"
+                        f"Format spec in commands.{command}.folder requires "
+                        f"{e} to be defined in commands.{command}.metadata"
                     )
             else:
                 return os.getcwd()
@@ -113,12 +139,17 @@ class ConfigParser(object):
     def get_metadata(self):
         """ Get recording metadata. """
         try:
-            fields = self.config["commands"]["record"]["metadata"].get(list)
-        except (NotFoundError, ConfigTypeError):
+            fields = self.config["commands"]["record"]["metadata"].get()
+        except NotFoundError:
             return {}
 
-        if fields is not None:
-            return {f: input("{}: ".format(f)) for f in fields}
+        if isinstance(fields, list):
+            return {field: input(f"{field}: ") for field in fields}
+        if isinstance(fields, dict):
+            return {
+                field: input(f"{field} [{default}]: ") or default
+                for field, default in fields.items()
+            }
         else:
             return {}
 
@@ -136,8 +167,10 @@ class ConfigParser(object):
         config["pipeline"].append(
             recorder_types[stream_type](**(command_config or {}))
         )
-        if self.get_show_video() and stream_type == "video":
-            config["pipeline"].append(pri.VideoDisplay.Config())
+        if stream_type == "video":
+            config["pipeline"].append(
+                pri.VideoDisplay.Config(paused=not self.get_show_video())
+            )
 
         return config
 
@@ -271,8 +304,8 @@ def save_metadata(folder, metadata):
         w.writerows(metadata.items())
 
 
-def save_config(folder, config):
-    """ Save configuration to config.yaml. """
+def save_config(folder, config, name="config"):
+    """ Save configuration to yaml file. """
 
     def ordered_dump(data, stream=None, Dumper=yaml.Dumper, **kwds):
         class OrderedDumper(Dumper):
@@ -287,5 +320,5 @@ def save_config(folder, config):
         return yaml.dump(data, stream, OrderedDumper, **kwds)
 
     # save to recording folder
-    with open(os.path.join(folder, "config.yaml"), "w") as f:
+    with open(os.path.join(folder, f"{name}.yaml"), "w") as f:
         ordered_dump(OrderedDict(config), f)
