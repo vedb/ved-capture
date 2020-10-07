@@ -28,7 +28,7 @@ import re
 import hashlib
 
 
-__installer_version = "1.3.2"
+__installer_version = "1.3.3"
 __maintainer_email = "peter.hausamann@tum.de"
 
 # -- LOGGING -- #
@@ -656,6 +656,13 @@ if __name__ == "__main__":
         logger.error(
             "You are running the installer from an activated conda "
             "environment. Please run 'conda deactivate' and try again."
+        )
+        abort()
+
+    # Make sure git is installed
+    if subprocess.call(["which", "git"], stdout=subprocess.DEVNULL) != 0:
+        logger.error(
+            "git not found. Please run 'sudo apt install git' and try again."
         )
         abort()
 
