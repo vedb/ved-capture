@@ -205,13 +205,19 @@ class ConfigParser:
         if cam_type == "world":
             config["pipeline"].append(
                 pri.CircleDetector.Config(
-                    scale=0.8,
+                    scale=0.5,
                     paused=True,
                     detection_method="vedb",
-                    marker_size=(12, 100),
+                    marker_size=(5, 300),
+                    threshold_window_size=13,
+                    min_area=200,
+                    max_area=4000,
+                    circularity=0.8,
+                    convexity=0.7,
+                    inertia=0.4,
                 )
             )
-            config["pipeline"].append(pri.Validation.Config(save=True))
+            config["pipeline"].append(pri.Validation.Config(save=False))
             config["pipeline"].append(pri.GazeMapper.Config())
             config["pipeline"].append(
                 pri.VideoDisplay.Config(
