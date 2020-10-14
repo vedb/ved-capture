@@ -206,7 +206,7 @@ class ConfigParser:
             config["pipeline"].append(
                 pri.CircleDetector.Config(
                     scale=0.5,
-                    paused=True,
+                    paused=False,
                     detection_method="vedb",
                     marker_size=(5, 300),
                     threshold_window_size=13,
@@ -217,7 +217,7 @@ class ConfigParser:
                     inertia=0.4,
                 )
             )
-            config["pipeline"].append(pri.Validation.Config(save=False))
+            config["pipeline"].append(pri.Validation.Config(save=True))
             config["pipeline"].append(pri.GazeMapper.Config())
             config["pipeline"].append(
                 pri.VideoDisplay.Config(
