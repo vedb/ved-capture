@@ -28,7 +28,7 @@ import re
 import hashlib
 
 
-__installer_version = "1.3.2"
+__installer_version = "1.3.3"
 __maintainer_email = "peter.hausamann@tum.de"
 
 # -- LOGGING -- #
@@ -279,7 +279,7 @@ def get_version_or_branch(repo_folder, branch=None, default="master"):
     )
 
     # don't match pre-releases
-    pattern = re.compile("^v[0-9]+\.[0-9]+\.[0-9]+$")
+    pattern = re.compile(r"^v[0-9]+\.[0-9]+\.[0-9]+$")
     versions = [v for v in versions if re.match(pattern, v)]
 
     if len(versions) == 0:
@@ -465,7 +465,7 @@ def get_min_conda_devenv_version(repo_folder):
     """ Get minimum conda devenv version. """
     with open(Path(repo_folder) / "environment.devenv.yml") as f:
         for line in f:
-            pattern = re.compile('{{ min_conda_devenv_version\("(.+)"\) }}')
+            pattern = re.compile(r'{{ min_conda_devenv_version\("(.+)"\) }}')
             result = re.search(pattern, line)
             if result:
                 return result.group(1)
@@ -656,6 +656,13 @@ if __name__ == "__main__":
         logger.error(
             "You are running the installer from an activated conda "
             "environment. Please run 'conda deactivate' and try again."
+        )
+        abort()
+
+    # Make sure git is installed
+    if subprocess.call(["which", "git"], stdout=subprocess.DEVNULL) != 0:
+        logger.error(
+            "git not found. Please run 'sudo apt install git' and try again."
         )
         abort()
 
