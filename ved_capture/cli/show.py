@@ -19,11 +19,7 @@ from ved_capture.config import ConfigParser
     "'<CONFIG_FILE>.yaml in the app config folder.'",
 )
 @click.option(
-    "-v",
-    "--verbose",
-    default=False,
-    help="Verbose output.",
-    count=True,
+    "-v", "--verbose", default=False, help="Verbose output.", count=True,
 )
 def show(streams, config_file, verbose):
     """ Show video streams. """

@@ -31,11 +31,7 @@ def acquire_pattern(manager):
     is_flag=True,
 )
 @click.option(
-    "-v",
-    "--verbose",
-    default=False,
-    help="Verbose output.",
-    count=True,
+    "-v", "--verbose", default=False, help="Verbose output.", count=True,
 )
 def estimate_cam_params(streams, config_file, extrinsics, verbose):
     """ Estimate camera parameters. """

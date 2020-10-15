@@ -10,20 +10,17 @@ from ved_capture.config import ConfigParser
 def collect_calibration_data(manager, stream="world"):
     """ Start data collection. """
     manager.send_notification(
-        {"resume_process": f"{stream}.CircleDetector"},
-        streams=[stream],
+        {"resume_process": f"{stream}.CircleDetector"}, streams=[stream],
     )
     manager.send_notification(
-        {"collect_calibration_data": True},
-        streams=[stream],
+        {"collect_calibration_data": True}, streams=[stream],
     )
 
 
 def calculate_calibration(manager, stream="world"):
     """ Stop data collection and run calibration. """
     manager.send_notification(
-        {"pause_process": f"{stream}.CircleDetector"},
-        streams=[stream],
+        {"pause_process": f"{stream}.CircleDetector"}, streams=[stream],
     )
     manager.send_notification({"calculate_calibration": True})
 
@@ -38,11 +35,7 @@ def calculate_calibration(manager, stream="world"):
     "'<CONFIG_FILE>.yaml in the app config folder.'",
 )
 @click.option(
-    "-v",
-    "--verbose",
-    default=False,
-    help="Verbose output.",
-    count=True,
+    "-v", "--verbose", default=False, help="Verbose output.", count=True,
 )
 def validate(config_file, verbose):
     """ Calibrate gaze mapping. """

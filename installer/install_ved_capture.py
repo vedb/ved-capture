@@ -279,7 +279,7 @@ def get_version_or_branch(repo_folder, branch=None, default="master"):
     )
 
     # don't match pre-releases
-    pattern = re.compile("^v[0-9]+\.[0-9]+\.[0-9]+$")
+    pattern = re.compile(r"^v[0-9]+\.[0-9]+\.[0-9]+$")
     versions = [v for v in versions if re.match(pattern, v)]
 
     if len(versions) == 0:
@@ -465,7 +465,7 @@ def get_min_conda_devenv_version(repo_folder):
     """ Get minimum conda devenv version. """
     with open(Path(repo_folder) / "environment.devenv.yml") as f:
         for line in f:
-            pattern = re.compile('{{ min_conda_devenv_version\("(.+)"\) }}')
+            pattern = re.compile(r'{{ min_conda_devenv_version\("(.+)"\) }}')
             result = re.search(pattern, line)
             if result:
                 return result.group(1)
@@ -561,10 +561,7 @@ if __name__ == "__main__":
         help="Base folder for installation",
     )
     parser.add_argument(
-        "-y",
-        "--yes",
-        action="store_true",
-        help="Install non-interactively",
+        "-y", "--yes", action="store_true", help="Install non-interactively",
     )
     parser.add_argument(
         "-v",
@@ -579,10 +576,7 @@ if __name__ == "__main__":
         help="Install from the parent folder instead of the remote repository",
     )
     parser.add_argument(
-        "-b",
-        "--branch",
-        default=None,
-        help="Install from this branch or tag",
+        "-b", "--branch", default=None, help="Install from this branch or tag",
     )
     parser.add_argument(
         "-c",
@@ -612,9 +606,7 @@ if __name__ == "__main__":
         help="Path to local pupil_recording_interface repository",
     )
     parser.add_argument(
-        "--no_ssh",
-        action="store_true",
-        help="Disable check for SSH key",
+        "--no_ssh", action="store_true", help="Disable check for SSH key",
     )
     parser.add_argument(
         "--no_root",
@@ -718,8 +710,7 @@ if __name__ == "__main__":
     # Install miniconda if necessary
     if not conda_binary.exists():
         show_header(
-            "Installing miniconda",
-            f"Install location: {miniconda_prefix}",
+            "Installing miniconda", f"Install location: {miniconda_prefix}",
         )
         install_miniconda(miniconda_prefix)
     else:
@@ -743,8 +734,7 @@ if __name__ == "__main__":
         run_command([conda_binary, "env", "remove", "-n", "vedc"])
 
     show_header(
-        "Creating environment",
-        "This will take a couple of minutes. ☕",
+        "Creating environment", "This will take a couple of minutes. ☕",
     )
     create_environment(
         conda_binary, mamba_binary, vedc_repo_folder, config_folder
@@ -768,8 +758,7 @@ if __name__ == "__main__":
         show_header("Installing command line interface")
         vedc_binary = "/usr/local/bin/vedc"
         show_header(
-            "Creating vedc excecutable",
-            f"Installing to {vedc_binary}.",
+            "Creating vedc excecutable", f"Installing to {vedc_binary}.",
         )
         run_as_sudo(["rm", "-f", vedc_binary], password)
         write_file_as_sudo(

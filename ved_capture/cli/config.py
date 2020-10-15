@@ -36,11 +36,7 @@ from ved_capture.utils import (
     "be called 'config.yaml'.",
 )
 @click.option(
-    "-v",
-    "--verbose",
-    default=False,
-    help="Verbose output.",
-    count=True,
+    "-v", "--verbose", default=False, help="Verbose output.", count=True,
 )
 def generate_config(folder, name, verbose):
     """ Generate configuration. """
@@ -142,11 +138,7 @@ def generate_config(folder, name, verbose):
     help="Editor to use for editing. Defaults to 'nano'.",
 )
 @click.option(
-    "-v",
-    "--verbose",
-    default=False,
-    help="Verbose output.",
-    count=True,
+    "-v", "--verbose", default=False, help="Verbose output.", count=True,
 )
 def edit_config(folder, name, editor, verbose):
     """ Edit configuration. """

@@ -71,8 +71,7 @@ class TestMethods:
         """"""
         assert (
             get_repo_folder(
-                output_folder,
-                "ssh://git@github.com/vedb/ved-capture",
+                output_folder, "ssh://git@github.com/vedb/ved-capture",
             ).stem
             == "ved-capture"
         )
@@ -81,7 +80,7 @@ class TestMethods:
         """"""
         import re
 
-        pattern = re.compile("^v[0-9]+\.[0-9]+\.[0-9]+$")
+        pattern = re.compile(r"^v[0-9]+\.[0-9]+\.[0-9]+$")
         assert re.match(pattern, get_version_or_branch(repo_folder))
         assert get_version_or_branch(repo_folder, "devel") == "devel"
 
