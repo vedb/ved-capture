@@ -279,7 +279,7 @@ def get_version_or_branch(repo_folder, branch=None, default="master"):
     )
 
     # don't match pre-releases
-    pattern = re.compile("^v[0-9]+\.[0-9]+\.[0-9]+$")
+    pattern = re.compile(r"^v[0-9]+\.[0-9]+\.[0-9]+$")
     versions = [v for v in versions if re.match(pattern, v)]
 
     if len(versions) == 0:
@@ -465,7 +465,7 @@ def get_min_conda_devenv_version(repo_folder):
     """ Get minimum conda devenv version. """
     with open(Path(repo_folder) / "environment.devenv.yml") as f:
         for line in f:
-            pattern = re.compile('{{ min_conda_devenv_version\("(.+)"\) }}')
+            pattern = re.compile(r'{{ min_conda_devenv_version\("(.+)"\) }}')
             result = re.search(pattern, line)
             if result:
                 return result.group(1)
