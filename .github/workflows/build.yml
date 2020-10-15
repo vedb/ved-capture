@@ -63,4 +63,4 @@ jobs:
       - name: Check black code style
         run: black --check .
       - name: Line with flake8
-        run: flake8 ved-capture tests --ignore=E203,W503,W504
+        run: flake8 ved-capture tests installer --ignore=E203,W503,W504
