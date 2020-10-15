@@ -49,3 +49,18 @@ jobs:
         run: |
           source activate vedc
           pytest
+
+  lint:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up Python 3.6
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.6
+      - name: Install dependencies
+        run: pip install black==19.10b0 flake8==3.7.9
+      - name: Check black code style
+        run: black --check .
+      - name: Line with flake8
+        run: flake8 ved-capture tests --ignore=E203,W503,W504
