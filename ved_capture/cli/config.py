@@ -49,37 +49,14 @@ def generate_config(folder, name, verbose):
     else:
         logger.debug(f"Saving config file to {folder}")
 
-    # get version from config_default
+    # get default config
     with open(Path(__file__).parents[1] / "config_default.yaml") as f:
-        version = yaml.safe_load(f)["version"]
+        config = yaml.safe_load(f)
 
-    # default config
-    config = {
-        "version": version,
-        "commands": {
-            "record": {
-                "folder": "~/recordings/{today:%Y_%m_%d}",
-                "policy": "new_folder",
-                "duration": None,
-                "metadata": None,
-                "show_video": False,
-                "video": {},
-                "motion": {},
-            },
-            "estimate_cam_params": {
-                "folder": "~/pupil_capture_settings",
-                "streams": {},
-            },
-            # TODO overwrite with configured streams
-            "calibrate": {
-                "folder": "~/pupil_capture_settings",
-                "world": "world",
-                "eye0": "eye0",
-                "eye1": "eye1",
-            },
-        },
-        "streams": {"video": {}, "motion": {}},
-    }
+    config["commands"]["record"]["video"] = {}
+    config["commands"]["record"]["motion"] = {}
+    config["commands"]["record"]["metadata"] = None
+    config["streams"] = {"video": {}, "motion": {}}
 
     # get connected devices
     pupil_devices = get_pupil_devices()
@@ -104,6 +81,8 @@ def generate_config(folder, name, verbose):
     for serial in flir_devices:
         config = get_flir_config(config, serial)
 
+    # TODO overwrite calibrate, validate with configured streams
+
     # show video
     config["commands"]["record"]["show_video"] = (
         input("Show video streams during recording? ([y]/n): ").lower() != "n"
@@ -114,6 +93,83 @@ def generate_config(folder, name, verbose):
         raise_error("No devices selected!", logger)
     else:
         save_config(folder, config, name)
+
+
+@click.command("auto_config")
+@click.option(
+    "-v", "--verbose", default=False, help="Verbose output.", count=True,
+)
+def auto_config(verbose):
+    """ Auto-generate configuration. """
+    logger = init_logger(inspect.stack()[0][3], verbosity=verbose)
+
+    # check folder
+    folder = Path(ConfigParser.config_dir()).expanduser()
+    if not folder.exists():
+        raise_error(f"No such folder: {folder}", logger)
+    else:
+        logger.debug(f"Saving config file to {folder}")
+
+    # get version from config_default
+    with open(Path(__file__).parents[1] / "config_default.yaml") as f:
+        config = yaml.safe_load(f)
+
+    # default config
+    config["commands"]["record"]["metadata"] = None
+
+    # get connected devices
+    logger.info("Checking connected devices...")
+    pupil_devices = get_pupil_devices()
+    logger.debug(f"Found pupil cams: {pupil_devices}")
+    if len(pupil_devices) != 3:
+        raise_error(
+            f"Expected 3 connected Pupil Core devices, "
+            f"found {len(pupil_devices)}"
+        )
+
+    t265_devices = get_realsense_devices()
+    logger.debug(f"Found T265 devices: {t265_devices}")
+    if len(t265_devices) != 1:
+        raise_error(
+            f"Expected 1 connected T265 device, found {len(t265_devices)}"
+        )
+
+    flir_devices = get_flir_devices()
+    logger.debug(f"Found FLIR cams: {flir_devices}")
+    if len(flir_devices) != 1:
+        raise_error(
+            f"Expected 1 connected FLIR device, found {len(flir_devices)}"
+        )
+
+    # configure devices
+    logger.info("Updating config...")
+
+    if "Cam1" in list(pupil_devices.keys())[0]:
+        logger.warning("Detected first generation Pupil Core headset")
+        # change resolution and fps for first gen pupil headset
+        config["streams"]["video"]["eye0"]["device_uid"] = "Pupil Cam1 ID0"
+        config["streams"]["video"]["eye0"]["resolution"] = "(320, 240)"
+        config["streams"]["video"]["eye0"]["fps"] = 120
+        config["streams"]["video"]["eye1"]["device_uid"] = "Pupil Cam1 ID1"
+        config["streams"]["video"]["eye1"]["resolution"] = "(320, 240)"
+        config["streams"]["video"]["eye1"]["fps"] = 120
+    elif "Cam3" in list(pupil_devices.keys())[0]:
+        logger.warning("Detected third generation Pupil Core headset")
+        config["streams"]["video"]["eye0"]["device_uid"] = "Pupil Cam3 ID0"
+        config["streams"]["video"]["eye1"]["device_uid"] = "Pupil Cam3 ID1"
+
+    flir_serial = flir_devices[0]
+    config["streams"]["video"]["world"]["device_uid"] = str(flir_serial)
+
+    t265_serial = str(t265_devices[0])
+    config["streams"]["video"]["t265"]["device_uid"] = t265_serial
+    config["streams"]["motion"]["odometry"]["device_uid"] = t265_serial
+    config["streams"]["motion"]["accel"]["device_uid"] = t265_serial
+    config["streams"]["motion"]["gyro"]["device_uid"] = t265_serial
+
+    # write config
+    save_config(folder, config)
+    logger.info("Done!")
 
 
 @click.command("edit_config")
