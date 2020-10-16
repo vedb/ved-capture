@@ -140,6 +140,7 @@ def update_environment(
     pri_path=None,
 ):
     """ Update conda environment. """
+    conda_prefix = Path(paths["conda_binary"]).parents[1]
     devenv_file = Path(paths["vedc_repo_folder"]) / devenv_file
     env_file = Path(paths["vedc_repo_folder"]) / "environment.yml"
     if not devenv_file.exists():
@@ -158,8 +159,11 @@ def update_environment(
     if not pri_branch and "pri_path" in paths and (local or pri_path):
         os.environ["PRI_PATH"] = paths["pri_path"]
 
+    # TODO hacky way of installing to base environment
+    os.environ["CONDA_PREFIX"] = str(conda_prefix)
+
     # Install mamba if missing
-    if "mamba_binary" not in paths:
+    if "mamba_binary" not in paths or not Path(paths["mamba_binary"]).exists():
         logger.info("Installing mamba. 🐍")
         run_command(
             [
@@ -168,12 +172,12 @@ def update_environment(
                 "-y",
                 "-c",
                 "conda-forge",
+                "-n",
+                "base",
                 "mamba",
             ]
         )
-        paths["mamba_binary"] = str(
-            Path(paths["conda_binary"]).parents[1] / "condabin" / "mamba"
-        )
+        paths["mamba_binary"] = str(conda_prefix / "condabin" / "mamba")
         write_paths(paths)
 
     # Update conda devenv
@@ -184,6 +188,8 @@ def update_environment(
             "-y",
             "-c",
             "conda-forge",
+            "-n",
+            "base",
             f"conda-devenv>={get_min_conda_devenv_version(devenv_file)}",
         ]
     )

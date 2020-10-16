@@ -605,6 +605,9 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    # Set up logger
+    logger = init_logger(Path(__file__).parent, verbose=args.verbose)
+
     # check args
     if args.pri_branch and args.pri_path:
         logger.error(
@@ -629,9 +632,6 @@ if __name__ == "__main__":
     conda_binary = miniconda_prefix / "bin" / "conda"
     conda_script = miniconda_prefix / "etc" / "profile.d" / "conda.sh"
     mamba_binary = miniconda_prefix / "condabin" / "mamba"
-
-    # Set up logger
-    logger = init_logger(Path(__file__).parent, verbose=args.verbose)
 
     # Make sure that not running from activated conda env
     if (
