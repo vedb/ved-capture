@@ -25,10 +25,9 @@ from select import select
 import json
 from distutils.version import LooseVersion
 import re
-import hashlib
 
 
-__installer_version = "1.3.3"
+__installer_version = "1.3.4"
 __maintainer_email = "peter.hausamann@tum.de"
 
 # -- LOGGING -- #
@@ -351,17 +350,6 @@ def clone_repo(base_folder, repo_folder, repo_url, branch=None):
     update_repo(repo_folder, branch)
 
 
-def md5(fname):
-    """"""
-    hash_md5 = hashlib.md5()
-
-    with open(fname, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash_md5.update(chunk)
-
-    return hash_md5.hexdigest()
-
-
 def verify_latest_version(vedc_repo_folder):
     """"""
     repo_script = vedc_repo_folder / "installer" / "install_ved_capture.py"
@@ -374,10 +362,7 @@ def verify_latest_version(vedc_repo_folder):
             ).group(1)
         )
 
-    if installer_version < repo_script_version or (
-        installer_version == repo_script_version
-        and md5(__file__) != md5(repo_script)
-    ):
+    if installer_version < repo_script_version:
         show_header("ERROR")
         logger.error(
             f"You are using an outdated version of the installer script. "

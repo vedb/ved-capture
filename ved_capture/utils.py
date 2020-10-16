@@ -124,7 +124,7 @@ def get_min_conda_devenv_version(devenv_file):
     """ Get minimum conda devenv version. """
     with open(devenv_file) as f:
         for line in f:
-            pattern = re.compile('{{ min_conda_devenv_version\("(.+)"\) }}')
+            pattern = re.compile(r'{{ min_conda_devenv_version\("(.+)"\) }}')
             result = re.search(pattern, line)
             if result:
                 return result.group(1)
@@ -191,7 +191,7 @@ def update_environment(
         return return_code
 
     if (
-        "VECDIR" in os.environ
+        "VEDCDIR" in os.environ
         and Path(os.environ["VEDCDIR"]) != Path("~/.config/vedc").expanduser()
     ):
         # Can't use mamba yet if config folder is not in default location
