@@ -15,7 +15,7 @@ from ved_capture.cli.export import export
 @click.group("vedc")
 @click.version_option()
 def vedc():
-    """Visual Experience Data Capture.
+    """ Visual Experience Data Capture.
 
     Command line tool for the Visual Experience Database.
     """
