@@ -44,7 +44,8 @@ def validate(config_file, verbose):
     # parse config
     with ConfigParser(config_file) as config_parser:
         stream_configs = config_parser.get_validation_configs()
-        folder = config_parser.get_folder("record", None)
+        folder = config_parser.get_folder("validate", None)
+        policy = config_parser.get_policy("validate")
         # TODO make this more robust
         world_stream = stream_configs[0].name
 
