@@ -50,7 +50,7 @@ def validate(config_file, verbose):
         world_stream = stream_configs[0].name
 
     # init manager
-    manager = pri.StreamManager(stream_configs, folder=folder, policy="here")
+    manager = pri.StreamManager(stream_configs, folder=folder, policy=policy)
     ui.attach(manager, statusmap={"fps": "{:.2f} Hz"})
 
     # add keyboard commands
