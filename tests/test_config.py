@@ -110,6 +110,24 @@ class TestConfigParser:
         assert config_list[2].pipeline[0].process_type == "pupil_detector"
         assert config_list[2].pipeline[1].process_type == "video_display"
 
+    def test_get_validation_configs(self, parser):
+        """"""
+        config_list = parser.get_validation_configs()
+
+        assert config_list[0].stream_type == "video"
+        assert config_list[0].pipeline[0].process_type == "circle_detector"
+        assert config_list[0].pipeline[1].process_type == "validation"
+        assert config_list[0].pipeline[2].process_type == "gaze_mapper"
+        assert config_list[0].pipeline[3].process_type == "video_display"
+
+        assert config_list[1].stream_type == "video"
+        assert config_list[1].pipeline[0].process_type == "pupil_detector"
+        assert config_list[1].pipeline[1].process_type == "video_display"
+
+        assert config_list[2].stream_type == "video"
+        assert config_list[2].pipeline[0].process_type == "pupil_detector"
+        assert config_list[2].pipeline[1].process_type == "video_display"
+
     def test_get_cam_param_configs(self, parser):
         """"""
         config_list = parser.get_cam_param_configs("world", "t265")
