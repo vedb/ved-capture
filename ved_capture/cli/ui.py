@@ -1,5 +1,6 @@
 """"""
 import io
+import re
 
 from blessed import Terminal
 import multiprocessing_logging
@@ -115,13 +116,15 @@ class TerminalUI:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        refresh(self.term, flush_log_buffer(self.f_stdout), None)
         multiprocessing_logging.uninstall_mp_handler()
         if exc_type:
+            self.logger.debug(exc_val, exc_info=True)
+            refresh(self.term, flush_log_buffer(self.f_stdout), None)
             raise_error(
                 self.term.red2(self.term.bold(str(exc_val))), self.logger
             )
         else:
+            refresh(self.term, flush_log_buffer(self.f_stdout), None)
             print(self.term.bold(self.term.firebrick("Stopped")))
 
     def _replace_key(self, key, desc, call_fn, new_key=None, new_desc=None):
@@ -264,21 +267,49 @@ class TerminalUI:
         """ Wrap long lines. """
         return "\n".join(self.term.wrap(line, subsequent_indent=" "))
 
+    def _format_status(self, val, fmt):
+        """ Format stream statuses. """
+        status = self.manager.format_status(val, format=fmt)
+        if status is not None:
+            if val == "fps":
+                # TODO hacky coloring of fps
+                for name, stream in self.manager.streams.items():
+                    if hasattr(stream.device, "fps"):
+                        pattern = re.compile(
+                            f"{name}: "
+                            + re.sub(r"{.*:.*}", r"([0-9]*\.?[0-9]*)", fmt)
+                        )
+                        fps_search = re.search(pattern, status)
+                        if fps_search:
+                            fps = float(fps_search.group(1))
+                            ratio = fps / stream.device.fps
+                            if ratio >= 0.95:
+                                color = self.term.green
+                            elif ratio >= 0.8:
+                                color = self.term.goldenrod
+                            else:
+                                color = self.term.red2
+                            status = status.replace(
+                                f"{name}: {fmt.format(fps)}",
+                                f"{name}: {color(fmt.format(fps))}",
+                            )
+
+            status = self._wrap(
+                self.term.bold(
+                    status.replace("no data", self.term.red2("no data"))
+                )
+            )
+
+        return status
+
     def _get_status_str(self):
         """ Get status and key mappings. """
+        # format stream statuses
         status_list = [
-            self.manager.format_status(val, format=fmt)
+            self._format_status(val, fmt)
             for val, fmt in self.statusmap.items()
         ]
-
-        # format stream statuses
-        status_str = "\n".join(
-            self._wrap(
-                self.term.bold(s.replace("no data", self.term.red2("no data")))
-            )
-            for s in status_list
-            if s is not None
-        )
+        status_str = "\n".join(s for s in status_list if s is not None)
 
         # format keymap
         keymap_str = " - ".join(
