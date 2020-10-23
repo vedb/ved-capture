@@ -1,7 +1,7 @@
 {{ min_conda_devenv_version("2.1.1") }}
 
 # set library version
-{% set pri_version = "v0.2.0" %}
+{% set pri_version = "v0.2.1" %}
 
 # version and config dir can be overridden by env vars
 {% set pri_pin = os.environ.get("PRI_PIN", pri_version) %}
