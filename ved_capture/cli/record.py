@@ -1,4 +1,5 @@
 import inspect
+from functools import partial
 
 import click
 import pupil_recording_interface as pri
@@ -29,18 +30,51 @@ def resume_recording(ui):
 
 def show_video_streams(ui):
     """ Show video streams. """
-    for stream in ui.manager.streams:
+    old_keymap = ui.keymap
+    new_keymap = {}
+
+    video_streams = tuple(
+        stream
+        for stream in ui.manager.streams
+        if isinstance(ui.manager.streams[stream], pri.VideoStream)
+    )
+
+    def back():
+        ui.fixed_status = None
+        ui.keymap = old_keymap
+
+    def show_one(stream):
+        ui.logger.info(f"Showing video stream '{stream}'")
         ui.manager.send_notification(
             {"resume_process": f"{stream}.VideoDisplay"}, streams=[stream],
         )
+        back()
+
+    def show_all():
+        ui.logger.info(f"Showing all video streams")
+        for stream in list(video_streams):
+            ui.manager.send_notification(
+                {"resume_process": f"{stream}.VideoDisplay"}, streams=[stream],
+            )
+        back()
+
+    for idx, stream in enumerate(video_streams):
+        new_keymap[str(idx)] = (stream, partial(show_one, video_streams[idx]))
+
+    new_keymap["a"] = ("all", show_all)
+    new_keymap["b"] = ("back", back)
+
+    ui.fixed_status = "Select a video stream to show:"
+    ui.keymap = new_keymap
 
 
 def hide_video_streams(ui):
     """ Hide video streams. """
     for stream in ui.manager.streams:
-        ui.manager.send_notification(
-            {"pause_process": f"{stream}.VideoDisplay"}, streams=[stream],
-        )
+        if isinstance(ui.manager.streams[stream], pri.VideoStream):
+            ui.manager.send_notification(
+                {"pause_process": f"{stream}.VideoDisplay"}, streams=[stream],
+            )
 
 
 @click.command("record")
@@ -93,16 +127,12 @@ def record(config_file, verbose):
         copy_intrinsics(stream, intrinsics_folder, manager.folder)
 
     # set keyboard commands
+    ui.add_key("s", "show streams", show_video_streams)
     ui.add_key(
-        "s",
-        "show video streams",
-        show_video_streams,
-        msg="Showing video streams",
-        alt_key="h",
-        alt_description="hide video streams",
-        alt_fn=hide_video_streams,
-        alt_msg="Hiding video streams",
-        alt_default=show_video,
+        "h",
+        "hide all streams",
+        hide_video_streams,
+        msg="Hiding all video streams",
     )
     ui.add_key(
         "KEY_PGUP",

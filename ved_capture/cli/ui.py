@@ -56,7 +56,22 @@ def refresh(t, log_buffer, status_buffer, timeout=0.1, num_empty_lines=1):
             print("\n" * (desired_offset - 2))
 
         first_status_line = t.height - num_status_lines
-        print(t.move_y(first_status_line) + t.clear_eos + status_buffer)
+        if not hasattr(refresh, "last_num_status_lines"):
+            # last_num_status_lines persists across calls and stores number of
+            # status lines from the previous call
+            refresh.last_num_status_lines = num_status_lines
+
+        status_line_diff = refresh.last_num_status_lines - num_status_lines
+        refresh.last_num_status_lines = num_status_lines
+        if status_line_diff > 0:
+            print(
+                t.move_y(first_status_line - status_line_diff)
+                + t.clear_eos
+                + "\n" * status_line_diff
+                + status_buffer
+            )
+        else:
+            print(t.move_y(first_status_line) + t.clear_eos + status_buffer)
     else:
         print(t.clear_eos + t.move_up)
 
@@ -108,6 +123,7 @@ class TerminalUI:
         self.manager = None
         self.statusmap = {}
         self.keymap = {}
+        self.fixed_status = None
 
         self._disconnect_map = {}
 
@@ -303,12 +319,15 @@ class TerminalUI:
 
     def _get_status_str(self):
         """ Get status and key mappings. """
-        # format stream statuses
-        status_list = [
-            self._format_status(val, fmt)
-            for val, fmt in self.statusmap.items()
-        ]
-        status_str = "\n".join(s for s in status_list if s is not None)
+        if self.fixed_status is None:
+            # format stream statuses
+            status_list = [
+                self._format_status(val, fmt)
+                for val, fmt in self.statusmap.items()
+            ]
+            status_str = "\n".join(s for s in status_list if s is not None)
+        else:
+            status_str = self._wrap(self.term.bold(self.fixed_status))
 
         # format keymap
         keymap_str = " - ".join(
