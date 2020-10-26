@@ -62,7 +62,7 @@ class TestConfigParser:
         # user override
         assert not parser.get_show_video(False)
         # package default
-        assert ConfigParser().get_show_video()
+        assert not ConfigParser().get_show_video()
 
     def test_get_metadata(self, parser, monkeypatch):
         """"""
