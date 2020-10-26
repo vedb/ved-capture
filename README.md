@@ -45,10 +45,3 @@ To show all camera streams, run:
 
 Check out the [wiki](https://github.com/vedb/ved-capture/wiki) for a 
 comprehensive list of available commands.
-
-## Getting help
-
-Contact one of the developers (Peter or Kamran) for assistance. You can export
-the application logs with:
-
-    $ vedc save_logs
