@@ -8,9 +8,9 @@ from ved_capture.cli.utils import raise_error
 from ved_capture.config import ConfigParser
 
 
-def acquire_pattern(manager):
+def acquire_pattern(ui):
     """ Acquire a new calibration pattern. """
-    manager.send_notification({"acquire_pattern": True})
+    ui.manager.send_notification({"acquire_pattern": True})
 
 
 @click.command("estimate_cam_params")

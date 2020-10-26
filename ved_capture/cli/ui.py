@@ -162,10 +162,9 @@ class TerminalUI:
 
         fn : callable
             Method to be called when pressing the key. The first argument
-            passed to this function is the StreamManager attached to this
-            TerminalUI instance (i.e. ``self.manager``). Additional arguments
-            can be passed via the `args` parameter of this function. Example:
-            ``lambda m: m.send_notification(...)``.
+            passed to this function is the TerminalUI instance (i.e. ``self``).
+            Additional arguments can be passed via the `args` parameter of this
+            function, e.g.: ``lambda ui: ui.manager.send_notification(...)``.
 
         args : tuple, optional
             Additional arguments to be passed to `fn`.
@@ -200,7 +199,7 @@ class TerminalUI:
         """
 
         def call_fn():
-            fn(self.manager, *args)
+            fn(self, *args)
             if msg:
                 self.logger.info(msg)
             if alt_fn:
@@ -209,7 +208,7 @@ class TerminalUI:
                 )
 
         def call_alt_fn():
-            alt_fn(self.manager, *(alt_args or args))
+            alt_fn(self, *(alt_args or args))
             if alt_msg or msg:
                 self.logger.info(alt_msg or msg)
             self._replace_key(

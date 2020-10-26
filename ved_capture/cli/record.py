@@ -9,36 +9,36 @@ from ved_capture.utils import copy_intrinsics, beep
 from ved_capture.config import ConfigParser, save_metadata
 
 
-def pause_recording(manager):
+def pause_recording(ui):
     """ Pause video recording. """
     beep([880, 660, 440])
-    for stream in manager.streams:
-        manager.send_notification(
+    for stream in ui.manager.streams:
+        ui.manager.send_notification(
             {"pause_process": f"{stream}.VideoRecorder"}, streams=[stream],
         )
 
 
-def resume_recording(manager):
+def resume_recording(ui):
     """ Resume video recording. """
     beep([440, 660, 880])
-    for stream in manager.streams:
-        manager.send_notification(
+    for stream in ui.manager.streams:
+        ui.manager.send_notification(
             {"resume_process": f"{stream}.VideoRecorder"}, streams=[stream],
         )
 
 
-def show_video_streams(manager):
+def show_video_streams(ui):
     """ Show video streams. """
-    for stream in manager.streams:
-        manager.send_notification(
+    for stream in ui.manager.streams:
+        ui.manager.send_notification(
             {"resume_process": f"{stream}.VideoDisplay"}, streams=[stream],
         )
 
 
-def hide_video_streams(manager):
+def hide_video_streams(ui):
     """ Hide video streams. """
-    for stream in manager.streams:
-        manager.send_notification(
+    for stream in ui.manager.streams:
+        ui.manager.send_notification(
             {"pause_process": f"{stream}.VideoDisplay"}, streams=[stream],
         )
 

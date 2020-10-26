@@ -7,22 +7,22 @@ from ved_capture.cli.ui import TerminalUI
 from ved_capture.config import ConfigParser
 
 
-def collect_calibration_data(manager, stream="world"):
+def collect_calibration_data(ui, stream="world"):
     """ Start data collection. """
-    manager.send_notification(
+    ui.manager.send_notification(
         {"resume_process": f"{stream}.CircleDetector"}, streams=[stream],
     )
-    manager.send_notification(
+    ui.manager.send_notification(
         {"collect_calibration_data": True}, streams=[stream],
     )
 
 
-def calculate_calibration(manager, stream="world"):
+def calculate_calibration(ui, stream="world"):
     """ Stop data collection and run calibration. """
-    manager.send_notification(
+    ui.manager.send_notification(
         {"pause_process": f"{stream}.CircleDetector"}, streams=[stream],
     )
-    manager.send_notification({"calculate_calibration": True})
+    ui.manager.send_notification({"calculate_calibration": True})
 
 
 @click.command("calibrate")
