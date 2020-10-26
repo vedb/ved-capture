@@ -49,6 +49,18 @@ def generate_config(folder, name, verbose):
     else:
         logger.debug(f"Saving config file to {folder}")
 
+    # prompt overwrite
+    filepath = folder / f"{name}.yaml"
+    if filepath.exists():
+        answer = input(f"{filepath} exists, overwrite? ([y]/n): ")
+        if answer.lower() == "n":
+            logger.info(
+                f"Did not overwrite {filepath}, use "
+                f"'vedc generate_config -n CONFIG_NAME' to generate a config "
+                f"with a different name"
+            )
+            exit(0)
+
     # get default config
     with open(Path(__file__).parents[1] / "config_default.yaml") as f:
         config = yaml.safe_load(f)
@@ -83,11 +95,6 @@ def generate_config(folder, name, verbose):
 
     # TODO overwrite calibrate, validate with configured streams
 
-    # show video
-    config["commands"]["record"]["show_video"] = (
-        input("Show video streams during recording? ([y]/n): ").lower() != "n"
-    )
-
     # write config
     if len(config["streams"]["video"]) + len(config["streams"]["motion"]) == 0:
         raise_error("No devices selected!", logger)
@@ -110,6 +117,14 @@ def auto_config(verbose):
     else:
         logger.debug(f"Saving config file to {folder}")
 
+    # prompt overwrite
+    filepath = folder / "config.yaml"
+    if filepath.exists():
+        answer = input(f"{filepath} exists, overwrite? ([y]/n): ")
+        if answer.lower() == "n":
+            logger.info(f"Did not overwrite {filepath}")
+            exit(0)
+
     # get version from config_default
     with open(Path(__file__).parents[1] / "config_default.yaml") as f:
         config = yaml.safe_load(f)
@@ -121,9 +136,9 @@ def auto_config(verbose):
     logger.info("Checking connected devices...")
     pupil_devices = get_pupil_devices()
     logger.debug(f"Found pupil cams: {pupil_devices}")
-    if len(pupil_devices) != 3:
+    if len(pupil_devices) not in (2, 3):
         raise_error(
-            f"Expected 3 connected Pupil Core devices, "
+            f"Expected 2 or 3 connected Pupil Core devices, "
             f"found {len(pupil_devices)}"
         )
 
@@ -205,7 +220,8 @@ def edit_config(folder, name, editor, verbose):
     filepath = folder / f"{name}.yaml"
     if not filepath.exists():
         raise_error(
-            f"{filepath} not found, please run 'vedc generate_config' first",
+            f"{filepath} not found, please run 'vedc auto_config' or "
+            f"'vedc generate_config' first",
             logger,
         )
     else:

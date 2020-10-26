@@ -30,7 +30,7 @@ commands:
       odometry: null
       accel: null
       gyro: null
-    show_video: true
+    show_video: false
     metadata:
       - location
       - experimenter

@@ -373,5 +373,5 @@ def save_config(folder, config, name="config"):
         return yaml.dump(data, stream, OrderedDumper, **kwds)
 
     # save to recording folder
-    with open(os.path.join(folder, f"{name}.yaml"), "w") as f:
+    with open(Path(folder) / f"{name}.yaml", "w") as f:
         ordered_dump(OrderedDict(config), f)
