@@ -43,8 +43,10 @@ class ConfigParser:
         from ved_capture.cli.utils import raise_error
 
         if exc_type is not None:
+            logger.debug(exc_val, exc_info=True)
             raise_error(
-                f"Could not parse configuration: {exc_val}", logger,
+                f"Could not parse configuration f({exc_type}): {exc_val}",
+                logger,
             )
 
     def get_command_config(self, command, *subkeys):
