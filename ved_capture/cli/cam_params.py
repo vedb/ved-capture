@@ -19,9 +19,9 @@ def acquire_pattern(ui):
     "-c",
     "--config-file",
     default=None,
-    help="Path or name of config file. If the arguments ends with '.yaml', it "
+    help="Path or name of config file. If the argument ends with '.yaml', it "
     "is assumed to be a path. Otherwise, it will look for a file called "
-    "'<CONFIG_FILE>.yaml in the app config folder.'",
+    "'<CONFIG_FILE>.yaml in the app config folder.",
 )
 @click.option(
     "-e",

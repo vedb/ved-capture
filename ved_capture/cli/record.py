@@ -82,9 +82,9 @@ def hide_video_streams(ui):
     "-c",
     "--config-file",
     default=None,
-    help="Path or name of config file. If the arguments ends with '.yaml', it "
+    help="Path or name of config file. If the argument ends with '.yaml', it "
     "is assumed to be a path. Otherwise, it will look for a file called "
-    "'<CONFIG_FILE>.yaml in the app config folder.'",
+    "'<CONFIG_FILE>.yaml in the app config folder.",
 )
 @click.option(
     "-v", "--verbose", default=False, help="Verbose output.", count=True,
@@ -104,7 +104,6 @@ def record(config_file, verbose):
             "estimate_cam_params", None, **metadata
         )
         policy = config_parser.get_policy("record")
-        show_video = config_parser.get_show_video()
 
     # init manager
     manager = pri.StreamManager(
