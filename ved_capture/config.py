@@ -221,21 +221,13 @@ class ConfigParser:
             )
             config["pipeline"].append(pri.Validation.Config(save=True))
             config["pipeline"].append(pri.GazeMapper.Config())
-            config["pipeline"].append(
-                pri.VideoDisplay.Config(
-                    overlay_circle_marker=True, overlay_gaze=True
-                )
-            )
+            config["pipeline"].append(pri.VideoDisplay.Config())
         elif cam_type == "eye0":
             config["pipeline"].append(pri.PupilDetector.Config())
-            config["pipeline"].append(
-                pri.VideoDisplay.Config(overlay_pupil=True, flip=True)
-            )
+            config["pipeline"].append(pri.VideoDisplay.Config(flip=True))
         elif cam_type == "eye1":
             config["pipeline"].append(pri.PupilDetector.Config())
-            config["pipeline"].append(
-                pri.VideoDisplay.Config(overlay_pupil=True)
-            )
+            config["pipeline"].append(pri.VideoDisplay.Config())
 
         return config
 
@@ -261,21 +253,13 @@ class ConfigParser:
             config["pipeline"].append(pri.CircleDetector.Config(paused=True))
             config["pipeline"].append(pri.Calibration.Config(save=True))
             config["pipeline"].append(pri.GazeMapper.Config())
-            config["pipeline"].append(
-                pri.VideoDisplay.Config(
-                    overlay_circle_marker=True, overlay_gaze=True
-                )
-            )
+            config["pipeline"].append(pri.VideoDisplay.Config())
         elif cam_type == "eye0":
             config["pipeline"].append(pri.PupilDetector.Config())
-            config["pipeline"].append(
-                pri.VideoDisplay.Config(overlay_pupil=True, flip=True)
-            )
+            config["pipeline"].append(pri.VideoDisplay.Config(flip=True))
         elif cam_type == "eye1":
             config["pipeline"].append(pri.PupilDetector.Config())
-            config["pipeline"].append(
-                pri.VideoDisplay.Config(overlay_pupil=True)
-            )
+            config["pipeline"].append(pri.VideoDisplay.Config())
 
         return config
 
@@ -316,9 +300,7 @@ class ConfigParser:
                     streams=streams, extrinsics=extrinsics
                 )
             )
-        config["pipeline"].append(
-            pri.VideoDisplay.Config(overlay_circle_grid=True)
-        )
+        config["pipeline"].append(pri.VideoDisplay.Config())
 
         return config
 
