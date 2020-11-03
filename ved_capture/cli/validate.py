@@ -3,26 +3,14 @@ import inspect
 import click
 import pupil_recording_interface as pri
 
+from ved_capture.cli.commands import (
+    collect_calibration_data,
+    calculate_calibration,
+    show_video_streams,
+    hide_video_streams,
+)
 from ved_capture.cli.ui import TerminalUI
 from ved_capture.config import ConfigParser
-
-
-def collect_calibration_data(ui, stream="world"):
-    """ Start data collection. """
-    ui.manager.send_notification(
-        {"resume_process": f"{stream}.CircleDetector"}, streams=[stream],
-    )
-    ui.manager.send_notification(
-        {"collect_calibration_data": True}, streams=[stream],
-    )
-
-
-def calculate_calibration(ui, stream="world"):
-    """ Stop data collection and run calibration. """
-    ui.manager.send_notification(
-        {"pause_process": f"{stream}.CircleDetector"}, streams=[stream],
-    )
-    ui.manager.send_notification({"calculate_calibration": True})
 
 
 @click.command("validate")
@@ -54,6 +42,13 @@ def validate(config_file, verbose):
     ui.attach(manager, statusmap={"fps": "{:.2f} Hz"})
 
     # add keyboard commands
+    ui.add_key("s", "show streams", show_video_streams)
+    ui.add_key(
+        "h",
+        "hide all streams",
+        hide_video_streams,
+        msg="Hiding all video streams",
+    )
     ui.add_key(
         "c",
         "collect calibration data",
