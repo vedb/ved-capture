@@ -45,7 +45,8 @@ class ConfigParser:
         if exc_type is not None:
             logger.debug(exc_val, exc_info=True)
             raise_error(
-                f"Could not parse configuration f({exc_type}): {exc_val}",
+                f"Could not parse configuration ({exc_type.__name__}): "
+                f"{exc_val}",
                 logger,
             )
 
@@ -59,7 +60,7 @@ class ConfigParser:
                 value = value[key]
         except KeyError:
             raise NotFoundError(
-                f"commands.{command}{'.'.join(subkeys)} not found"
+                f"commands.{command}.{'.'.join(subkeys)} not found"
             )
 
         return value
@@ -77,7 +78,7 @@ class ConfigParser:
         except KeyError:
             if len(subkeys):
                 raise NotFoundError(
-                    f"streams.{name}{'.'.join(subkeys)} not found"
+                    f"streams.{name}.{'.'.join(subkeys)} not found"
                 )
             else:
                 raise NotFoundError(f"Stream '{name}' is not defined")
