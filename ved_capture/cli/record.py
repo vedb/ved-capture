@@ -42,10 +42,15 @@ def record(config_file, verbose):
             "estimate_cam_params", None, **metadata
         )
         policy = config_parser.get_policy("record")
+        duration = config_parser.get_duration("record")
 
     # init manager
     manager = pri.StreamManager(
-        stream_configs, folder=folder, policy=policy, app_info=APP_INFO
+        stream_configs,
+        folder=folder,
+        policy=policy,
+        duration=duration,
+        app_info=APP_INFO,
     )
     ui.attach(manager, statusmap={"fps": "{:.2f} Hz"})
 

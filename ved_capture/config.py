@@ -130,6 +130,15 @@ class ConfigParser:
         except (NotFoundError, ConfigTypeError):
             return "new_folder"
 
+    def get_duration(self, command, duration=None):
+        """ Get duration for command. """
+        try:
+            return duration or self.config["commands"][command][
+                "duration"
+            ].get(float)
+        except (NotFoundError, ConfigTypeError):
+            return None
+
     def get_show_video(self, show_video=None):
         """ Get show_video flag. """
         if show_video is None:
