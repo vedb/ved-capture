@@ -1,8 +1,8 @@
-import os
 import importlib
 import inspect
 import traceback
 import tarfile
+from pathlib import Path
 
 import click
 from git import GitError
@@ -77,6 +77,14 @@ def update(verbose, local, branch, stash, pri_branch, pri_path):
             logger,
         )
 
+    # symlink config folder
+    if not local:
+        symlink = Path(paths["vedc_repo_folder"]).parent / "config"
+        if not symlink.exists():
+            symlink.symlink_to(
+                ConfigParser.config_dir(), target_is_directory=True
+            )
+
 
 @click.command("check_install")
 @click.option(
@@ -118,13 +126,13 @@ def check_install(verbose):
 )
 def save_logs(filepath, overwrite):
     """ Save logs to a gzipped tar archive. """
-    filepath = os.path.expanduser(filepath)
-    source_dir = ConfigParser.config_dir()
+    filepath = Path(filepath).expanduser()
+    source_dir = Path(ConfigParser.config_dir())
 
-    if os.path.exists(filepath) and not overwrite:
+    if filepath.exists() and not overwrite:
         raise click.ClickException(
             f"{filepath} exists, set -o/--overwrite flag to overwrite"
         )
 
     with tarfile.open(filepath, "w:gz") as tar:
-        tar.add(source_dir, arcname=os.path.basename(source_dir))
+        tar.add(source_dir, arcname=source_dir.stem)

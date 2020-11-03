@@ -27,7 +27,7 @@ from distutils.version import LooseVersion
 import re
 
 
-__installer_version = "1.3.4"
+__installer_version = "1.4.0"
 __maintainer_email = "peter.hausamann@tum.de"
 
 # -- LOGGING -- #
@@ -344,7 +344,7 @@ def update_repo(repo_folder, branch):
 
 def clone_repo(base_folder, repo_folder, repo_url, branch=None):
     """"""
-    os.makedirs(base_folder, exist_ok=True)
+    base_folder.mkdir(parents=True, exist_ok=True)
     error_msg = "Could not clone the repository. Did you set up the SSH key?"
     run_command(["git", "clone", repo_url, repo_folder], error_msg=error_msg)
     update_repo(repo_folder, branch)
@@ -527,7 +527,7 @@ def write_paths(
         paths["pri_path"] = str(Path(args.pri_path).expanduser().resolve())
 
     config_folder = Path(config_folder).expanduser()
-    os.makedirs(config_folder, exist_ok=True)
+    config_folder.mkdir(parents=True, exist_ok=True)
     json_file = config_folder / "paths.json"
     logger.debug(f"Writing paths to {json_file}")
 
@@ -765,6 +765,12 @@ if __name__ == "__main__":
         config_folder,
         args.pri_path,
     )
+
+    # symlink config folder
+    if not args.local:
+        symlink = base_folder / "config"
+        if not symlink.exists():
+            symlink.symlink_to(config_folder, target_is_directory=True)
 
     # Check installation
     show_header("Checking installation")
