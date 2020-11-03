@@ -14,6 +14,9 @@ import pupil_recording_interface as pri
 
 APPNAME = "vedc"
 
+# maximum width of video windows
+MAX_WIDTH = 1280
+
 logger = logging.getLogger(__name__)
 
 
@@ -172,7 +175,9 @@ class ConfigParser:
         )
         if stream_type == "video":
             config["pipeline"].append(
-                pri.VideoDisplay.Config(paused=not self.get_show_video())
+                pri.VideoDisplay.Config(
+                    max_width=MAX_WIDTH, paused=not self.get_show_video()
+                )
             )
 
         return config
@@ -222,7 +227,9 @@ class ConfigParser:
             )
             config["pipeline"].append(pri.Validation.Config(save=True))
             config["pipeline"].append(pri.GazeMapper.Config())
-            config["pipeline"].append(pri.VideoDisplay.Config())
+            config["pipeline"].append(
+                pri.VideoDisplay.Config(max_width=MAX_WIDTH)
+            )
         elif cam_type == "eye0":
             config["pipeline"].append(pri.PupilDetector.Config())
             config["pipeline"].append(pri.VideoDisplay.Config(flip=True))
@@ -254,7 +261,9 @@ class ConfigParser:
             config["pipeline"].append(pri.CircleDetector.Config(paused=True))
             config["pipeline"].append(pri.Calibration.Config(save=True))
             config["pipeline"].append(pri.GazeMapper.Config())
-            config["pipeline"].append(pri.VideoDisplay.Config())
+            config["pipeline"].append(
+                pri.VideoDisplay.Config(max_width=MAX_WIDTH)
+            )
         elif cam_type == "eye0":
             config["pipeline"].append(pri.PupilDetector.Config())
             config["pipeline"].append(pri.VideoDisplay.Config(flip=True))
@@ -301,7 +310,7 @@ class ConfigParser:
                     streams=streams, extrinsics=extrinsics
                 )
             )
-        config["pipeline"].append(pri.VideoDisplay.Config())
+        config["pipeline"].append(pri.VideoDisplay.Config(max_width=MAX_WIDTH))
 
         return config
 
