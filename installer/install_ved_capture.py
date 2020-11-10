@@ -14,6 +14,7 @@ For a list of additional options run:
 Copyright 2020 Peter Hausamann / The Visual Experience Database
 """
 import os
+import sys
 from pathlib import Path
 import time
 import subprocess
@@ -27,7 +28,7 @@ from distutils.version import LooseVersion
 import re
 
 
-__installer_version = "1.4.0"
+__installer_version = "1.4.1"
 __maintainer_email = "peter.hausamann@tum.de"
 
 # -- LOGGING -- #
@@ -107,7 +108,7 @@ def show_header(header, message=None, delay=1):
 # -- COMMAND RUNNERS -- #
 def abort(exit_code=1):
     """"""
-    exit(exit_code)
+    sys.exit(exit_code)
 
 
 def log_as_warning_or_debug(data):
@@ -122,21 +123,29 @@ def log_as_warning_or_debug(data):
 
     _suppress_if_contains = (b"Extracting : ",)
 
-    data = data.strip(b"\n")
+    try:
+        data = data.strip(b"\n").decode("utf-8")
+    except UnicodeDecodeError:
+        logger.debug("!!Error decoding process output!!")
+        return
 
     if (
         data.startswith(_suppress_if_startswith)
         or data.endswith(_suppress_if_endswith)
         or any(data.find(s) for s in _suppress_if_contains)
     ):
-        logger.debug(data.decode("utf-8"))
+        logger.debug(data)
     else:
-        logger.warning(data.decode("utf-8"))
+        logger.warning(data)
 
 
 def log_as_debug(data):
     """"""
-    logger.debug(data.rstrip(b"\n").decode("utf-8"))
+    try:
+        data = data.rstrip(b"\n").decode("utf-8")
+        logger.debug(data)
+    except UnicodeDecodeError:
+        logger.debug("!!Error decoding process output!!")
 
 
 def handle_process(process, command, error_msg, n_bytes=4096):
