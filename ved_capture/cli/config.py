@@ -1,5 +1,6 @@
 import inspect
 import subprocess
+import sys
 from pathlib import Path
 
 import click
@@ -59,7 +60,7 @@ def generate_config(folder, name, verbose):
                 f"'vedc generate_config -n CONFIG_NAME' to generate a config "
                 f"with a different name"
             )
-            exit(0)
+            sys.exit(0)
 
     # get default config
     with open(Path(__file__).parents[1] / "config_default.yaml") as f:
@@ -123,14 +124,20 @@ def auto_config(verbose):
         answer = input(f"{filepath} exists, overwrite? ([y]/n): ")
         if answer.lower() == "n":
             logger.info(f"Did not overwrite {filepath}")
-            exit(0)
+            sys.exit(0)
 
     # get version from config_default
     with open(Path(__file__).parents[1] / "config_default.yaml") as f:
         config = yaml.safe_load(f)
 
-    # default config
-    config["commands"]["record"]["metadata"] = None
+    # get default metadata
+    # TODO revisit prompts
+    config["commands"]["record"]["metadata"]["location"] = input(
+        "Please enter the location (UNR, NDSU, Bates, ...): "
+    )
+    config["commands"]["record"]["metadata"]["experimenter"] = input(
+        "Please enter the name of the experimenter: "
+    )
 
     # get connected devices
     logger.info("Checking connected devices...")
