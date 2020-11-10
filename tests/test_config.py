@@ -27,8 +27,8 @@ class TestConfigParser:
 
         parser = ConfigParser()
         assert (
-            parser.config["commands"]["record"]["metadata"].get()[0]
-            == "location"
+            parser.config["commands"]["record"]["metadata"]["location"].get()
+            is None
         )
 
         # config name
