@@ -31,16 +31,7 @@ commands:
       accel: null
       gyro: null
     show_video: false
-    metadata:
-      - location
-      - experimenter
-      - experiment
-      - scene
-      - task
-      - subject_id
-      - age
-      - gender
-      - ethnicity
+    metadata: null
 
   calibrate:
     folder: ~/pupil_capture_settings

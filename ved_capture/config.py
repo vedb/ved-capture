@@ -162,7 +162,12 @@ class ConfigParser:
             return {field: input(f"{field}: ") for field in fields}
         if isinstance(fields, dict):
             return {
-                field: input(f"{field} [{default}]: ") or default
+                field: (
+                    input(f"{field} [{default}]: ")
+                    if default is not None
+                    else input(f"{field}: ")
+                )
+                or default
                 for field, default in fields.items()
             }
         else:
