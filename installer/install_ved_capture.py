@@ -114,14 +114,14 @@ def abort(exit_code=1):
 def log_as_warning_or_debug(data):
     """"""
     _suppress_if_startswith = (
-        b"[sudo] ",
-        b'Please run using "bash" or "sh"',
-        b"==> WARNING: A newer version of conda exists. <==",
+        "[sudo] ",
+        'Please run using "bash" or "sh"',
+        "==> WARNING: A newer version of conda exists. <==",
     )
 
-    _suppress_if_endswith = (b"is not a symbolic link",)
+    _suppress_if_endswith = ("is not a symbolic link",)
 
-    _suppress_if_contains = (b"Extracting : ",)
+    _suppress_if_contains = ("Extracting : ",)
 
     try:
         data = data.strip(b"\n").decode("utf-8")

@@ -25,30 +25,38 @@ logger = logging.getLogger(__name__)
 def log_as_warning_or_debug(data):
     """ Log message as warning, unless it's known to be a debug message. """
     _suppress_if_startswith = (
-        b"[sudo] ",
-        b'Please run using "bash" or "sh"',
-        b"==> WARNING: A newer version of conda exists. <==",
+        "[sudo] ",
+        'Please run using "bash" or "sh"',
+        "==> WARNING: A newer version of conda exists. <==",
     )
 
-    _suppress_if_endswith = (b"is not a symbolic link",)
+    _suppress_if_endswith = ("is not a symbolic link",)
 
-    _suppress_if_contains = (b"Extracting : ",)
+    _suppress_if_contains = ("Extracting : ",)
 
-    data = data.strip(b"\n")
+    try:
+        data = data.strip(b"\n").decode("utf-8")
+    except UnicodeDecodeError:
+        logger.debug("!!Error decoding process output!!")
+        return
 
     if (
         data.startswith(_suppress_if_startswith)
         or data.endswith(_suppress_if_endswith)
         or any(data.find(s) for s in _suppress_if_contains)
     ):
-        logger.debug(data.decode("utf-8"))
+        logger.debug(data)
     else:
-        logger.warning(data.decode("utf-8"))
+        logger.warning(data)
 
 
 def log_as_debug(data):
     """ Log message as debug. """
-    logger.debug(data.rstrip(b"\n").decode("utf-8"))
+    try:
+        data = data.rstrip(b"\n").decode("utf-8")
+        logger.debug(data)
+    except UnicodeDecodeError:
+        logger.debug("!!Error decoding process output!!")
 
 
 def run_command(command, shell=False, f_stdout=None, n_bytes=4096):
