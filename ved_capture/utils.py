@@ -11,6 +11,7 @@ from select import select
 
 import numpy as np
 import simpleaudio
+from simpleaudio._simpleaudio import SimpleaudioError
 from pkg_resources import parse_version
 
 import git
@@ -310,13 +311,13 @@ def copy_intrinsics(stream, src_folder, dst_folder):
                 logger.debug(f"Copied {src_file} to {dst_file}")
 
 
-def beep(freq=440, fs=44100, seconds=0.1):
+def beep(freq=440, fs=44100, seconds=0.1, fade_len=0.01):
     """ Make a beep noise to indicate recording state. """
 
     t = np.linspace(0, seconds, int(fs * seconds))
 
-    if seconds > 0.02:
-        fade_len = int(fs * 0.01)
+    if seconds > 2 * fade_len:
+        fade_len = int(fs * fade_len)
         fade_window = np.hstack(
             (
                 np.hanning(fade_len)[: fade_len // 2],
@@ -333,5 +334,9 @@ def beep(freq=440, fs=44100, seconds=0.1):
     notes = np.hstack([np.sin(f * t * 2 * np.pi) * fade_window for f in freq])
     audio = (notes * (2 ** 15 - 1) / np.max(np.abs(notes))).astype(np.int16)
 
-    simpleaudio.play_buffer(audio, 1, 2, fs)
-    time.sleep(len(freq) * seconds)
+    try:
+        play_obj = simpleaudio.play_buffer(audio, 1, 2, fs)  # noqa
+        # TODO play_obj.wait_done() blocks if there's an error
+        time.sleep(len(freq) * seconds)
+    except SimpleaudioError as e:
+        logger.error(f"Error playing sound: {e}")
