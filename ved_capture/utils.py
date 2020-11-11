@@ -284,31 +284,53 @@ def get_flir_devices():
     return serials
 
 
-def copy_intrinsics(stream, src_folder, dst_folder):
-    """ Copy intrinsics for a stream. """
-    if isinstance(stream, pri.VideoStream):
-        src_file = (
-            Path(src_folder)
-            / f"{str(stream.device.device_uid).replace(' ', '_')}.intrinsics"
+def copy_intrinsics(stream, src_folder, dst_folder, suffix="", stereo=False):
+    """ Copy a single intrinsics file. """
+    src_file = (
+        Path(src_folder) / f"{str(stream.device.device_uid).replace(' ', '_')}"
+        f"{suffix}.intrinsics"
+    )
+    if not src_file.exists():
+        logger.warning(
+            f"No intrinsics for device '{stream.device.device_uid}' "
+            f"found in {src_file.parent}"
         )
-        if not src_file.exists():
+    else:
+        intrinsics = load_object(str(src_file))
+        resolution = tuple(stream.device.resolution)
+        if stereo:
+            resolution = (resolution[0] // 2, resolution[1])
+        if str(resolution) not in intrinsics:
             logger.warning(
-                f"No intrinsics for device '{stream.device.device_uid}' "
-                f"found in {src_folder}"
+                f"Intrinsics for device '{stream.device.device_uid}' "
+                f"at resolution {resolution} not found in "
+                f"{src_file}"
             )
         else:
-            intrinsics = load_object(str(src_file))
-            resolution = tuple(stream.device.resolution)
-            if str(resolution) not in intrinsics:
-                logger.warning(
-                    f"Intrinsics for device '{stream.device.device_uid}' "
-                    f"at resolution {resolution} not found in "
-                    f"{src_file}"
-                )
+            dst_file = Path(dst_folder) / f"{stream.name}{suffix}.intrinsics"
+            shutil.copyfile(src_file, dst_file)
+            logger.debug(f"Copied {src_file} to {dst_file}")
+
+
+def copy_cam_params(streams, src_folder, dst_folder):
+    """ Copy camera parameters. """
+    for stream in streams:
+        # TODO extrinsics
+        if isinstance(stream, pri.VideoStream):
+            if isinstance(stream.device, pri.RealSenseDeviceT265):
+                if stream.device.video == "right":
+                    copy_intrinsics(stream, src_folder, dst_folder, "_right")
+                elif stream.device.video == "left":
+                    copy_intrinsics(stream, src_folder, dst_folder, "_left")
+                else:
+                    copy_intrinsics(
+                        stream, src_folder, dst_folder, "_left", stereo=True
+                    )
+                    copy_intrinsics(
+                        stream, src_folder, dst_folder, "_right", stereo=True
+                    )
             else:
-                dst_file = Path(dst_folder) / f"{stream.name}.intrinsics"
-                shutil.copyfile(src_file, dst_file)
-                logger.debug(f"Copied {src_file} to {dst_file}")
+                copy_intrinsics(stream, src_folder, dst_folder)
 
 
 def beep(freq=440, fs=44100, seconds=0.1, fade_len=0.01):

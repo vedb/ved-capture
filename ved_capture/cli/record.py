@@ -11,7 +11,7 @@ from ved_capture.cli.commands import (
     hide_video_streams,
 )
 from ved_capture.cli.ui import TerminalUI
-from ved_capture.utils import copy_intrinsics
+from ved_capture.utils import copy_cam_params
 from ved_capture.config import ConfigParser, save_metadata
 
 
@@ -65,8 +65,9 @@ def record(config_file, verbose):
         save_metadata(manager.folder, metadata)
         ui.logger.debug(f"Saved user_info.csv to {manager.folder}")
 
-    for stream in manager.streams.values():
-        copy_intrinsics(stream, intrinsics_folder, manager.folder)
+    copy_cam_params(
+        manager.streams.values(), intrinsics_folder, manager.folder
+    )
 
     # set keyboard commands
     ui.add_key("s", "show streams", show_video_streams)
