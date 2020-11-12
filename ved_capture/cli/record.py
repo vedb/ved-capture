@@ -38,11 +38,12 @@ def record(config_file, verbose):
         metadata = config_parser.get_metadata()
         stream_configs = config_parser.get_recording_configs()
         folder = config_parser.get_folder("record", None, **metadata)
-        intrinsics_folder = config_parser.get_folder(
+        cam_params_folder = config_parser.get_folder(
             "estimate_cam_params", None, **metadata
         )
         policy = config_parser.get_policy("record")
         duration = config_parser.get_duration("record")
+        intrinsics, extrinsics = config_parser.get_recording_cam_params()
 
     # init manager
     manager = pri.StreamManager(
@@ -66,7 +67,11 @@ def record(config_file, verbose):
         ui.logger.debug(f"Saved user_info.csv to {manager.folder}")
 
     copy_cam_params(
-        manager.streams.values(), intrinsics_folder, manager.folder
+        manager.streams,
+        cam_params_folder,
+        manager.folder,
+        intrinsics,
+        extrinsics,
     )
 
     # set keyboard commands

@@ -162,6 +162,24 @@ class ConfigParser:
         else:
             return show_video
 
+    def get_recording_cam_params(self):
+        """ Get video streams for which to copy intrinsics and extrinsics. """
+        try:
+            intrinsics = self.config["commands"]["record"]["intrinsics"].get(
+                list
+            )
+        except (ConfigTypeError, NotFoundError):
+            intrinsics = []
+
+        try:
+            extrinsics = self.config["commands"]["record"]["extrinsics"].get(
+                list
+            )
+        except (ConfigTypeError, NotFoundError):
+            extrinsics = []
+
+        return intrinsics, extrinsics
+
     def get_metadata(self):
         """ Get recording metadata. """
         try:
@@ -319,10 +337,10 @@ class ConfigParser:
             config["pipeline"] = []
 
         try:
-            command_config = self.get_command_config(
-                "estimate_cam_params", "streams", name
-            )
-        except NotFoundError:
+            command_config = self.config["commands"]["estimate_cam_params"][
+                "streams"
+            ][name].get(dict)
+        except (ConfigTypeError, NotFoundError):
             command_config = {}
 
         config["pipeline"].append(

@@ -66,6 +66,14 @@ class TestConfigParser:
         # package default
         assert not ConfigParser().get_show_video()
 
+    def test_get_recording_cam_params(self, parser):
+        """"""
+        # package default
+        assert ConfigParser().get_recording_cam_params() == (
+            ["world"],
+            ["world", "t265"],
+        )
+
     def test_get_metadata(self, parser, monkeypatch):
         """"""
         # as list

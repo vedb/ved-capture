@@ -41,6 +41,11 @@ commands:
       age: null
       gender: null
       ethnicity: null
+    intrinsics:
+      - world
+    extrinsics:
+      - world
+      - t265
 
   calibrate:
     folder: ~/pupil_capture_settings

@@ -284,53 +284,101 @@ def get_flir_devices():
     return serials
 
 
-def copy_intrinsics(stream, src_folder, dst_folder, suffix="", stereo=False):
-    """ Copy a single intrinsics file. """
+def _copy_cam_params(
+    stream,
+    src_folder,
+    dst_folder,
+    param_type="intrinsics",
+    suffix="",
+    stereo=False,
+):
+    """ Copy a single intrinsics or extrinsics file. """
     src_file = (
         Path(src_folder) / f"{str(stream.device.device_uid).replace(' ', '_')}"
-        f"{suffix}.intrinsics"
+        f"{suffix}.{param_type}"
     )
     if not src_file.exists():
         logger.warning(
-            f"No intrinsics for device '{stream.device.device_uid}' "
+            f"No {param_type} for device '{stream.device.device_uid}' "
             f"found in {src_file.parent}"
         )
     else:
-        intrinsics = load_object(str(src_file))
+        params = load_object(str(src_file))
         resolution = tuple(stream.device.resolution)
         if stereo:
             resolution = (resolution[0] // 2, resolution[1])
-        if str(resolution) not in intrinsics:
+        if str(resolution) not in params:
             logger.warning(
-                f"Intrinsics for device '{stream.device.device_uid}' "
-                f"at resolution {resolution} not found in "
-                f"{src_file}"
+                f"{param_type.capitalize()} for device "
+                f"'{stream.device.device_uid}' at resolution {resolution} "
+                f"not found in {src_file}"
             )
         else:
-            dst_file = Path(dst_folder) / f"{stream.name}{suffix}.intrinsics"
+            dst_file = Path(dst_folder) / f"{stream.name}{suffix}.{param_type}"
             shutil.copyfile(src_file, dst_file)
             logger.debug(f"Copied {src_file} to {dst_file}")
 
 
-def copy_cam_params(streams, src_folder, dst_folder):
+def copy_cam_params(
+    streams, src_folder, dst_folder, intrinsics=None, extrinsics=None
+):
     """ Copy camera parameters. """
-    for stream in streams:
-        # TODO extrinsics
-        if isinstance(stream, pri.VideoStream):
+    intrinsics = intrinsics or [
+        name for name, s in streams.items() if isinstance(s, pri.VideoStream)
+    ]
+    extrinsics = extrinsics or [
+        name for name, s in streams.items() if isinstance(s, pri.VideoStream)
+    ]
+
+    for stream_name in intrinsics:
+        if stream_name in streams:
+            stream = streams[stream_name]
             if isinstance(stream.device, pri.RealSenseDeviceT265):
-                if stream.device.video == "right":
-                    copy_intrinsics(stream, src_folder, dst_folder, "_right")
-                elif stream.device.video == "left":
-                    copy_intrinsics(stream, src_folder, dst_folder, "_left")
-                else:
-                    copy_intrinsics(
-                        stream, src_folder, dst_folder, "_left", stereo=True
+                if stream.device.video != "left":
+                    _copy_cam_params(
+                        stream,
+                        src_folder,
+                        dst_folder,
+                        "intrinsics",
+                        "_right",
+                        stereo=stream.device.video != "right",
                     )
-                    copy_intrinsics(
-                        stream, src_folder, dst_folder, "_right", stereo=True
+                if stream.device.video != "right":
+                    _copy_cam_params(
+                        stream,
+                        src_folder,
+                        dst_folder,
+                        "intrinsics",
+                        "_left",
+                        stereo=stream.device.video != "left",
                     )
             else:
-                copy_intrinsics(stream, src_folder, dst_folder)
+                _copy_cam_params(stream, src_folder, dst_folder, "intrinsics")
+
+    for stream_name in extrinsics:
+        if stream_name in streams:
+            stream = streams[stream_name]
+            if isinstance(stream.device, pri.RealSenseDeviceT265):
+                if stream.device.video != "left":
+                    _copy_cam_params(
+                        stream,
+                        src_folder,
+                        dst_folder,
+                        "extrinsics",
+                        "_right",
+                        stereo=stream.device.video != "right",
+                    )
+                if stream.device.video != "right":
+                    _copy_cam_params(
+                        stream,
+                        src_folder,
+                        dst_folder,
+                        "extrinsics",
+                        "_left",
+                        stereo=stream.device.video != "left",
+                    )
+            else:
+                _copy_cam_params(stream, src_folder, dst_folder, "extrinsics")
 
 
 def beep(freq=440, fs=44100, seconds=0.1, fade_len=0.01):
