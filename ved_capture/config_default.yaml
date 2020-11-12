@@ -60,6 +60,9 @@ commands:
     streams:
       t265:
         stereo: True
+        scale: 0.75
+      world:
+        scale: 0.5
 
 streams:
   video:
