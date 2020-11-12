@@ -9,7 +9,12 @@ import csv
 import logging
 
 import yaml
-from confuse import Configuration, NotFoundError, ConfigTypeError
+from confuse import (
+    Configuration,
+    NotFoundError,
+    ConfigTypeError,
+    ConfigReadError,
+)
 import pupil_recording_interface as pri
 
 APPNAME = "vedc"
@@ -25,7 +30,12 @@ class ConfigParser:
 
     def __init__(self, config_file=None):
         """ Constructor. """
-        self.config = Configuration(APPNAME, "ved_capture")
+        try:
+            self.config = Configuration(APPNAME, "ved_capture")
+        except ConfigReadError as e:
+            from ved_capture.cli.utils import raise_error
+
+            raise_error(str(e), logger)
 
         if config_file is not None:
             if str(config_file).endswith(".yaml"):
@@ -43,9 +53,10 @@ class ConfigParser:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        from ved_capture.cli.utils import raise_error
 
         if exc_type is not None:
+            from ved_capture.cli.utils import raise_error
+
             logger.debug(exc_val, exc_info=True)
             raise_error(
                 f"Could not parse configuration ({exc_type.__name__}): "
@@ -110,14 +121,14 @@ class ConfigParser:
                         today=datetime.datetime.today(),
                         **metadata,
                     )
-                    return os.path.expanduser(folder)
+                    return Path(folder).expanduser()
                 except KeyError as e:
                     raise ValueError(
                         f"Format spec in commands.{command}.folder requires "
                         f"{e} to be defined in commands.{command}.metadata"
                     )
             else:
-                return os.getcwd()
+                return Path.cwd()
         except (NotFoundError, ConfigTypeError, KeyError):
             return os.getcwd()
 
@@ -311,11 +322,11 @@ class ConfigParser:
             command_config = self.get_command_config(
                 "estimate_cam_params", "streams", name
             )
-        except KeyError:
-            command_config = None
+        except NotFoundError:
+            command_config = {}
 
         config["pipeline"].append(
-            pri.CircleGridDetector.Config(**(command_config or {}))
+            pri.CircleGridDetector.Config(**command_config)
         )
         if master:
             # first stream gets cam param estimator

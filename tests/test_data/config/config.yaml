@@ -16,7 +16,6 @@ commands:
   estimate_cam_params:
     folder: '{cfgd}/out/pupil_capture_settings'
     streams:
-      world: null
       t265:
         stereo: True
   calibrate:
