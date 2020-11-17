@@ -28,7 +28,7 @@ from distutils.version import LooseVersion
 import re
 
 
-__installer_version = "1.4.1"
+__installer_version = "1.4.2"
 __maintainer_email = "peter.hausamann@tum.de"
 
 # -- LOGGING -- #
@@ -359,7 +359,7 @@ def clone_repo(base_folder, repo_folder, repo_url, branch=None):
     update_repo(repo_folder, branch)
 
 
-def verify_latest_version(vedc_repo_folder):
+def verify_latest_version(vedc_repo_folder, cl_args):
     """"""
     repo_script = vedc_repo_folder / "installer" / "install_ved_capture.py"
 
@@ -375,8 +375,10 @@ def verify_latest_version(vedc_repo_folder):
         show_header("ERROR")
         logger.error(
             f"You are using an outdated version of the installer script. "
-            f"Please run:\n\n"
-            f"python3 {repo_script}"
+            f"Instead of this script, please run:\n\n"
+            f"python3 {repo_script} {' '.join(cl_args)}\n\n"
+            f"To force running the current script add the --no_version_check"
+            f"flag."
         )
         abort()
 
@@ -699,7 +701,7 @@ if __name__ == "__main__":
 
     # Check script version
     if not args.no_version_check:
-        verify_latest_version(vedc_repo_folder)
+        verify_latest_version(vedc_repo_folder, sys.argv[1:])
 
     # Install miniconda if necessary
     if not conda_binary.exists():
