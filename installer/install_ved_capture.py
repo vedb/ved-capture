@@ -28,7 +28,7 @@ from distutils.version import LooseVersion
 import re
 
 
-__installer_version = "1.4.2"
+__installer_version = "1.4.3"
 __maintainer_email = "peter.hausamann@tum.de"
 
 # -- LOGGING -- #
@@ -376,9 +376,9 @@ def verify_latest_version(vedc_repo_folder, cl_args):
         logger.error(
             f"You are using an outdated version of the installer script. "
             f"Instead of this script, please run:\n\n"
-            f"python3 {repo_script} {' '.join(cl_args)}\n\n"
-            f"To force running the current script add the --no_version_check"
-            f"flag."
+            f"python3 {repo_script} {' '.join(cl_args[1:])}\n\n"
+            f"To force running the current script, run:\n\n"
+            f"python3 {' '.join(cl_args)} --no_version_check"
         )
         abort()
 
@@ -701,7 +701,7 @@ if __name__ == "__main__":
 
     # Check script version
     if not args.no_version_check:
-        verify_latest_version(vedc_repo_folder, sys.argv[1:])
+        verify_latest_version(vedc_repo_folder, sys.argv)
 
     # Install miniconda if necessary
     if not conda_binary.exists():
