@@ -13,7 +13,7 @@ from ved_capture.cli.ui import TerminalUI
 from ved_capture.config import ConfigParser
 
 
-@click.command("calibrate")
+@click.command("validate")
 @click.option(
     "-c",
     "--config-file",
@@ -25,19 +25,20 @@ from ved_capture.config import ConfigParser
 @click.option(
     "-v", "--verbose", default=False, help="Verbose output.", count=True,
 )
-def calibrate(config_file, verbose):
+def validate(config_file, verbose):
     """ Calibrate gaze mapping. """
     ui = TerminalUI(inspect.stack()[0][3], verbosity=verbose)
 
     # parse config
     with ConfigParser(config_file) as config_parser:
-        stream_configs = config_parser.get_calibration_configs()
-        folder = config_parser.get_folder("calibrate", None)
+        stream_configs = config_parser.get_validation_configs()
+        folder = config_parser.get_folder("validate", None)
+        policy = config_parser.get_policy("validate")
         # TODO make this more robust
         world_stream = stream_configs[0].name
 
     # init manager
-    manager = pri.StreamManager(stream_configs, folder=folder, policy="here")
+    manager = pri.StreamManager(stream_configs, folder=folder, policy=policy)
     ui.attach(manager, statusmap={"fps": "{:.2f} Hz"})
 
     # add keyboard commands

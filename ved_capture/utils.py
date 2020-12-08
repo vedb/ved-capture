@@ -11,6 +11,7 @@ from select import select
 
 import numpy as np
 import simpleaudio
+from simpleaudio._simpleaudio import SimpleaudioError
 from pkg_resources import parse_version
 
 import git
@@ -25,30 +26,38 @@ logger = logging.getLogger(__name__)
 def log_as_warning_or_debug(data):
     """ Log message as warning, unless it's known to be a debug message. """
     _suppress_if_startswith = (
-        b"[sudo] ",
-        b'Please run using "bash" or "sh"',
-        b"==> WARNING: A newer version of conda exists. <==",
+        "[sudo] ",
+        'Please run using "bash" or "sh"',
+        "==> WARNING: A newer version of conda exists. <==",
     )
 
-    _suppress_if_endswith = (b"is not a symbolic link",)
+    _suppress_if_endswith = ("is not a symbolic link",)
 
-    _suppress_if_contains = (b"Extracting : ",)
+    _suppress_if_contains = ("Extracting : ",)
 
-    data = data.strip(b"\n")
+    try:
+        data = data.strip(b"\n").decode("utf-8")
+    except UnicodeDecodeError:
+        logger.debug("!!Error decoding process output!!")
+        return
 
     if (
         data.startswith(_suppress_if_startswith)
         or data.endswith(_suppress_if_endswith)
         or any(data.find(s) for s in _suppress_if_contains)
     ):
-        logger.debug(data.decode("utf-8"))
+        logger.debug(data)
     else:
-        logger.warning(data.decode("utf-8"))
+        logger.warning(data)
 
 
 def log_as_debug(data):
     """ Log message as debug. """
-    logger.debug(data.rstrip(b"\n").decode("utf-8"))
+    try:
+        data = data.rstrip(b"\n").decode("utf-8")
+        logger.debug(data)
+    except UnicodeDecodeError:
+        logger.debug("!!Error decoding process output!!")
 
 
 def run_command(command, shell=False, f_stdout=None, n_bytes=4096):
@@ -275,40 +284,110 @@ def get_flir_devices():
     return serials
 
 
-def copy_intrinsics(stream, src_folder, dst_folder):
-    """ Copy intrinsics for a stream. """
-    if isinstance(stream, pri.VideoStream):
-        src_file = (
-            Path(src_folder)
-            / f"{str(stream.device.device_uid).replace(' ', '_')}.intrinsics"
+def _copy_cam_params(
+    stream,
+    src_folder,
+    dst_folder,
+    param_type="intrinsics",
+    suffix="",
+    stereo=False,
+):
+    """ Copy a single intrinsics or extrinsics file. """
+    src_file = (
+        Path(src_folder) / f"{str(stream.device.device_uid).replace(' ', '_')}"
+        f"{suffix}.{param_type}"
+    )
+    if not src_file.exists():
+        logger.warning(
+            f"No {param_type} for device '{stream.device.device_uid}' "
+            f"found in {src_file.parent}"
         )
-        if not src_file.exists():
+    else:
+        params = load_object(str(src_file))
+        resolution = tuple(stream.device.resolution)
+        if stereo:
+            resolution = (resolution[0] // 2, resolution[1])
+        if str(resolution) not in params:
             logger.warning(
-                f"No intrinsics for device '{stream.device.device_uid}' "
-                f"found in {src_folder}"
+                f"{param_type.capitalize()} for device "
+                f"'{stream.device.device_uid}' at resolution {resolution} "
+                f"not found in {src_file}"
             )
         else:
-            intrinsics = load_object(str(src_file))
-            resolution = tuple(stream.device.resolution)
-            if str(resolution) not in intrinsics:
-                logger.warning(
-                    f"Intrinsics for device '{stream.device.device_uid}' "
-                    f"at resolution {resolution} not found in "
-                    f"{src_file}"
-                )
+            dst_file = Path(dst_folder) / f"{stream.name}{suffix}.{param_type}"
+            shutil.copyfile(src_file, dst_file)
+            logger.debug(f"Copied {src_file} to {dst_file}")
+
+
+def copy_cam_params(
+    streams, src_folder, dst_folder, intrinsics=None, extrinsics=None
+):
+    """ Copy camera parameters. """
+    intrinsics = intrinsics or [
+        name for name, s in streams.items() if isinstance(s, pri.VideoStream)
+    ]
+    extrinsics = extrinsics or [
+        name for name, s in streams.items() if isinstance(s, pri.VideoStream)
+    ]
+
+    for stream_name in intrinsics:
+        if stream_name in streams:
+            stream = streams[stream_name]
+            if isinstance(stream.device, pri.RealSenseDeviceT265):
+                if stream.device.video != "left":
+                    _copy_cam_params(
+                        stream,
+                        src_folder,
+                        dst_folder,
+                        "intrinsics",
+                        "_right",
+                        stereo=stream.device.video != "right",
+                    )
+                if stream.device.video != "right":
+                    _copy_cam_params(
+                        stream,
+                        src_folder,
+                        dst_folder,
+                        "intrinsics",
+                        "_left",
+                        stereo=stream.device.video != "left",
+                    )
             else:
-                dst_file = Path(dst_folder) / f"{stream.name}.intrinsics"
-                shutil.copyfile(src_file, dst_file)
-                logger.debug(f"Copied {src_file} to {dst_file}")
+                _copy_cam_params(stream, src_folder, dst_folder, "intrinsics")
+
+    for stream_name in extrinsics:
+        if stream_name in streams:
+            stream = streams[stream_name]
+            if isinstance(stream.device, pri.RealSenseDeviceT265):
+                if stream.device.video != "left":
+                    _copy_cam_params(
+                        stream,
+                        src_folder,
+                        dst_folder,
+                        "extrinsics",
+                        "_right",
+                        stereo=stream.device.video != "right",
+                    )
+                if stream.device.video != "right":
+                    _copy_cam_params(
+                        stream,
+                        src_folder,
+                        dst_folder,
+                        "extrinsics",
+                        "_left",
+                        stereo=stream.device.video != "left",
+                    )
+            else:
+                _copy_cam_params(stream, src_folder, dst_folder, "extrinsics")
 
 
-def beep(freq=440, fs=44100, seconds=0.1):
+def beep(freq=440, fs=44100, seconds=0.1, fade_len=0.01):
     """ Make a beep noise to indicate recording state. """
 
     t = np.linspace(0, seconds, int(fs * seconds))
 
-    if seconds > 0.02:
-        fade_len = int(fs * 0.01)
+    if seconds > 2 * fade_len:
+        fade_len = int(fs * fade_len)
         fade_window = np.hstack(
             (
                 np.hanning(fade_len)[: fade_len // 2],
@@ -325,5 +404,9 @@ def beep(freq=440, fs=44100, seconds=0.1):
     notes = np.hstack([np.sin(f * t * 2 * np.pi) * fade_window for f in freq])
     audio = (notes * (2 ** 15 - 1) / np.max(np.abs(notes))).astype(np.int16)
 
-    simpleaudio.play_buffer(audio, 1, 2, fs)
-    time.sleep(len(freq) * seconds)
+    try:
+        play_obj = simpleaudio.play_buffer(audio, 1, 2, fs)  # noqa
+        # TODO play_obj.wait_done() blocks if there's an error
+        time.sleep(len(freq) * seconds)
+    except SimpleaudioError as e:
+        logger.error(f"Error playing sound: {e}")

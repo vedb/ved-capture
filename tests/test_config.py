@@ -27,12 +27,12 @@ class TestConfigParser:
 
         parser = ConfigParser()
         assert (
-            parser.config["commands"]["record"]["metadata"].get()[0]
-            == "location"
+            parser.config["commands"]["record"]["metadata"]["location"].get()
+            is None
         )
 
         # config name
-        os.environ[APPNAME.upper() + "DIR"] = config_dir
+        os.environ[APPNAME.upper() + "DIR"] = str(config_dir)
         parser = ConfigParser("config_minimal")
         assert (
             parser.config["streams"]["video"]["world"]["device_type"].get()
@@ -44,7 +44,9 @@ class TestConfigParser:
         import datetime
 
         folder = parser.get_folder("record", None)
-        assert folder == f"{config_dir}/out/{datetime.date.today():%Y-%m-%d}"
+        assert (
+            folder == config_dir / "out" / f"{datetime.date.today():%Y-%m-%d}"
+        )
 
     def test_get_policy(self, parser):
         """"""
@@ -62,7 +64,15 @@ class TestConfigParser:
         # user override
         assert not parser.get_show_video(False)
         # package default
-        assert ConfigParser().get_show_video()
+        assert not ConfigParser().get_show_video()
+
+    def test_get_recording_cam_params(self, parser):
+        """"""
+        # package default
+        assert ConfigParser().get_recording_cam_params() == (
+            ["world"],
+            ["world", "t265"],
+        )
 
     def test_get_metadata(self, parser, monkeypatch):
         """"""
@@ -110,15 +120,36 @@ class TestConfigParser:
         assert config_list[2].pipeline[0].process_type == "pupil_detector"
         assert config_list[2].pipeline[1].process_type == "video_display"
 
+    def test_get_validation_configs(self, parser):
+        """"""
+        config_list = parser.get_validation_configs()
+
+        assert config_list[0].stream_type == "video"
+        assert config_list[0].pipeline[0].process_type == "circle_detector"
+        assert config_list[0].pipeline[1].process_type == "validation"
+        assert config_list[0].pipeline[2].process_type == "gaze_mapper"
+        assert config_list[0].pipeline[3].process_type == "video_display"
+
+        assert config_list[1].stream_type == "video"
+        assert config_list[1].pipeline[0].process_type == "pupil_detector"
+        assert config_list[1].pipeline[1].process_type == "video_display"
+
+        assert config_list[2].stream_type == "video"
+        assert config_list[2].pipeline[0].process_type == "pupil_detector"
+        assert config_list[2].pipeline[1].process_type == "video_display"
+
     def test_get_cam_param_configs(self, parser):
         """"""
-        config_list = parser.get_cam_param_configs("world", "t265")
+        config_list = parser.get_cam_param_configs(
+            "world", "t265", extrinsics=True
+        )
 
         assert config_list[0].stream_type == "video"
         assert (
             config_list[0].pipeline[0].process_type == "circle_grid_detector"
         )
         assert config_list[0].pipeline[1].process_type == "cam_param_estimator"
+        assert config_list[0].pipeline[1].extrinsics
         assert config_list[0].pipeline[2].process_type == "video_display"
 
         assert config_list[1].device_type == "t265"

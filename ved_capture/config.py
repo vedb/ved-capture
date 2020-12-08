@@ -9,10 +9,18 @@ import csv
 import logging
 
 import yaml
-from confuse import Configuration, NotFoundError, ConfigTypeError
+from confuse import (
+    Configuration,
+    NotFoundError,
+    ConfigTypeError,
+    ConfigReadError,
+)
 import pupil_recording_interface as pri
 
 APPNAME = "vedc"
+
+# maximum width of video windows
+MAX_WIDTH = 1280
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +30,12 @@ class ConfigParser:
 
     def __init__(self, config_file=None):
         """ Constructor. """
-        self.config = Configuration(APPNAME, "ved_capture")
+        try:
+            self.config = Configuration(APPNAME, "ved_capture")
+        except ConfigReadError as e:
+            from ved_capture.cli.utils import raise_error
+
+            raise_error(str(e), logger)
 
         if config_file is not None:
             if str(config_file).endswith(".yaml"):
@@ -40,11 +53,15 @@ class ConfigParser:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        from ved_capture.cli.utils import raise_error
 
         if exc_type is not None:
+            from ved_capture.cli.utils import raise_error
+
+            logger.debug(exc_val, exc_info=True)
             raise_error(
-                f"Could not parse configuration: {exc_val}", logger,
+                f"Could not parse configuration ({exc_type.__name__}): "
+                f"{exc_val}",
+                logger,
             )
 
     def get_command_config(self, command, *subkeys):
@@ -57,7 +74,7 @@ class ConfigParser:
                 value = value[key]
         except KeyError:
             raise NotFoundError(
-                f"commands.{command}{'.'.join(subkeys)} not found"
+                f"commands.{command}.{'.'.join(subkeys)} not found"
             )
 
         return value
@@ -75,7 +92,7 @@ class ConfigParser:
         except KeyError:
             if len(subkeys):
                 raise NotFoundError(
-                    f"streams.{name}{'.'.join(subkeys)} not found"
+                    f"streams.{name}.{'.'.join(subkeys)} not found"
                 )
             else:
                 raise NotFoundError(f"Stream '{name}' is not defined")
@@ -104,14 +121,14 @@ class ConfigParser:
                         today=datetime.datetime.today(),
                         **metadata,
                     )
-                    return os.path.expanduser(folder)
+                    return Path(folder).expanduser()
                 except KeyError as e:
                     raise ValueError(
                         f"Format spec in commands.{command}.folder requires "
                         f"{e} to be defined in commands.{command}.metadata"
                     )
             else:
-                return os.getcwd()
+                return Path.cwd()
         except (NotFoundError, ConfigTypeError, KeyError):
             return os.getcwd()
 
@@ -123,6 +140,15 @@ class ConfigParser:
             )
         except (NotFoundError, ConfigTypeError):
             return "new_folder"
+
+    def get_duration(self, command, duration=None):
+        """ Get duration for command. """
+        try:
+            return duration or self.config["commands"][command][
+                "duration"
+            ].get(float)
+        except (NotFoundError, ConfigTypeError):
+            return None
 
     def get_show_video(self, show_video=None):
         """ Get show_video flag. """
@@ -136,6 +162,24 @@ class ConfigParser:
         else:
             return show_video
 
+    def get_recording_cam_params(self):
+        """ Get video streams for which to copy intrinsics and extrinsics. """
+        try:
+            intrinsics = self.config["commands"]["record"]["intrinsics"].get(
+                list
+            )
+        except (ConfigTypeError, NotFoundError):
+            intrinsics = []
+
+        try:
+            extrinsics = self.config["commands"]["record"]["extrinsics"].get(
+                list
+            )
+        except (ConfigTypeError, NotFoundError):
+            extrinsics = []
+
+        return intrinsics, extrinsics
+
     def get_metadata(self):
         """ Get recording metadata. """
         try:
@@ -147,7 +191,12 @@ class ConfigParser:
             return {field: input(f"{field}: ") for field in fields}
         if isinstance(fields, dict):
             return {
-                field: input(f"{field} [{default}]: ") or default
+                field: (
+                    input(f"{field} [{default}]: ")
+                    if default is not None
+                    else input(f"{field}: ")
+                )
+                or default
                 for field, default in fields.items()
             }
         else:
@@ -169,7 +218,9 @@ class ConfigParser:
         )
         if stream_type == "video":
             config["pipeline"].append(
-                pri.VideoDisplay.Config(paused=not self.get_show_video())
+                pri.VideoDisplay.Config(
+                    max_width=MAX_WIDTH, paused=not self.get_show_video()
+                )
             )
 
         return config
@@ -197,6 +248,53 @@ class ConfigParser:
 
         return configs
 
+    def _get_validation_pipeline(self, config, cam_type):
+        """ Get validation pipelinqe for stream config. """
+        if "pipeline" not in config:
+            config["pipeline"] = []
+
+        if cam_type == "world":
+            config["pipeline"].append(
+                pri.CircleDetector.Config(
+                    scale=0.5,
+                    paused=False,
+                    detection_method="vedb",
+                    marker_size=(5, 300),
+                    threshold_window_size=13,
+                    min_area=200,
+                    max_area=4000,
+                    circularity=0.8,
+                    convexity=0.7,
+                    inertia=0.4,
+                )
+            )
+            config["pipeline"].append(pri.Validation.Config(save=True))
+            config["pipeline"].append(pri.GazeMapper.Config())
+            config["pipeline"].append(
+                pri.VideoDisplay.Config(max_width=MAX_WIDTH)
+            )
+        elif cam_type == "eye0":
+            config["pipeline"].append(pri.PupilDetector.Config())
+            config["pipeline"].append(pri.VideoDisplay.Config(flip=True))
+        elif cam_type == "eye1":
+            config["pipeline"].append(pri.PupilDetector.Config())
+            config["pipeline"].append(pri.VideoDisplay.Config())
+
+        return config
+
+    def get_validation_configs(self):
+        """ Get list of configurations for validation. """
+        configs = []
+
+        for cam_type in ("world", "eye0", "eye1"):
+            name = self.get_command_config("validate", cam_type)
+            config = self.get_stream_config("video", name)
+            config["resolution"] = literal_eval(config["resolution"])
+            config = self._get_validation_pipeline(config or {}, cam_type)
+            configs.append(pri.VideoStream.Config(name=name, **config))
+
+        return configs
+
     def _get_calibration_pipeline(self, config, cam_type):
         """ Get calibration pipeline for stream config. """
         if "pipeline" not in config:
@@ -207,20 +305,14 @@ class ConfigParser:
             config["pipeline"].append(pri.Calibration.Config(save=True))
             config["pipeline"].append(pri.GazeMapper.Config())
             config["pipeline"].append(
-                pri.VideoDisplay.Config(
-                    overlay_circle_marker=True, overlay_gaze=True
-                )
+                pri.VideoDisplay.Config(max_width=MAX_WIDTH)
             )
         elif cam_type == "eye0":
             config["pipeline"].append(pri.PupilDetector.Config())
-            config["pipeline"].append(
-                pri.VideoDisplay.Config(overlay_pupil=True, flip=True)
-            )
+            config["pipeline"].append(pri.VideoDisplay.Config(flip=True))
         elif cam_type == "eye1":
             config["pipeline"].append(pri.PupilDetector.Config())
-            config["pipeline"].append(
-                pri.VideoDisplay.Config(overlay_pupil=True)
-            )
+            config["pipeline"].append(pri.VideoDisplay.Config())
 
         return config
 
@@ -245,14 +337,14 @@ class ConfigParser:
             config["pipeline"] = []
 
         try:
-            command_config = self.get_command_config(
-                "estimate_cam_params", "streams", name
-            )
-        except KeyError:
-            command_config = None
+            command_config = self.config["commands"]["estimate_cam_params"][
+                "streams"
+            ][name].get(dict)
+        except (ConfigTypeError, NotFoundError):
+            command_config = {}
 
         config["pipeline"].append(
-            pri.CircleGridDetector.Config(**(command_config or {}))
+            pri.CircleGridDetector.Config(**command_config)
         )
         if master:
             # first stream gets cam param estimator
@@ -261,9 +353,7 @@ class ConfigParser:
                     streams=streams, extrinsics=extrinsics
                 )
             )
-        config["pipeline"].append(
-            pri.VideoDisplay.Config(overlay_circle_grid=True)
-        )
+        config["pipeline"].append(pri.VideoDisplay.Config(max_width=MAX_WIDTH))
 
         return config
 
@@ -320,5 +410,5 @@ def save_config(folder, config, name="config"):
         return yaml.dump(data, stream, OrderedDumper, **kwds)
 
     # save to recording folder
-    with open(os.path.join(folder, f"{name}.yaml"), "w") as f:
+    with open(Path(folder) / f"{name}.yaml", "w") as f:
         ordered_dump(OrderedDict(config), f)

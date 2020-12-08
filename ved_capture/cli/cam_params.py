@@ -3,14 +3,14 @@ import inspect
 import click
 import pupil_recording_interface as pri
 
+from ved_capture.cli.commands import (
+    acquire_pattern,
+    show_video_streams,
+    hide_video_streams,
+)
 from ved_capture.cli.ui import TerminalUI
 from ved_capture.cli.utils import raise_error
 from ved_capture.config import ConfigParser
-
-
-def acquire_pattern(manager):
-    """ Acquire a new calibration pattern. """
-    manager.send_notification({"acquire_pattern": True})
 
 
 @click.command("estimate_cam_params")
@@ -19,9 +19,9 @@ def acquire_pattern(manager):
     "-c",
     "--config-file",
     default=None,
-    help="Path or name of config file. If the arguments ends with '.yaml', it "
+    help="Path or name of config file. If the argument ends with '.yaml', it "
     "is assumed to be a path. Otherwise, it will look for a file called "
-    "'<CONFIG_FILE>.yaml in the app config folder.'",
+    "'<CONFIG_FILE>.yaml' in the app config folder.",
 )
 @click.option(
     "-e",
@@ -54,6 +54,13 @@ def estimate_cam_params(streams, config_file, extrinsics, verbose):
     ui.attach(manager, statusmap={"fps": "{:.2f} Hz"})
 
     # add keyboard commands
+    ui.add_key("s", "show streams", show_video_streams)
+    ui.add_key(
+        "h",
+        "hide all streams",
+        hide_video_streams,
+        msg="Hiding all video streams",
+    )
     ui.add_key("i", "acquire pattern", acquire_pattern)
 
     # spin

@@ -14,6 +14,7 @@ For a list of additional options run:
 Copyright 2020 Peter Hausamann / The Visual Experience Database
 """
 import os
+import sys
 from pathlib import Path
 import time
 import subprocess
@@ -27,7 +28,7 @@ from distutils.version import LooseVersion
 import re
 
 
-__installer_version = "1.3.4"
+__installer_version = "1.4.3"
 __maintainer_email = "peter.hausamann@tum.de"
 
 # -- LOGGING -- #
@@ -107,36 +108,44 @@ def show_header(header, message=None, delay=1):
 # -- COMMAND RUNNERS -- #
 def abort(exit_code=1):
     """"""
-    exit(exit_code)
+    sys.exit(exit_code)
 
 
 def log_as_warning_or_debug(data):
     """"""
     _suppress_if_startswith = (
-        b"[sudo] ",
-        b'Please run using "bash" or "sh"',
-        b"==> WARNING: A newer version of conda exists. <==",
+        "[sudo] ",
+        'Please run using "bash" or "sh"',
+        "==> WARNING: A newer version of conda exists. <==",
     )
 
-    _suppress_if_endswith = (b"is not a symbolic link",)
+    _suppress_if_endswith = ("is not a symbolic link",)
 
-    _suppress_if_contains = (b"Extracting : ",)
+    _suppress_if_contains = ("Extracting : ",)
 
-    data = data.strip(b"\n")
+    try:
+        data = data.strip(b"\n").decode("utf-8")
+    except UnicodeDecodeError:
+        logger.debug("!!Error decoding process output!!")
+        return
 
     if (
         data.startswith(_suppress_if_startswith)
         or data.endswith(_suppress_if_endswith)
         or any(data.find(s) for s in _suppress_if_contains)
     ):
-        logger.debug(data.decode("utf-8"))
+        logger.debug(data)
     else:
-        logger.warning(data.decode("utf-8"))
+        logger.warning(data)
 
 
 def log_as_debug(data):
     """"""
-    logger.debug(data.rstrip(b"\n").decode("utf-8"))
+    try:
+        data = data.rstrip(b"\n").decode("utf-8")
+        logger.debug(data)
+    except UnicodeDecodeError:
+        logger.debug("!!Error decoding process output!!")
 
 
 def handle_process(process, command, error_msg, n_bytes=4096):
@@ -344,13 +353,13 @@ def update_repo(repo_folder, branch):
 
 def clone_repo(base_folder, repo_folder, repo_url, branch=None):
     """"""
-    os.makedirs(base_folder, exist_ok=True)
+    base_folder.mkdir(parents=True, exist_ok=True)
     error_msg = "Could not clone the repository. Did you set up the SSH key?"
     run_command(["git", "clone", repo_url, repo_folder], error_msg=error_msg)
     update_repo(repo_folder, branch)
 
 
-def verify_latest_version(vedc_repo_folder):
+def verify_latest_version(vedc_repo_folder, cl_args):
     """"""
     repo_script = vedc_repo_folder / "installer" / "install_ved_capture.py"
 
@@ -366,8 +375,10 @@ def verify_latest_version(vedc_repo_folder):
         show_header("ERROR")
         logger.error(
             f"You are using an outdated version of the installer script. "
-            f"Please run:\n\n"
-            f"python3 {repo_script}"
+            f"Instead of this script, please run:\n\n"
+            f"python3 {repo_script} {' '.join(cl_args[1:])}\n\n"
+            f"To force running the current script, run:\n\n"
+            f"python3 {' '.join(cl_args)} --no_version_check"
         )
         abort()
 
@@ -527,7 +538,7 @@ def write_paths(
         paths["pri_path"] = str(Path(args.pri_path).expanduser().resolve())
 
     config_folder = Path(config_folder).expanduser()
-    os.makedirs(config_folder, exist_ok=True)
+    config_folder.mkdir(parents=True, exist_ok=True)
     json_file = config_folder / "paths.json"
     logger.debug(f"Writing paths to {json_file}")
 
@@ -690,7 +701,7 @@ if __name__ == "__main__":
 
     # Check script version
     if not args.no_version_check:
-        verify_latest_version(vedc_repo_folder)
+        verify_latest_version(vedc_repo_folder, sys.argv)
 
     # Install miniconda if necessary
     if not conda_binary.exists():
@@ -765,6 +776,12 @@ if __name__ == "__main__":
         config_folder,
         args.pri_path,
     )
+
+    # symlink config folder
+    if not args.local:
+        symlink = base_folder / "config"
+        if not symlink.exists():
+            symlink.symlink_to(config_folder, target_is_directory=True)
 
     # Check installation
     show_header("Checking installation")

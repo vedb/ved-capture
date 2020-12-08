@@ -30,26 +30,18 @@ to generate recording configurations, make recordings, update the app and more.
 
 Plug in your hardware (Pupil core system, RealSense T265, FLIR camera) and run:
 
-    $ vedc generate_config
+    $ vedc auto_config
     
-This will check your connected devices and ask you several questions. At
-the end it will create a config file `~/.config/vedc/config.yaml` that will
-work for your current setup.
+This will check your connected devices and auto-generate a configuration for 
+your current setup.
 
 ### Streaming video
 
-To show one or more configured video streams, run:
+To show all camera streams, run:
 
-    $ vedc show <stream1> <stream2> ...
+    $ vedc show world eye0 eye1 t265
 
 ### Other commands
 
 Check out the [wiki](https://github.com/vedb/ved-capture/wiki) for a 
 comprehensive list of available commands.
-
-## Getting help
-
-Contact one of the developers (Peter or Kamran) for assistance. You can export
-the application logs with:
-
-    $ vedc save_logs

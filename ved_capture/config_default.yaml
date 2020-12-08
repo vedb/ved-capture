@@ -30,20 +30,32 @@ commands:
       odometry: null
       accel: null
       gyro: null
-    show_video: true
+    show_video: false
     metadata:
-      - location
-      - experimenter
-      - experiment
-      - scene
-      - task
-      - subject_id
-      - age
-      - gender
-      - ethnicity
+      location: null
+      experimenter: null
+      experiment: null
+      scene: null
+      task: null
+      subject_id: null
+      age: null
+      gender: null
+      ethnicity: null
+    intrinsics:
+      - world
+    extrinsics:
+      - world
+      - t265
 
   calibrate:
     folder: ~/pupil_capture_settings
+    world: world
+    eye0: eye0
+    eye1: eye1
+
+  validate:
+    folder: ~/validations/{today:%Y_%m_%d_%H_%M_%S}
+    policy: here
     world: world
     eye0: eye0
     eye1: eye1
@@ -53,6 +65,9 @@ commands:
     streams:
       t265:
         stereo: True
+        scale: 0.75
+      world:
+        scale: 0.5
 
 streams:
   video:
@@ -71,12 +86,34 @@ streams:
       device_type: uvc
       device_uid: Pupil Cam2 ID0
       color_format: gray
+      exposure_mode: auto
+      controls:
+        Backlight Compensation: 1
+        Brightness: 0
+        Contrast: 70
+        Gain: 0
+        Hue: 0
+        Saturation: 0
+        Sharpness: 1
+        Gamma: 200
+        White Balance temperature: 4600
     eye1:
       resolution: (192, 192)
       fps: 200
       device_type: uvc
       device_uid: Pupil Cam2 ID1
       color_format: gray
+      exposure_mode: auto
+      controls:
+        Backlight Compensation: 1
+        Brightness: 0
+        Contrast: 70
+        Gain: 0
+        Hue: 0
+        Saturation: 0
+        Sharpness: 1
+        Gamma: 200
+        White Balance temperature: 4600
     t265:
       resolution: (1696, 800)
       fps: 30

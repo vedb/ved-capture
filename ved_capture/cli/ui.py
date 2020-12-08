@@ -1,5 +1,6 @@
 """"""
 import io
+import re
 
 from blessed import Terminal
 import multiprocessing_logging
@@ -55,7 +56,22 @@ def refresh(t, log_buffer, status_buffer, timeout=0.1, num_empty_lines=1):
             print("\n" * (desired_offset - 2))
 
         first_status_line = t.height - num_status_lines
-        print(t.move_y(first_status_line) + t.clear_eos + status_buffer)
+        if not hasattr(refresh, "last_num_status_lines"):
+            # last_num_status_lines persists across calls and stores number of
+            # status lines from the previous call
+            refresh.last_num_status_lines = num_status_lines
+
+        status_line_diff = refresh.last_num_status_lines - num_status_lines
+        refresh.last_num_status_lines = num_status_lines
+        if status_line_diff > 0:
+            print(
+                t.move_y(first_status_line - status_line_diff)
+                + t.clear_eos
+                + "\n" * status_line_diff
+                + status_buffer
+            )
+        else:
+            print(t.move_y(first_status_line) + t.clear_eos + status_buffer)
     else:
         print(t.clear_eos + t.move_up)
 
@@ -107,6 +123,7 @@ class TerminalUI:
         self.manager = None
         self.statusmap = {}
         self.keymap = {}
+        self.fixed_status = None
 
         self._disconnect_map = {}
 
@@ -115,13 +132,15 @@ class TerminalUI:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        refresh(self.term, flush_log_buffer(self.f_stdout), None)
         multiprocessing_logging.uninstall_mp_handler()
         if exc_type:
+            self.logger.debug(exc_val, exc_info=True)
+            refresh(self.term, flush_log_buffer(self.f_stdout), None)
             raise_error(
                 self.term.red2(self.term.bold(str(exc_val))), self.logger
             )
         else:
+            refresh(self.term, flush_log_buffer(self.f_stdout), None)
             print(self.term.bold(self.term.firebrick("Stopped")))
 
     def _replace_key(self, key, desc, call_fn, new_key=None, new_desc=None):
@@ -159,10 +178,9 @@ class TerminalUI:
 
         fn : callable
             Method to be called when pressing the key. The first argument
-            passed to this function is the StreamManager attached to this
-            TerminalUI instance (i.e. ``self.manager``). Additional arguments
-            can be passed via the `args` parameter of this function. Example:
-            ``lambda m: m.send_notification(...)``.
+            passed to this function is the TerminalUI instance (i.e. ``self``).
+            Additional arguments can be passed via the `args` parameter of this
+            function, e.g.: ``lambda ui: ui.manager.send_notification(...)``.
 
         args : tuple, optional
             Additional arguments to be passed to `fn`.
@@ -197,7 +215,7 @@ class TerminalUI:
         """
 
         def call_fn():
-            fn(self.manager, *args)
+            fn(self, *args)
             if msg:
                 self.logger.info(msg)
             if alt_fn:
@@ -206,7 +224,7 @@ class TerminalUI:
                 )
 
         def call_alt_fn():
-            alt_fn(self.manager, *(alt_args or args))
+            alt_fn(self, *(alt_args or args))
             if alt_msg or msg:
                 self.logger.info(alt_msg or msg)
             self._replace_key(
@@ -264,21 +282,52 @@ class TerminalUI:
         """ Wrap long lines. """
         return "\n".join(self.term.wrap(line, subsequent_indent=" "))
 
+    def _format_status(self, val, fmt):
+        """ Format stream statuses. """
+        status = self.manager.format_status(val, format=fmt)
+        if status is not None:
+            if val == "fps":
+                # TODO hacky coloring of fps
+                for name, stream in self.manager.streams.items():
+                    if hasattr(stream.device, "fps"):
+                        pattern = re.compile(
+                            f"{name}: "
+                            + re.sub(r"{.*:.*}", r"([0-9]*\.?[0-9]*)", fmt)
+                        )
+                        fps_search = re.search(pattern, status)
+                        if fps_search:
+                            fps = float(fps_search.group(1))
+                            ratio = fps / stream.device.fps
+                            if ratio >= 0.95:
+                                color = self.term.green
+                            elif ratio >= 0.8:
+                                color = self.term.goldenrod
+                            else:
+                                color = self.term.red2
+                            status = status.replace(
+                                f"{name}: {fmt.format(fps)}",
+                                f"{name}: {color(fmt.format(fps))}",
+                            )
+
+            status = self._wrap(
+                self.term.bold(
+                    status.replace("no data", self.term.red2("no data"))
+                )
+            )
+
+        return status
+
     def _get_status_str(self):
         """ Get status and key mappings. """
-        status_list = [
-            self.manager.format_status(val, format=fmt)
-            for val, fmt in self.statusmap.items()
-        ]
-
-        # format stream statuses
-        status_str = "\n".join(
-            self._wrap(
-                self.term.bold(s.replace("no data", self.term.red2("no data")))
-            )
-            for s in status_list
-            if s is not None
-        )
+        if self.fixed_status is None:
+            # format stream statuses
+            status_list = [
+                self._format_status(val, fmt)
+                for val, fmt in self.statusmap.items()
+            ]
+            status_str = "\n".join(s for s in status_list if s is not None)
+        else:
+            status_str = self._wrap(self.term.bold(self.fixed_status))
 
         # format keymap
         keymap_str = " - ".join(
@@ -323,6 +372,14 @@ class TerminalUI:
             self._check_for_disconnect()
             log_buffer = flush_log_buffer(self.f_stdout)
             status_str = self._get_status_str()
+
+            # get keypresses from manager
+            if self.manager.keypresses._getvalue():
+                key = self.manager.keypresses.popleft()
+                if key in self.keymap:
+                    self.keymap[key][1]()
+
+            # get keypresses from terminal
             with self.term.hidden_cursor():
                 key = refresh(self.term, log_buffer, status_str)
                 if key in self.keymap:
