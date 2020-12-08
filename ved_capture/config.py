@@ -188,17 +188,26 @@ class ConfigParser:
             return {}
 
         if isinstance(fields, list):
-            return {field: input(f"{field}: ") for field in fields}
+            print("Please enter the following metadata:")
+            metadata = {field: input(f"- {field}: ") for field in fields}
+            print("")
+            return metadata
         if isinstance(fields, dict):
-            return {
+            print(
+                "Please enter the following metadata (press Enter to accept "
+                "default values in square brackets):"
+            )
+            metadata = {
                 field: (
-                    input(f"{field} [{default}]: ")
+                    input(f"- {field} [{default}]: ")
                     if default is not None
-                    else input(f"{field}: ")
+                    else input(f"- {field}: ")
                 )
                 or default
                 for field, default in fields.items()
             }
+            print("")
+            return metadata
         else:
             return {}
 
