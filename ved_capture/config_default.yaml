@@ -81,8 +81,8 @@ streams:
         ExposureAuto: Continuous
         GainAuto: Continuous
     eye0:
-      resolution: (192, 192)
-      fps: 200
+      resolution: (400, 400)
+      fps: 120
       device_type: uvc
       device_uid: Pupil Cam2 ID0
       color_format: gray
@@ -98,8 +98,8 @@ streams:
         Gamma: 200
         White Balance temperature: 4600
     eye1:
-      resolution: (192, 192)
-      fps: 200
+      resolution: (400, 400)
+      fps: 120
       device_type: uvc
       device_uid: Pupil Cam2 ID1
       color_format: gray
