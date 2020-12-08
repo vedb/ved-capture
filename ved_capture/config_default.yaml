@@ -86,12 +86,34 @@ streams:
       device_type: uvc
       device_uid: Pupil Cam2 ID0
       color_format: gray
+      exposure_mode: auto
+      controls:
+        Backlight Compensation: 1
+        Brightness: 0
+        Contrast: 70
+        Gain: 0
+        Hue: 0
+        Saturation: 0
+        Sharpness: 1
+        Gamma: 200
+        White Balance temperature: 4600
     eye1:
       resolution: (192, 192)
       fps: 200
       device_type: uvc
       device_uid: Pupil Cam2 ID1
       color_format: gray
+      exposure_mode: auto
+      controls:
+        Backlight Compensation: 1
+        Brightness: 0
+        Contrast: 70
+        Gain: 0
+        Hue: 0
+        Saturation: 0
+        Sharpness: 1
+        Gamma: 200
+        White Balance temperature: 4600
     t265:
       resolution: (1696, 800)
       fps: 30
