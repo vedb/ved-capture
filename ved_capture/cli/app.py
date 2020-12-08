@@ -1,5 +1,6 @@
 import importlib
 import inspect
+import sys
 import traceback
 import tarfile
 from pathlib import Path
@@ -61,9 +62,14 @@ def update(verbose, local, branch, stash, pri_branch, pri_path):
     if not local:
         logger.info(f"Updating {paths['vedc_repo_folder']}")
         try:
-            update_repo(paths["vedc_repo_folder"], branch, stash)
+            was_updated = update_repo(paths["vedc_repo_folder"], branch, stash)
         except GitError as e:
             raise_error(f"Repository update failed. Reason: {str(e)}", logger)
+
+    # check if repo was updated
+    if not local and not was_updated:
+        logger.warning("No new updates!")
+        sys.exit(0)
 
     # update environment
     logger.info("Updating environment.\nThis will take a couple of minutes. ☕")
