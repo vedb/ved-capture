@@ -2,8 +2,8 @@ version: 1.0.0
 
 commands:
   record:
-    folder: ~/recordings/{today:%Y_%m_%d}
-    policy: new_folder
+    folder: ~/recordings/{today:%Y_%m_%d_%H_%M_%S}
+    policy: here
     duration: null
     video:
       world:
@@ -32,15 +32,22 @@ commands:
       gyro: null
     show_video: false
     metadata:
-      location: null
-      experimenter: null
+      # experimenter
+      study_site: null
+      experimenter_id: null
+      # experiment
       experiment: null
+      lighting: null
       scene: null
-      task: null
+      instruction: null
+      # subject
       subject_id: null
       age: null
       gender: null
+      height: null
       ethnicity: null
+      IPD: null
+      tilt_angle: null
     intrinsics:
       - world
     extrinsics:
@@ -72,19 +79,19 @@ commands:
 streams:
   video:
     world:
-      resolution: (2048, 1536)
-      fps: 30
       device_type: flir
       device_uid: null
+      resolution: (2048, 1536)
+      fps: 30
       color_format: bayer_rggb8
       settings:
         ExposureAuto: Continuous
         GainAuto: Continuous
     eye0:
-      resolution: (400, 400)
-      fps: 120
       device_type: uvc
       device_uid: Pupil Cam2 ID0
+      resolution: (400, 400)
+      fps: 120
       color_format: gray
       exposure_mode: auto
       controls:
@@ -98,10 +105,10 @@ streams:
         Gamma: 200
         White Balance temperature: 4600
     eye1:
-      resolution: (400, 400)
-      fps: 120
       device_type: uvc
       device_uid: Pupil Cam2 ID1
+      resolution: (400, 400)
+      fps: 120
       color_format: gray
       exposure_mode: auto
       controls:
@@ -115,10 +122,10 @@ streams:
         Gamma: 200
         White Balance temperature: 4600
     t265:
-      resolution: (1696, 800)
-      fps: 30
       device_type: t265
       device_uid: null
+      resolution: (1696, 800)
+      fps: 30
       color_format: gray
   motion:
     odometry:

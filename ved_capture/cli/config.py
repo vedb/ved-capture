@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 import click
-import yaml
+import oyaml as yaml
 
 from ved_capture.cli.utils import (
     init_logger,
@@ -37,9 +37,15 @@ from ved_capture.utils import (
     "be called 'config.yaml'.",
 )
 @click.option(
+    "--test_folder",
+    default=None,
+    help="Recording folder for development testing. Data in this folder will "
+    "be overwritten by new recordings. DO NOT SET FOR ACTUAL RECORDINGS!",
+)
+@click.option(
     "-v", "--verbose", default=False, help="Verbose output.", count=True,
 )
-def generate_config(folder, name, verbose):
+def generate_config(folder, name, test_folder, verbose):
     """ Generate configuration. """
     logger = init_logger(inspect.stack()[0][3], verbosity=verbose)
 
@@ -65,6 +71,11 @@ def generate_config(folder, name, verbose):
     # get default config
     with open(Path(__file__).parents[1] / "config_default.yaml") as f:
         config = yaml.safe_load(f)
+
+    # set test folder if specified
+    if test_folder is not None:
+        config["commands"]["record"]["folder"] = test_folder
+        config["commands"]["record"]["policy"] = "overwrite"
 
     config["commands"]["record"]["video"] = {}
     config["commands"]["record"]["motion"] = {}
@@ -105,9 +116,15 @@ def generate_config(folder, name, verbose):
 
 @click.command("auto_config")
 @click.option(
+    "--test_folder",
+    default=None,
+    help="Recording folder for development testing. Data in this folder will "
+    "be overwritten by new recordings. DO NOT SET FOR ACTUAL RECORDINGS!",
+)
+@click.option(
     "-v", "--verbose", default=False, help="Verbose output.", count=True,
 )
-def auto_config(verbose):
+def auto_config(verbose, test_folder):
     """ Auto-generate configuration. """
     logger = init_logger(inspect.stack()[0][3], verbosity=verbose)
 
@@ -126,17 +143,21 @@ def auto_config(verbose):
             logger.info(f"Did not overwrite {filepath}")
             sys.exit(0)
 
-    # get version from config_default
+    # get default config
     with open(Path(__file__).parents[1] / "config_default.yaml") as f:
         config = yaml.safe_load(f)
 
+    # set test folder if specified
+    if test_folder is not None:
+        config["commands"]["record"]["folder"] = test_folder
+        config["commands"]["record"]["policy"] = "overwrite"
+
     # get default metadata
-    # TODO revisit prompts
-    config["commands"]["record"]["metadata"]["location"] = input(
-        "Please enter the location (UNR, NDSU, Bates, ...): "
+    config["commands"]["record"]["metadata"]["study_site"] = input(
+        "Please enter the study site (UNR, NDSU, Bates, ...): "
     )
-    config["commands"]["record"]["metadata"]["experimenter"] = input(
-        "Please enter the name of the experimenter: "
+    config["commands"]["record"]["metadata"]["experimenter_id"] = input(
+        "Please enter the ID of the experimenter: "
     )
 
     # get connected devices
@@ -167,16 +188,23 @@ def auto_config(verbose):
     logger.info("Updating config...")
 
     if "Cam1" in list(pupil_devices.keys())[0]:
-        logger.warning("Detected first generation Pupil Core headset")
-        # change resolution and fps for first gen pupil headset
+        logger.warning(
+            "Detected first generation Pupil Core headset, "
+            "adapting settings accordingly"
+        )
         config["streams"]["video"]["eye0"]["device_uid"] = "Pupil Cam1 ID0"
         config["streams"]["video"]["eye0"]["resolution"] = "(320, 240)"
         config["streams"]["video"]["eye0"]["fps"] = 120
+        config["streams"]["video"]["eye0"]["controls"]["Contrast"] = 32
         config["streams"]["video"]["eye1"]["device_uid"] = "Pupil Cam1 ID1"
         config["streams"]["video"]["eye1"]["resolution"] = "(320, 240)"
         config["streams"]["video"]["eye1"]["fps"] = 120
+        config["streams"]["video"]["eye1"]["controls"]["Contrast"] = 32
     elif "Cam3" in list(pupil_devices.keys())[0]:
-        logger.warning("Detected third generation Pupil Core headset")
+        logger.warning(
+            "Detected third generation Pupil Core headset, "
+            "adapting settings accordingly"
+        )
         config["streams"]["video"]["eye0"]["device_uid"] = "Pupil Cam3 ID0"
         config["streams"]["video"]["eye1"]["device_uid"] = "Pupil Cam3 ID1"
 
