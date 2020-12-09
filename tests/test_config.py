@@ -27,7 +27,7 @@ class TestConfigParser:
 
         parser = ConfigParser()
         assert (
-            parser.config["commands"]["record"]["metadata"]["location"].get()
+            parser.config["commands"]["record"]["metadata"]["study_site"].get()
             is None
         )
 
@@ -53,9 +53,9 @@ class TestConfigParser:
         # test config file
         assert parser.get_policy("record") == "overwrite"
         # user override
-        assert parser.get_policy("record", "here") == "here"
+        assert parser.get_policy("record", "new_folder") == "new_folder"
         # package default
-        assert ConfigParser().get_policy("record") == "new_folder"
+        assert ConfigParser().get_policy("record") == "here"
 
     def test_get_show_video(self, parser):
         """"""
