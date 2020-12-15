@@ -43,9 +43,15 @@ from ved_capture.utils import (
     "be overwritten by new recordings. DO NOT SET FOR ACTUAL RECORDINGS!",
 )
 @click.option(
+    "--no_metadata",
+    default=False,
+    is_flag=True,
+    help="Set this flag to skip setting up the default metadata.",
+)
+@click.option(
     "-v", "--verbose", default=False, help="Verbose output.", count=True,
 )
-def generate_config(folder, name, test_folder, verbose):
+def generate_config(folder, name, test_folder, no_metadata, verbose):
     """ Generate configuration. """
     logger = init_logger(inspect.stack()[0][3], verbosity=verbose)
 
@@ -72,14 +78,21 @@ def generate_config(folder, name, test_folder, verbose):
     with open(Path(__file__).parents[1] / "config_default.yaml") as f:
         config = yaml.safe_load(f)
 
-    # set test folder if specified
+    # overwrite record config
+    config["commands"]["record"]["video"] = {}
+    config["commands"]["record"]["motion"] = {}
     if test_folder is not None:
         config["commands"]["record"]["folder"] = test_folder
         config["commands"]["record"]["policy"] = "overwrite"
+    if no_metadata:
+        config["commands"]["record"]["metadata"] = None
 
-    config["commands"]["record"]["video"] = {}
-    config["commands"]["record"]["motion"] = {}
-    config["commands"]["record"]["metadata"] = None
+    # overwrite estimate_cam_param config
+    config["commands"]["estimate_cam_params"]["streams"] = {}
+
+    # TODO overwrite calibrate, validate with configured streams
+
+    # overwrite streams
     config["streams"] = {"video": {}, "motion": {}}
 
     # get connected devices
@@ -105,8 +118,6 @@ def generate_config(folder, name, test_folder, verbose):
     for serial in flir_devices:
         config = get_flir_config(config, serial)
 
-    # TODO overwrite calibrate, validate with configured streams
-
     # write config
     if len(config["streams"]["video"]) + len(config["streams"]["motion"]) == 0:
         raise_error("No devices selected!", logger)
@@ -122,9 +133,15 @@ def generate_config(folder, name, test_folder, verbose):
     "be overwritten by new recordings. DO NOT SET FOR ACTUAL RECORDINGS!",
 )
 @click.option(
+    "--no_metadata",
+    default=False,
+    is_flag=True,
+    help="Set this flag to skip setting up the default metadata.",
+)
+@click.option(
     "-v", "--verbose", default=False, help="Verbose output.", count=True,
 )
-def auto_config(verbose, test_folder):
+def auto_config(verbose, test_folder, no_metadata):
     """ Auto-generate configuration. """
     logger = init_logger(inspect.stack()[0][3], verbosity=verbose)
 
@@ -153,12 +170,15 @@ def auto_config(verbose, test_folder):
         config["commands"]["record"]["policy"] = "overwrite"
 
     # get default metadata
-    config["commands"]["record"]["metadata"]["study_site"] = input(
-        "Please enter the study site (UNR, NDSU, Bates, ...): "
-    )
-    config["commands"]["record"]["metadata"]["experimenter_id"] = input(
-        "Please enter the ID of the experimenter: "
-    )
+    if no_metadata:
+        config["commands"]["record"]["metadata"] = None
+    else:
+        config["commands"]["record"]["metadata"]["study_site"] = input(
+            "Please enter the study site (UNR, NDSU, Bates, ...): "
+        )
+        config["commands"]["record"]["metadata"]["experimenter_id"] = input(
+            "Please enter the ID of the experimenter: "
+        )
 
     # get connected devices
     logger.info("Checking connected devices...")
@@ -234,8 +254,8 @@ def auto_config(verbose, test_folder):
     "-n",
     "--name",
     default="config",
-    help="Name of the config file. Defaults to 'config', i.e. the file will "
-    "be called 'config.yaml'.",
+    help="Name of the config file. Defaults to 'config', i.e. the file is "
+    "called 'config.yaml'.",
 )
 @click.option(
     "-e",

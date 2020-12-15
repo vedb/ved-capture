@@ -126,6 +126,7 @@ class TestConfigParser:
 
         assert config_list[0].stream_type == "video"
         assert config_list[0].pipeline[0].process_type == "circle_detector"
+        assert config_list[0].pipeline[0].min_area == 200
         assert config_list[0].pipeline[1].process_type == "validation"
         assert config_list[0].pipeline[2].process_type == "gaze_mapper"
         assert config_list[0].pipeline[3].process_type == "video_display"

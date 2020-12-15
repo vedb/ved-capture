@@ -263,19 +263,15 @@ class ConfigParser:
             config["pipeline"] = []
 
         if cam_type == "world":
-            config["pipeline"].append(
-                pri.CircleDetector.Config(
-                    scale=0.5,
-                    paused=False,
-                    detection_method="vedb",
-                    marker_size=(5, 300),
-                    threshold_window_size=13,
-                    min_area=200,
-                    max_area=4000,
-                    circularity=0.8,
-                    convexity=0.7,
-                    inertia=0.4,
+            try:
+                circle_detector_params = self.get_command_config(
+                    "validate", "settings", "circle_detector"
                 )
+            except NotFoundError:
+                circle_detector_params = {}
+
+            config["pipeline"].append(
+                pri.CircleDetector.Config(**circle_detector_params)
             )
             config["pipeline"].append(pri.Validation.Config(save=True))
             config["pipeline"].append(pri.GazeMapper.Config())

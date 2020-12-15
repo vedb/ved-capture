@@ -66,6 +66,20 @@ commands:
     world: world
     eye0: eye0
     eye1: eye1
+    settings:
+      circle_detector:
+        scale: 0.5
+        paused: true
+        detection_method: vedb
+        marker_size:
+          - 5
+          - 300
+        threshold_window_size: 13
+        min_area: 200
+        max_area: 4000
+        circularity: 0.8
+        convexity: 0.7
+        inertia: 0.4
 
   estimate_cam_params:
     folder: ~/pupil_capture_settings
@@ -97,7 +111,7 @@ streams:
       controls:
         Backlight Compensation: 1
         Brightness: 0
-        Contrast: 70
+        Contrast: 55
         Gain: 0
         Hue: 0
         Saturation: 0
@@ -114,7 +128,7 @@ streams:
       controls:
         Backlight Compensation: 1
         Brightness: 0
-        Contrast: 70
+        Contrast: 55
         Gain: 0
         Hue: 0
         Saturation: 0

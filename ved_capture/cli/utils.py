@@ -235,7 +235,8 @@ def get_realsense_config(
         }
         record_prompt(config, "video", stream_name)
         config["commands"]["estimate_cam_params"]["streams"][stream_name] = {
-            "stereo": True
+            "stereo": True,
+            "scale": 0.75,
         }
 
     # motion
@@ -274,8 +275,8 @@ def get_flir_config(
             },
         }
         record_prompt(config, "video", stream_name)
-        config["commands"]["estimate_cam_params"]["streams"][
-            stream_name
-        ] = None
+        config["commands"]["estimate_cam_params"]["streams"][stream_name] = {
+            "scale": 0.5
+        }
 
     return config
