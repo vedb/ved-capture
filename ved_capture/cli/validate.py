@@ -26,7 +26,7 @@ from ved_capture.config import ConfigParser
     "-v", "--verbose", default=False, help="Verbose output.", count=True,
 )
 def validate(config_file, verbose):
-    """ Calibrate gaze mapping. """
+    """ Validate gaze mapping. """
     ui = TerminalUI(inspect.stack()[0][3], verbosity=verbose)
 
     # parse config
