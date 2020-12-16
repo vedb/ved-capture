@@ -2,8 +2,8 @@ version: 1.0.0
 
 commands:
   record:
-    folder: ~/recordings/{today:%Y_%m_%d}
-    policy: new_folder
+    folder: ~/recordings/{today:%Y_%m_%d_%H_%M_%S}
+    policy: here
     duration: null
     video:
       world:
@@ -32,15 +32,22 @@ commands:
       gyro: null
     show_video: false
     metadata:
-      location: null
-      experimenter: null
+      # experimenter
+      study_site: null
+      experimenter_id: null
+      # experiment
       experiment: null
+      lighting: null
       scene: null
-      task: null
+      instruction: null
+      # subject
       subject_id: null
       age: null
       gender: null
+      height: null
       ethnicity: null
+      IPD: null
+      tilt_angle: null
     intrinsics:
       - world
     extrinsics:
@@ -59,6 +66,20 @@ commands:
     world: world
     eye0: eye0
     eye1: eye1
+    settings:
+      circle_detector:
+        scale: 0.5
+        paused: true
+        detection_method: vedb
+        marker_size:
+          - 5
+          - 300
+        threshold_window_size: 13
+        min_area: 200
+        max_area: 4000
+        circularity: 0.8
+        convexity: 0.7
+        inertia: 0.4
 
   estimate_cam_params:
     folder: ~/pupil_capture_settings
@@ -72,25 +93,25 @@ commands:
 streams:
   video:
     world:
-      resolution: (2048, 1536)
-      fps: 30
       device_type: flir
       device_uid: null
+      resolution: (2048, 1536)
+      fps: 30
       color_format: bayer_rggb8
       settings:
         ExposureAuto: Continuous
         GainAuto: Continuous
     eye0:
-      resolution: (400, 400)
-      fps: 120
       device_type: uvc
       device_uid: Pupil Cam2 ID0
+      resolution: (400, 400)
+      fps: 120
       color_format: gray
       exposure_mode: auto
       controls:
         Backlight Compensation: 1
         Brightness: 0
-        Contrast: 70
+        Contrast: 55
         Gain: 0
         Hue: 0
         Saturation: 0
@@ -98,16 +119,16 @@ streams:
         Gamma: 200
         White Balance temperature: 4600
     eye1:
-      resolution: (400, 400)
-      fps: 120
       device_type: uvc
       device_uid: Pupil Cam2 ID1
+      resolution: (400, 400)
+      fps: 120
       color_format: gray
       exposure_mode: auto
       controls:
         Backlight Compensation: 1
         Brightness: 0
-        Contrast: 70
+        Contrast: 55
         Gain: 0
         Hue: 0
         Saturation: 0
@@ -115,10 +136,10 @@ streams:
         Gamma: 200
         White Balance temperature: 4600
     t265:
-      resolution: (1696, 800)
-      fps: 30
       device_type: t265
       device_uid: null
+      resolution: (1696, 800)
+      fps: 30
       color_format: gray
   motion:
     odometry:

@@ -40,7 +40,12 @@ from ved_capture.config import ConfigParser
     default=None,
     help="Path to local pupil_recording_interface repository.",
 )
-def update(verbose, local, branch, stash, pri_branch, pri_path):
+@click.option(
+    "--force",
+    default=False,
+    help="Force update, even if no new changes were pulled from repository.",
+)
+def update(verbose, local, branch, stash, pri_branch, pri_path, force):
     """ Update installation. """
     logger = init_logger(inspect.stack()[0][3], verbosity=verbose)
 
@@ -67,7 +72,7 @@ def update(verbose, local, branch, stash, pri_branch, pri_path):
             raise_error(f"Repository update failed. Reason: {str(e)}", logger)
 
     # check if repo was updated
-    if not local and not was_updated:
+    if not force and not local and not was_updated:
         logger.warning("No new updates!")
         sys.exit(0)
 

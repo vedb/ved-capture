@@ -17,8 +17,8 @@ or on the [Releases page](https://github.com/vedb/ved-capture/releases).
     $ python3 install_ved_capture.py
     
 The script will guide you through the setup process and instruct you what to 
-do. Since the app isolates all of it's dependencies in a dedicated
-environment, the installation has a size of about 2 GB, so make sure you 
+do. Since the app isolates all of its dependencies in a dedicated
+environment, the installation has a size of about 3.5 GB, so make sure you 
 have enough space.
  
 ## Usage

@@ -44,6 +44,7 @@ dependencies:
   - spinnaker-sdk=2.0.0.147
   - pyspin=2.0.0.147
   # vedc
+  - oyaml=1.0
   - confuse=1.0.0
   - click=7.1.1
   # other
