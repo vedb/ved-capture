@@ -40,7 +40,7 @@ dependencies:
   - msgpack-python=0.6.2
   - pupil-detectors=1.0.5
   # realsense
-  - librealsense2=2.42.0
+  - librealsense=2.42.0
   - pyrealsense2=2.42.0.2849
   # flir
   - spinnaker-sdk=2.0.0.147
