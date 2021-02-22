@@ -35,8 +35,8 @@ dependencies:
   # pupil
   - libusb=1.0.24
   - libuvc=0.0.7
-  - libjpeg-turbo=2.0.3
-  - pyuvc=0.13
+  - libjpeg-turbo=2.0.5
+  - pyuvc=0.14
   - msgpack-python=0.6.2
   - pupil-detectors=1.0.5
   # realsense
@@ -55,8 +55,8 @@ dependencies:
   - gitpython=3.1.0
   - tqdm=4.46.0
   - simpleaudio=1.0.2
-  - blessed==1.17.12
-  - multiprocessing-logging==0.3.1
+  - blessed=1.17.12
+  - multiprocessing-logging=0.3.1
   # install local editable version of PRI if "PRI_PATH" is set
   {% if "PRI_PATH" in os.environ %}
   - pip:
