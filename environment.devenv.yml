@@ -33,19 +33,19 @@ dependencies:
   - x264=1!152.20180806
   - x265=2.8
   # pupil
-  - libusb=1.0.23
+  - libusb=1.0.24
   - libuvc=0.0.7
   - libjpeg-turbo=2.0.3
   - pyuvc=0.13
   - msgpack-python=0.6.2
   - pupil-detectors=1.0.5
   # realsense
-  - librealsense2=2.36.0
-  - pyrealsense2==2.36.0.2038
+  - librealsense2=2.42.0
+  - pyrealsense2=2.42.0.2849
   # flir
   - spinnaker-sdk=2.0.0.147
   - pyspin=2.0.0.147
-  - simple-pyspin==0.1.1
+  - simple-pyspin=0.1.1
   # vedc
   - oyaml=1.0
   - confuse=1.0.0
