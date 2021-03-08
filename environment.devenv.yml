@@ -1,7 +1,7 @@
 {{ min_conda_devenv_version("2.1.1") }}
 
 # set library version
-{% set pri_version = "v0.3.0" %}
+{% set pri_version = "0.4.1" %}
 
 # version and config dir can be overridden by env vars
 {% set pri_pin = os.environ.get("PRI_PIN", pri_version) %}
@@ -15,7 +15,7 @@ name: vedc
 channels:
   - conda-forge
   - loopbio
-  - phausamann
+  - vedb
 
 dependencies:
   - python=3.6
@@ -25,6 +25,7 @@ dependencies:
   - scipy=1.4.1
   - pandas=1.0.3
   - xarray=0.15.1
+  - netcdf4=1.5.6
   # video
   - opencv=4.2.0
   - ffmpeg=3.4.2=x265_0
@@ -32,17 +33,19 @@ dependencies:
   - x264=1!152.20180806
   - x265=2.8
   # pupil
-  - libusb=1.0.23
+  - libusb=1.0.24
   - libuvc=0.0.7
-  - libjpeg-turbo=2.0.3
-  - pyuvc=0.13
+  - libjpeg-turbo=2.0.5
+  - pyuvc=0.14
   - msgpack-python=0.6.2
   - pupil-detectors=1.0.5
   # realsense
-  - librealsense2=2.36.0
+  - librealsense=2.42.0
+  - pyrealsense2=2.42.0.2849
   # flir
   - spinnaker-sdk=2.0.0.147
   - pyspin=2.0.0.147
+  - simple-pyspin=0.1.1
   # vedc
   - oyaml=1.0
   - confuse=1.0.0
@@ -52,20 +55,18 @@ dependencies:
   - gitpython=3.1.0
   - tqdm=4.46.0
   - simpleaudio=1.0.2
-  # pip
+  - blessed=1.17.12
+  - multiprocessing-logging=0.3.1
+  # install local editable version of PRI if "PRI_PATH" is set
+  {% if "PRI_PATH" in os.environ %}
   - pip:
-    - netcdf4==1.5.3
-    - blessed==1.17.4
-    - multiprocessing-logging==0.3.1
-    - pyrealsense2==2.36.0.2038
-    - simple-pyspin==0.1.1
-    - "--editable {{ root }}"
-    # install local editable version of PRI if "PRI_PATH" is set
-    {% if "PRI_PATH" in os.environ %}
     - "--editable {{ os.environ['PRI_PATH'] }}"
-    {% else %}
-    - git+ssh://git@github.com/vedb/pupil_recording_interface@{{ pri_pin }}
-    {% endif %}
+  {% else %}
+  - pupil_recording_interface={{ pri_pin }}
+  {% endif %}
+  # install local editable version of ved-capture
+  - pip:
+    - "--editable {{ root }}"
   # development
   {% if "VEDC_DEV" in os.environ %}
   - pytest
