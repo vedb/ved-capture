@@ -410,3 +410,14 @@ def beep(freq=440, fs=44100, seconds=0.1, fade_len=0.01):
         time.sleep(len(freq) * seconds)
     except SimpleaudioError as e:
         logger.error(f"Error playing sound: {e}")
+
+
+def check_disk_space(folder, min_space_gb=30):
+    """ Check available disk space and emit a warning if low. """
+    free_gb = shutil.disk_usage(folder).free / (1024 ** 3)
+
+    if free_gb < min_space_gb:
+        logger.warning(
+            f"Available disk space in {folder} is {free_gb:.1f} GB, make sure "
+            f"you have at least {min_space_gb} GB of free space"
+        )

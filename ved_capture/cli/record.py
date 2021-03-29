@@ -11,7 +11,7 @@ from ved_capture.cli.commands import (
     hide_video_streams,
 )
 from ved_capture.cli.ui import TerminalUI
-from ved_capture.utils import copy_cam_params
+from ved_capture.utils import copy_cam_params, check_disk_space
 from ved_capture.config import ConfigParser, save_metadata
 
 
@@ -44,6 +44,9 @@ def record(config_file, verbose):
         policy = config_parser.get_policy("record")
         duration = config_parser.get_duration("record")
         intrinsics, extrinsics = config_parser.get_recording_cam_params()
+
+    # check free disk space
+    check_disk_space(folder)
 
     # init manager
     manager = pri.StreamManager(

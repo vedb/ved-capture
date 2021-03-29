@@ -9,7 +9,9 @@ from pathlib import Path
 import click
 import pupil_recording_interface as pri
 
-from ved_capture.config import ConfigParser, logger
+from ved_capture.config import ConfigParser
+
+logger = logging.getLogger(__name__)
 
 TRACE = 5
 
