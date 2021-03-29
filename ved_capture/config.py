@@ -7,7 +7,7 @@ from pathlib import Path
 from copy import deepcopy
 import csv
 import logging
-from packaging import version
+from distutils.version import LooseVersion
 
 import yaml
 from confuse import (
@@ -51,7 +51,9 @@ class ConfigParser:
             self.config_file = None
 
         # check if legacy format (user-defined config overrides all defaults)
-        self.legacy = version.parse(self.config["version"].get(str)).major < 2
+        self.legacy = (
+            LooseVersion(self.config["version"].get(str)).version[0] == 1
+        )
 
     def __enter__(self):
         return self
