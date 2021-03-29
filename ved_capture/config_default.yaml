@@ -110,13 +110,13 @@ streams:
       exposure_mode: auto
       controls:
         Backlight Compensation: 1
-        Brightness: 0
-        Contrast: 55
+        Brightness: 10
+        Contrast: 65
         Gain: 0
         Hue: 0
         Saturation: 0
-        Sharpness: 1
-        Gamma: 200
+        Sharpness: 3
+        Gamma: 120
         White Balance temperature: 4600
     eye1:
       device_type: uvc
@@ -127,13 +127,13 @@ streams:
       exposure_mode: auto
       controls:
         Backlight Compensation: 1
-        Brightness: 0
-        Contrast: 55
+        Brightness: 10
+        Contrast: 65
         Gain: 0
         Hue: 0
         Saturation: 0
-        Sharpness: 1
-        Gamma: 200
+        Sharpness: 3
+        Gamma: 120
         White Balance temperature: 4600
     t265:
       device_type: t265
