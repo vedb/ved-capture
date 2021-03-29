@@ -7,6 +7,7 @@ from pathlib import Path
 from copy import deepcopy
 import csv
 import logging
+from packaging import version
 
 import yaml
 from confuse import (
@@ -49,6 +50,9 @@ class ConfigParser:
         else:
             self.config_file = None
 
+        # check if legacy format (user-defined config overrides all defaults)
+        self.legacy = version.parse(self.config["version"].get(str)).major < 2
+
     def __enter__(self):
         return self
 
@@ -66,10 +70,12 @@ class ConfigParser:
 
     def get_command_config(self, command, *subkeys):
         """ Get configuration for a CLI command. """
-        # TODO user-defined command configs completely
-        #  override the package default. Is that what we want?
         try:
-            value = deepcopy(self.config["commands"][command].get(dict))
+            if self.legacy:
+                # legacy mode: user-defined config overrides all defaults
+                value = deepcopy(self.config["commands"][command].get(dict))
+            else:
+                value = deepcopy(self.config["commands"][command].flatten())
             for key in subkeys:
                 value = value[key]
         except KeyError:
@@ -81,14 +87,17 @@ class ConfigParser:
 
     def get_stream_config(self, stream_type, name, *subkeys):
         """ Get config for a stream. """
-        # TODO user-defined stream configs completely
-        #  override the package default. Is that what we want?
         try:
-            value = deepcopy(self.config["streams"][stream_type].get(dict))[
-                name
-            ]
+            if self.legacy:
+                # legacy mode: user-defined config overrides all defaults
+                value = deepcopy(
+                    self.config["streams"][stream_type].get(dict)
+                )[name]
+            else:
+                value = self.config["streams"][stream_type].flatten()[name]
             for key in subkeys:
                 value = value[key]
+
         except KeyError:
             if len(subkeys):
                 raise NotFoundError(
@@ -258,7 +267,7 @@ class ConfigParser:
         return configs
 
     def _get_validation_pipeline(self, config, cam_type):
-        """ Get validation pipelinqe for stream config. """
+        """ Get validation pipeline for stream config. """
         if "pipeline" not in config:
             config["pipeline"] = []
 
