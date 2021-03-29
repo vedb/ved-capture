@@ -1,13 +1,13 @@
 """"""
-import os
-import datetime
-from collections import OrderedDict
-from ast import literal_eval
-from pathlib import Path
-from copy import deepcopy
 import csv
+import datetime
 import logging
-from distutils.version import LooseVersion
+import os
+from ast import literal_eval
+from collections import OrderedDict, defaultdict
+from copy import deepcopy
+from distutils.version import StrictVersion
+from pathlib import Path
 
 import yaml
 from confuse import (
@@ -52,8 +52,13 @@ class ConfigParser:
 
         # check if legacy format (user-defined config overrides all defaults)
         self.legacy = (
-            LooseVersion(self.config["version"].get(str)).version[0] == 1
+            StrictVersion(self.config["version"].get(str)).version[0] < 2
         )
+        if self.legacy:
+            logger.warning(
+                "You are using an outdated config file format, "
+                "run 'vedc auto_config' to update"
+            )
 
     def __enter__(self):
         return self
@@ -73,8 +78,13 @@ class ConfigParser:
     def get_command_config(self, command, *subkeys):
         """ Get configuration for a CLI command. """
         try:
-            if self.legacy:
-                # legacy mode: user-defined config overrides all defaults
+            override = self.config["commands"]["override"].get(bool)
+        except (ConfigTypeError, NotFoundError):
+            override = False
+
+        try:
+            if override or self.legacy:
+                # override/legacy mode: user-defined config overrides defaults
                 value = deepcopy(self.config["commands"][command].get(dict))
             else:
                 value = deepcopy(self.config["commands"][command].flatten())
@@ -88,10 +98,15 @@ class ConfigParser:
         return value
 
     def get_stream_config(self, stream_type, name, *subkeys):
-        """ Get config for a stream. """
+        """ Get configuration for a stream. """
         try:
-            if self.legacy:
-                # legacy mode: user-defined config overrides all defaults
+            override = self.config["streams"]["override"].get(bool)
+        except (ConfigTypeError, NotFoundError):
+            override = False
+
+        try:
+            if override or self.legacy:
+                # override/legacy mode: user-defined config overrides defaults
                 value = deepcopy(
                     self.config["streams"][stream_type].get(dict)
                 )[name]
@@ -194,6 +209,8 @@ class ConfigParser:
     def get_metadata(self):
         """ Get recording metadata. """
         try:
+            fields = self.config["commands"]["record"]["metadata"].flatten()
+        except ConfigTypeError:
             fields = self.config["commands"]["record"]["metadata"].get()
         except NotFoundError:
             return {}
@@ -203,7 +220,7 @@ class ConfigParser:
             metadata = {field: input(f"- {field}: ") for field in fields}
             print("")
             return metadata
-        if isinstance(fields, dict):
+        if isinstance(fields, (OrderedDict, dict)):
             print(
                 "Please enter the following metadata (press Enter to accept "
                 "default values in square brackets):"
@@ -410,6 +427,13 @@ def save_metadata(folder, metadata):
         w.writerows(metadata.items())
 
 
+def default_to_regular(d):
+    """ Convert nested defaultdict to nested regular dict. """
+    if isinstance(d, defaultdict):
+        d = {k: default_to_regular(v) for k, v in d.items()}
+    return d
+
+
 def save_config(folder, config, name="config"):
     """ Save configuration to yaml file. """
 
@@ -424,6 +448,9 @@ def save_config(folder, config, name="config"):
 
         OrderedDumper.add_representer(OrderedDict, _dict_representer)
         return yaml.dump(data, stream, OrderedDumper, **kwds)
+
+    # convert defaultdicts to regular dicts
+    config = default_to_regular(config)
 
     # save to recording folder
     with open(Path(folder) / f"{name}.yaml", "w") as f:

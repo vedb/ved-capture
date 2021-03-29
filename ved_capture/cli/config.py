@@ -1,6 +1,7 @@
 import inspect
 import subprocess
 import sys
+from collections import defaultdict
 from pathlib import Path
 
 import click
@@ -74,11 +75,17 @@ def generate_config(folder, name, test_folder, no_metadata, verbose):
             )
             sys.exit(0)
 
-    # get default config
-    with open(Path(__file__).parents[1] / "config_default.yaml") as f:
-        config = yaml.safe_load(f)
+    # create config as defaultdict with arbitrary depth
+    # https://stackoverflow.com/a/8702435/4532781
+    nested_dict = lambda: defaultdict(nested_dict)  # noqa
+    config = nested_dict()
 
-    # overwrite record config
+    # get version from default config
+    with open(Path(__file__).parents[1] / "config_default.yaml") as f:
+        config["version"] = yaml.safe_load(f)["version"]
+
+    # create record config
+    config["commands"]["override"] = True
     config["commands"]["record"]["video"] = {}
     config["commands"]["record"]["motion"] = {}
     if test_folder is not None:
@@ -88,12 +95,11 @@ def generate_config(folder, name, test_folder, no_metadata, verbose):
         config["commands"]["record"]["metadata"] = None
 
     # overwrite estimate_cam_param config
-    config["commands"]["estimate_cam_params"]["streams"] = {}
-
+    # config["commands"]["estimate_cam_params"]["streams"] = {}
     # TODO overwrite calibrate, validate with configured streams
 
     # overwrite streams
-    config["streams"] = {"video": {}, "motion": {}}
+    config["streams"] = {"override": True, "video": {}, "motion": {}}
 
     # get connected devices
     pupil_devices = get_pupil_devices()
@@ -160,9 +166,14 @@ def auto_config(verbose, test_folder, no_metadata):
             logger.info(f"Did not overwrite {filepath}")
             sys.exit(0)
 
-    # get default config
+    # create config as defaultdict with arbitrary depth
+    # https://stackoverflow.com/a/8702435/4532781
+    nested_dict = lambda: defaultdict(nested_dict)  # noqa
+    config = nested_dict()
+
+    # get version from default config
     with open(Path(__file__).parents[1] / "config_default.yaml") as f:
-        config = yaml.safe_load(f)
+        config["version"] = yaml.safe_load(f)["version"]
 
     # set test folder if specified
     if test_folder is not None:

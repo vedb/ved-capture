@@ -1,6 +1,7 @@
-version: 1.0.0
+version: 2.0.0
 
 commands:
+  override: false
   record:
     folder: ~/recordings/{today:%Y_%m_%d_%H_%M_%S}
     policy: here
@@ -85,12 +86,13 @@ commands:
     folder: ~/pupil_capture_settings
     streams:
       t265:
-        stereo: True
+        stereo: true
         scale: 0.75
       world:
         scale: 0.5
 
 streams:
+  override: false
   video:
     world:
       device_type: flir
