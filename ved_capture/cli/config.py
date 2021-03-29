@@ -91,12 +91,18 @@ def generate_config(folder, name, test_folder, no_metadata, verbose):
     if test_folder is not None:
         config["commands"]["record"]["folder"] = test_folder
         config["commands"]["record"]["policy"] = "overwrite"
+    else:
+        config["commands"]["record"][
+            "folder"
+        ] = "~/recordings/{today:%Y_%m_%d_%H_%M_%S}"
+        config["commands"]["record"]["policy"] = "here"
     if no_metadata:
         config["commands"]["record"]["metadata"] = None
 
-    # overwrite estimate_cam_param config
-    # config["commands"]["estimate_cam_params"]["streams"] = {}
-    # TODO overwrite calibrate, validate with configured streams
+    # create estimate_cam_param config
+    config["commands"]["estimate_cam_params"][
+        "folder"
+    ] = "~/pupil_capture_settings"
 
     # overwrite streams
     config["streams"] = {"override": True, "video": {}, "motion": {}}
