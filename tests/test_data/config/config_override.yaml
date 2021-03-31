@@ -3,57 +3,44 @@ version: 2.0.0
 commands:
   override: true
   record:
-    folder: '{cfgd}/out/{today:%Y-%m-%d}'
-    policy: overwrite
-    duration: null
-    show_video: true
-    metadata:
-      - subject_id
     video:
       t265:
         codec: libx264
+        encoder_kwargs:
+          crf: '18'
+          preset: ultrafast
     motion:
       odometry: null
+      accel: null
+      gyro: null
+    folder: ~/recordings/vedc_test
+    policy: overwrite
   estimate_cam_params:
-    folder: '{cfgd}/out/pupil_capture_settings'
+    folder: ~/pupil_capture_settings
     streams:
       t265:
         stereo: true
-  calibrate:
-    folder: '{cfgd}/out/pupil_capture_settings'
-    world: world
-    eye0: eye0
-    eye1: eye1
+        scale: 0.75
 
 streams:
   override: true
   video:
-    world:
-      device_type: uvc
-      device_uid: Pupil Cam1 ID2
-      resolution: (1280, 720)
-      fps: 60
-      color_format: bgr24
-    eye0:
-      resolution: (192, 192)
-      fps: 200
-      device_type: uvc
-      device_uid: Pupil Cam2 ID0
-      color_format: gray
-    eye1:
-      resolution: (192, 192)
-      fps: 200
-      device_type: uvc
-      device_uid: Pupil Cam2 ID1
-      color_format: gray
     t265:
-      device_type: t265
-      device_uid: t265
       resolution: (1696, 800)
       fps: 30
+      device_type: t265
+      device_uid: '905312110430'
       color_format: gray
   motion:
     odometry:
       device_type: t265
-      device_uid: t265
+      device_uid: '905312110430'
       motion_type: odometry
+    accel:
+      device_type: t265
+      device_uid: '905312110430'
+      motion_type: accel
+    gyro:
+      device_type: t265
+      device_uid: '905312110430'
+      motion_type: gyro
