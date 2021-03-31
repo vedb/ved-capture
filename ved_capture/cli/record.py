@@ -45,9 +45,6 @@ def record(config_file, verbose):
         duration = config_parser.get_duration("record")
         intrinsics, extrinsics = config_parser.get_recording_cam_params()
 
-    # check free disk space
-    check_disk_space(folder)
-
     # init manager
     manager = pri.StreamManager(
         stream_configs,
@@ -59,6 +56,9 @@ def record(config_file, verbose):
     ui.attach(manager, statusmap={"fps": "{:.2f} Hz"})
 
     print(f"{ui.term.bold('Started recording')} to {manager.folder}")
+
+    # check free disk space
+    check_disk_space(folder)
 
     # write files to recording folder
     with open(manager.folder / "config.yaml", "w") as f:

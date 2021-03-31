@@ -414,7 +414,11 @@ def beep(freq=440, fs=44100, seconds=0.1, fade_len=0.01):
 
 def check_disk_space(folder, min_space_gb=30):
     """ Check available disk space and emit a warning if low. """
-    free_gb = shutil.disk_usage(folder).free / (1024 ** 3)
+    try:
+        free_gb = shutil.disk_usage(folder).free / (1024 ** 3)
+    except FileNotFoundError:
+        logger.warning(f"Could not determine disk space for folder {folder}")
+        return
 
     if free_gb < min_space_gb:
         logger.warning(
