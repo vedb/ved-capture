@@ -19,6 +19,10 @@ def vedc():
     """ Visual Experience Data Capture.
 
     Command line tool for the Visual Experience Database.
+
+    \b
+    For more information check out the wiki:
+    https://github.com/vedb/ved-capture/wiki
     """
 
 
