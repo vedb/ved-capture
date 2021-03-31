@@ -1,75 +1,102 @@
-import os
 from pathlib import Path
 
 import pytest
 
-from ved_capture.config import APPNAME, ConfigParser
+from ved_capture.config import ConfigParser
 
 
 class TestConfigParser:
     @pytest.fixture()
     def config_file(self, config_dir):
-        """"""
+        """ Path to the test config file. """
         yield Path(config_dir) / "config.yaml"
 
     @pytest.fixture()
-    def parser(self, config_file):
-        """"""
-        yield ConfigParser(config_file)
+    def parser(self):
+        """ Parser with test config. """
+        yield ConfigParser()
+
+    @pytest.fixture()
+    def parser_default(self):
+        """ Parser with default config. """
+        yield ConfigParser(ignore_user=True)
+
+    @pytest.fixture()
+    def parser_minimal(self, config_dir):
+        """ Parser with minimal config (standard user config). """
+        yield ConfigParser(Path(config_dir) / "config_minimal.yaml")
+
+    @pytest.fixture()
+    def parser_override(self, config_dir):
+        """ Parser with overriding config (e.g. from generate_config). """
+        yield ConfigParser(Path(config_dir) / "config_override.yaml")
 
     def test_constructor(self, config_dir, config_file):
         """"""
+        # path to file
         parser = ConfigParser(config_file)
         assert (
-            parser.config["streams"]["video"]["t265"]["device_type"].get()
+            parser.config["streams"]["video"]["t265"]["device_uid"].get()
             == "t265"
         )
 
-        parser = ConfigParser()
+        # package default
+        parser = ConfigParser(ignore_user=True)
         assert (
-            parser.config["commands"]["record"]["metadata"]["study_site"].get()
+            parser.config["streams"]["video"]["t265"]["device_uid"].get()
             is None
         )
 
-        # config name
-        os.environ[APPNAME.upper() + "DIR"] = str(config_dir)
+        # config file by name
         parser = ConfigParser("config_minimal")
         assert (
-            parser.config["streams"]["video"]["world"]["device_type"].get()
-            == "uvc"
+            parser.config["commands"]["record"]["metadata"]["study_site"].get()
+            == "test_site"
         )
 
-    def test_get_folder(self, parser, config_dir):
+    def test_get_folder(self, parser, parser_minimal, config_dir):
         """"""
         import datetime
 
-        folder = parser.get_folder("record", None)
+        # with metadata
+        folder = parser.get_folder("record", subject_id="000")
+        assert folder == config_dir.parent / "out" / "recordings" / "000"
+
+        # minimal config / package default
+        folder = parser_minimal.get_folder("record")
         assert (
-            folder == config_dir / "out" / f"{datetime.date.today():%Y-%m-%d}"
+            folder
+            == Path.home()
+            / "recordings"
+            / f"{datetime.datetime.today():%Y_%m_%d_%H_%M_%S}"
         )
 
-    def test_get_policy(self, parser):
+        # override
+        folder = parser.get_folder("record", folder=config_dir)
+        assert folder == config_dir
+
+    def test_get_policy(self, parser, parser_minimal):
         """"""
         # test config file
         assert parser.get_policy("record") == "overwrite"
         # user override
         assert parser.get_policy("record", "new_folder") == "new_folder"
-        # package default
-        assert ConfigParser().get_policy("record") == "here"
+        # minimal/package default
+        assert parser_minimal.get_policy("record") == "here"
 
-    def test_get_show_video(self, parser):
+    def test_get_show_video(self, parser, parser_minimal):
         """"""
         # test config file
         assert parser.get_show_video()
         # user override
         assert not parser.get_show_video(False)
-        # package default
-        assert not ConfigParser().get_show_video()
+        # minimal/package default
+        assert not parser_minimal.get_show_video()
 
-    def test_get_recording_cam_params(self, parser):
+    def test_get_recording_cam_params(self, parser_minimal):
         """"""
-        # package default
-        assert ConfigParser().get_recording_cam_params() == (
+        # minimal/package default
+        assert parser_minimal.get_recording_cam_params() == (
             ["world"],
             ["world", "t265"],
         )
@@ -93,14 +120,14 @@ class TestConfigParser:
         config_list = parser.get_recording_configs()
 
         assert config_list[0].stream_type == "video"
-        assert config_list[0].device_type == "t265"
-        assert config_list[0].resolution == (1696, 800)
+        assert config_list[0].device_type == "flir"
+        assert config_list[0].resolution == (2048, 1536)
         assert config_list[0].pipeline[0].process_type == "video_recorder"
         assert config_list[0].pipeline[1].process_type == "video_display"
 
-        assert config_list[1].stream_type == "motion"
-        assert config_list[1].device_type == "t265"
-        assert config_list[1].pipeline[0].process_type == "motion_recorder"
+        assert config_list[4].stream_type == "motion"
+        assert config_list[4].device_type == "t265"
+        assert config_list[4].pipeline[0].process_type == "motion_recorder"
 
     def test_get_calibration_configs(self, parser):
         """"""

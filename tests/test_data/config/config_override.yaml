@@ -1,6 +1,7 @@
 version: 2.0.0
 
 commands:
+  override: true
   record:
     folder: '{cfgd}/out/{today:%Y-%m-%d}'
     policy: overwrite
@@ -17,7 +18,7 @@ commands:
     folder: '{cfgd}/out/pupil_capture_settings'
     streams:
       t265:
-        stereo: True
+        stereo: true
   calibrate:
     folder: '{cfgd}/out/pupil_capture_settings'
     world: world
@@ -25,13 +26,34 @@ commands:
     eye1: eye1
 
 streams:
+  override: true
   video:
+    world:
+      device_type: uvc
+      device_uid: Pupil Cam1 ID2
+      resolution: (1280, 720)
+      fps: 60
+      color_format: bgr24
     eye0:
+      resolution: (192, 192)
       fps: 200
+      device_type: uvc
+      device_uid: Pupil Cam2 ID0
+      color_format: gray
     eye1:
+      resolution: (192, 192)
       fps: 200
+      device_type: uvc
+      device_uid: Pupil Cam2 ID1
+      color_format: gray
     t265:
+      device_type: t265
       device_uid: t265
+      resolution: (1696, 800)
+      fps: 30
+      color_format: gray
   motion:
     odometry:
+      device_type: t265
       device_uid: t265
+      motion_type: odometry

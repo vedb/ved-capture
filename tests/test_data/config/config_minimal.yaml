@@ -1,24 +1,21 @@
 version: 2.0.0
 
 commands:
-  override: true
   record:
-    folder:
-      '{cfgd}/out/{today:%Y-%m-%d}'
-    policy: overwrite
-    duration:
-    video:
-    motion:
-    show_video: false
     metadata:
+      experimenter_id: test_experimenter
+      study_site: test_site
 
 streams:
-  override: true
   video:
     world:
-      device_type: uvc
-      device_uid: Pupil Cam1 ID2
-      resolution: (1280, 720)
-      fps: 30
-      color_format: bgr24
-  motion: {}
+      device_uid: flir
+    t265:
+      device_uid: t265
+  motion:
+    odometry:
+      device_uid: t265
+    accel:
+      device_uid: t265
+    gyro:
+      device_uid: t265

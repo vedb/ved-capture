@@ -26,7 +26,6 @@ def user_config_dir(test_data_dir, config_dir):
 
 
 @pytest.fixture(autouse=True)
-def set_config_search_path():
+def set_config_search_path(config_dir):
     """ Override local configuration for tests. """
-    # assuming test dir does not contain a config file...
-    os.environ[APPNAME.upper() + "DIR"] = str(Path(__file__).parent)
+    os.environ[APPNAME.upper() + "DIR"] = str(config_dir)
