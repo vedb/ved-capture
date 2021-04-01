@@ -11,6 +11,7 @@ from select import select
 
 import numpy as np
 import simpleaudio
+from confuse import NotFoundError
 from simpleaudio._simpleaudio import SimpleaudioError
 from pkg_resources import parse_version
 
@@ -410,6 +411,35 @@ def beep(freq=440, fs=44100, seconds=0.1, fade_len=0.01):
         time.sleep(len(freq) * seconds)
     except SimpleaudioError as e:
         logger.error(f"Error playing sound: {e}")
+
+
+def set_profile_from_metadata(config_parser, metadata):
+    """ Set stream profile from metadata value. """
+    try:
+        selector = config_parser.get_command_config(
+            "record", "profile_selector"
+        )
+    except NotFoundError:
+        logger.warning(
+            f"commands.record.profile_selector missing from config, "
+            f"cannot auto-select profile"
+        )
+        return
+
+    if selector in metadata:
+        profile = metadata[selector]
+        try:
+            config_parser.set_profile(profile)
+            logger.info(f"Using '{profile}' profile")
+        except NotFoundError:
+            logger.warning(
+                f"No profile for {selector} '{profile}' found, "
+                f"using default profile"
+            )
+    elif selector is not None:
+        logger.warning(
+            f"'{selector}' missing from metadata, cannot auto-select profile"
+        )
 
 
 def check_disk_space(folder, min_space_gb=30):

@@ -11,7 +11,11 @@ from ved_capture.cli.commands import (
     hide_video_streams,
 )
 from ved_capture.cli.ui import TerminalUI
-from ved_capture.utils import copy_cam_params, check_disk_space
+from ved_capture.utils import (
+    copy_cam_params,
+    check_disk_space,
+    set_profile_from_metadata,
+)
 from ved_capture.config import ConfigParser, save_metadata
 
 
@@ -36,6 +40,7 @@ def record(config_file, verbose):
     # parse config
     with ConfigParser(config_file) as config_parser:
         metadata = config_parser.get_metadata()
+        set_profile_from_metadata(config_parser, metadata)
         stream_configs = config_parser.get_recording_configs()
         folder = config_parser.get_folder("record", None, **metadata)
         cam_params_folder = config_parser.get_folder(
