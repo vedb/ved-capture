@@ -2,7 +2,6 @@
 import csv
 import datetime
 import logging
-import os
 from ast import literal_eval
 from collections import OrderedDict, defaultdict
 from copy import deepcopy
@@ -155,10 +154,10 @@ class ConfigParser:
             if folder is not None:
                 try:
                     folder = folder.format(
-                        cwd=os.getcwd(),
-                        cfgd=os.path.dirname(
+                        cwd=Path.cwd(),
+                        cfgd=Path(
                             self.config_file or self.config.config_dir()
-                        ),
+                        ).parent,
                         today=datetime.datetime.today(),
                         **metadata,
                     )
@@ -432,7 +431,7 @@ class ConfigParser:
 
 def save_metadata(folder, metadata):
     """ Save metadata to user_info.csv. """
-    with open(os.path.join(folder, "user_info.csv"), "w") as f:
+    with open(Path(folder) / "user_info.csv", "w") as f:
         w = csv.writer(f)
         w.writerow(["key", "value"])
         w.writerows(metadata.items())

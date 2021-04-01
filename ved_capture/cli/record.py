@@ -63,7 +63,7 @@ def record(config_file, verbose):
     print(f"{ui.term.bold('Started recording')} to {manager.folder}")
 
     # check free disk space
-    check_disk_space(folder)
+    check_disk_space(manager.folder)
 
     # write files to recording folder
     with open(manager.folder / "config.yaml", "w") as f:
