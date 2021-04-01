@@ -1,5 +1,11 @@
+###########################
+### config_default.yaml ###
+###########################
+
+# Configuration format version
 version: 2.0.0
 
+## COMMANDS
 # The commands section configures the CLI commands.
 commands:
 
@@ -175,7 +181,7 @@ commands:
           convexity: 0.7
           inertia: 0.4
 
-  # Configuration for vedc estimate_cam_params
+  # Configuration for vedc estimate_cam_params.
   estimate_cam_params:
 
     # Target folder for storing camera parameters. Can be templated using the
@@ -193,6 +199,7 @@ commands:
         circle_grid_detector:
           scale: 0.5
 
+## STREAMS
 # The streams section defines all streams that are used by the CLI commands.
 streams:
 
@@ -273,6 +280,7 @@ streams:
       device_uid: null
       motion_type: gyro
 
+## PROFILES
 # The profiles section defines custom stream settings that can be dynamically
 # applied, e.g. based on lighting conditions. Profiles are always merged with
 # the settings defined in the streams section and are not intended to
