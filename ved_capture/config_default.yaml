@@ -1,11 +1,44 @@
 version: 2.0.0
 
+# The commands section configures the CLI commands.
 commands:
+
+  # The override flag can be set to override command configs with user-defined
+  # settings. If false, user settings will be merged with the default
+  # settings defined here, otherwise user settings will override default
+  # settings. This flag is set to true by vedc generate_config.
   override: false
+
+  # Configuration for vedc record.
   record:
+
+    # Target folder for the recording. Can be templated using the Python format
+    # syntax (curly braces). Available variables are:
+    # - today: current datetime as a datetime.datetime.today instance
+    # - cwd: current working directory as a pathlib.Path instance
+    # - cfgd: directory containing user config file as a pathlib.Path instance
+    # - all metadata fields
+    # Example: {cwd}/{subject_id} to record to a folder named after the
+    #   subject_id metadata field within the current folder.
     folder: ~/recordings/{today:%Y_%m_%d_%H_%M_%S}
+
+    # Folder creation policy. Available options:
+    # - here: record directly to the folder specified by the folder key but
+    #     raise an error if files would be overwritten
+    # - overwrite: record directly to the folder specified by the folder key
+    #     and delete all files within than folder
+    # - new_folder: record to a numbered sub-folder (000, 001, ...) within the
+    #     folder specified by the folder key
     policy: here
+
+    # Duration of the recording in seconds. Set to null/leave empty to record
+    # indefinitely.
     duration: null
+
+    # The video section contains one entry for each video stream to record.
+    # Each stream must be defined in the streams.video section. Entries can be
+    # set to null/left empty or specify arguments passed to the VideoRecorder
+    # process.
     video:
       world:
         codec: libx264
@@ -27,12 +60,23 @@ commands:
         encoder_kwargs:
           crf: '18'
           preset: ultrafast
+
+    # The motion section contains one entry for each video stream to record.
+    # Each stream must be defined in the streams.motion section. Entries can be
+    # set to null/left empty or specify arguments passed to the MotionRecorder
+    # process.
     motion:
       odometry: null
       accel: null
       gyro: null
+
+    # Set to true to video windows at the start of the recording.
     show_video: false
-    profile_selector: lighting
+
+    # Metadata that is requested from the user at the start of the recording.
+    # When provided as a mapping (like here), values can be set to define
+    # defaults that are suggested during input (e.g. study_site: UNR). When
+    # provided as a list, or when values are null, no defaults are suggested.
     metadata:
       # experimenter
       study_site: null
@@ -50,50 +94,117 @@ commands:
       ethnicity: null
       IPD: null
       tilt_angle: null
+
+    # Selector to auto-determine a profile at the start of the recording.
+    # The selector has to be defined in the metadata and will use the value
+    # of the metadata field to look up a profile. Set to null/leave empty to
+    # disable automatic selection.
+    profile_selector: lighting
+
+    # Intrinsics for streams that are copied to the recording folder. Each list
+    # item specifies a stream name whose 'device_uid' is looked up to copy the
+    # corresponding intrinsics file from the folder defined in
+    # commands.estimate_cam_params.folder to the recording folder and renamed
+    # to the stream name.
+    # Example: ~/pupil_capture_settings/19208652.intrinsics is copied to
+    #  ~/recordings/2021_01_01_00_00_00/world.intrinsics.
     intrinsics:
       - world
+
+    # Extrinsics for streams that are copied to the recording folder. Each list
+    # item specifies a stream name whose 'device_uid' is looked up to copy the
+    # corresponding extrinsics file(s) from the folder defined in
+    # commands.estimate_cam_params.folder to the recording folder and renamed
+    # to the stream name.
+    # Example: ~/pupil_capture_settings/19208652.extrinsics is copied to
+    #  ~/recordings/2021_01_01_00_00_00/world.extrinsics.
     extrinsics:
       - world
       - t265
 
+  # Configuration for vedc calibrate.
   calibrate:
+
+    # Target folder for storing calibration. Can be templated using the Python
+    # format syntax (see commands.record.folder for available options).
     folder: ~/pupil_capture_settings
+
+    # Name of the world camera stream.
     world: world
+
+    # Name of the right eye camera stream.
     eye0: eye0
+
+    # Name of the left eye camera stream.
     eye1: eye1
 
+  # Configuration for vedc validate.
   validate:
+
+    # Target folder for storing validation results. Can be templated using the
+    # Python format syntax (see commands.record.folder for available options).
     folder: ~/validations/{today:%Y_%m_%d_%H_%M_%S}
+
+    # Folder creation policy (see commands.record.folder for options).
     policy: here
+
+    # Name of the world camera stream.
     world: world
+
+    # Name of the right eye camera stream.
     eye0: eye0
+
+    # Name of the left eye camera stream.
     eye1: eye1
+
+    # Additional settings passed to processes in the pipeline for each stream.
+    # Each entry corresponds to a stream defined in the streams.video section.
     settings:
-      circle_detector:
-        scale: 0.5
-        paused: true
-        detection_method: vedb
-        marker_size:
-          - 5
-          - 300
-        threshold_window_size: 13
-        min_area: 200
-        max_area: 4000
-        circularity: 0.8
-        convexity: 0.7
-        inertia: 0.4
-
-  estimate_cam_params:
-    folder: ~/pupil_capture_settings
-    streams:
-      t265:
-        stereo: true
-        scale: 0.75
       world:
-        scale: 0.5
+        circle_detector:
+          scale: 0.5
+          paused: true
+          detection_method: vedb
+          marker_size:
+            - 5
+            - 300
+          threshold_window_size: 13
+          min_area: 200
+          max_area: 4000
+          circularity: 0.8
+          convexity: 0.7
+          inertia: 0.4
 
+  # Configuration for vedc estimate_cam_params
+  estimate_cam_params:
+
+    # Target folder for storing camera parameters. Can be templated using the
+    # Python format syntax (see commands.record.folder for available options).
+    folder: ~/pupil_capture_settings
+
+    # Additional settings passed to processes in the pipeline for each stream.
+    # Each entry corresponds to a stream defined in the streams.video section.
+    settings:
+      t265:
+        circle_grid_detector:
+          stereo: true
+          scale: 0.75
+      world:
+        circle_grid_detector:
+          scale: 0.5
+
+# The streams section defines all streams that are used by the CLI commands.
 streams:
+
+  # The override flag can be set to override stream configs with user-defined
+  # settings. If false, user settings will be merged with the default
+  # settings defined here, otherwise user settings will override default
+  # settings. This flag is set to true by vedc generate_config.
   override: false
+
+  # The video section defines all video streams. Each entry is mapped directly
+  # to a VideoStream.Config and the name of the entry corresponds to the stream
+  # name.
   video:
     world:
       device_type: flir
@@ -144,6 +255,10 @@ streams:
       resolution: (1696, 800)
       fps: 30
       color_format: gray
+
+  # The motion section defines all motion streams. Each entry is mapped
+  # directly to a MotionStream.Config and the name of the entry corresponds to
+  # the stream name.
   motion:
     odometry:
       device_type: t265
@@ -158,7 +273,19 @@ streams:
       device_uid: null
       motion_type: gyro
 
+# The profiles section defines custom stream settings that can be dynamically
+# applied, e.g. based on lighting conditions. Profiles are always merged with
+# the settings defined in the streams section and are not intended to
+# completely override stream settings.
 profiles:
+
+  # The override flag can be set to override profile configs with user-defined
+  # settings. If false, user settings will be merged with the default
+  # settings defined here, otherwise user settings will override default
+  # settings. This flag is set to true by vedc generate_config.
+  override: false
+
+  # Profile for indoor recordings.
   indoor:
     video:
       eye0:
@@ -183,6 +310,8 @@ profiles:
           Sharpness: 3
           Gamma: 120
           White Balance temperature: 4600
+
+  # Profile for outdoor recordings.
   outdoor:
     video:
       eye0:

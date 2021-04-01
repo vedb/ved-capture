@@ -295,16 +295,21 @@ class ConfigParser:
 
         return configs
 
-    def _get_validation_pipeline(self, config, cam_type):
+    def _get_validation_pipeline(self, config, cam_type, name):
         """ Get validation pipeline for stream config. """
         if "pipeline" not in config:
             config["pipeline"] = []
 
         if cam_type == "world":
             try:
-                circle_detector_params = self.get_command_config(
-                    "validate", "settings", "circle_detector"
-                )
+                if self.legacy:
+                    circle_detector_params = self.get_command_config(
+                        "validate", "settings", "circle_detector"
+                    )
+                else:
+                    circle_detector_params = self.get_command_config(
+                        "validate", "settings", name, "circle_detector"
+                    )
             except NotFoundError:
                 circle_detector_params = {}
 
@@ -333,7 +338,9 @@ class ConfigParser:
             name = self.get_command_config("validate", cam_type, datatype=str)
             config = self.get_stream_config("video", name)
             config["resolution"] = literal_eval(config["resolution"])
-            config = self._get_validation_pipeline(config or {}, cam_type)
+            config = self._get_validation_pipeline(
+                config or {}, cam_type, name
+            )
             configs.append(pri.VideoStream.Config(name=name, **config))
 
         return configs
@@ -380,14 +387,22 @@ class ConfigParser:
             config["pipeline"] = []
 
         try:
-            command_config = self.config["commands"]["estimate_cam_params"][
-                "streams"
-            ][name].get(dict)
-        except (ConfigTypeError, NotFoundError):
-            command_config = {}
+            if self.legacy:
+                detector_params = self.get_command_config(
+                    "estimate_cam_params", "streams", name
+                )
+            else:
+                detector_params = self.get_command_config(
+                    "estimate_cam_params",
+                    "settings",
+                    name,
+                    "circle_grid_detector",
+                )
+        except NotFoundError:
+            detector_params = {}
 
         config["pipeline"].append(
-            pri.CircleGridDetector.Config(**command_config)
+            pri.CircleGridDetector.Config(**detector_params)
         )
         if master:
             # first stream gets cam param estimator
