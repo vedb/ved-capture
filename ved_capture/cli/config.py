@@ -130,6 +130,9 @@ def generate_config(folder, name, test_folder, no_metadata, verbose):
     for serial in flir_devices:
         config = get_flir_config(config, serial)
 
+    # overwrite profiles
+    config["profiles"] = {"override": True}
+
     # write config
     if len(config["streams"]["video"]) + len(config["streams"]["motion"]) == 0:
         raise_error("No devices selected!", logger)
