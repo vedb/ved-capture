@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from confuse import NotFoundError
 
 from ved_capture.config import ConfigParser
 
@@ -100,6 +101,17 @@ class TestConfigParser:
             "folder",
             "policy",
         }
+
+    def test_set_profile(self, parser):
+        """"""
+        parser.set_profile("outdoor")
+        assert (
+            parser.get_stream_config("video", "eye0", "controls", "Gamma")
+            == 10
+        )
+
+        with pytest.raises(NotFoundError):
+            parser.set_profile("not_a_profile")
 
     def test_get_folder(
         self, parser, parser_minimal, parser_override, config_dir

@@ -81,6 +81,11 @@ class ConfigParser:
                 logger,
             )
 
+    @classmethod
+    def config_dir(cls):
+        """ Directory for user configuration. """
+        return Configuration(APPNAME, "ved_capture").config_dir()
+
     def _get_config(self, category, subcategory, *subkeys, datatype=None):
         """ Get config value. """
         try:
@@ -106,6 +111,13 @@ class ConfigParser:
         for key in subkeys:
             value = value[key]
 
+        # raise error if value isn't defined anywhere
+        if not value.exists():
+            raise NotFoundError(
+                f"{'.'.join([category, subcategory] + list(subkeys))} "
+                f"not found"
+            )
+
         if datatype is None:
             try:
                 # if dict, merge data from all config sources
@@ -115,6 +127,11 @@ class ConfigParser:
                 return value.get()
         else:
             return value.get(datatype)
+
+    def set_profile(self, profile):
+        """ Set a stream profile. """
+        settings = self._get_config("profiles", profile)
+        self.config["streams"].set(settings)
 
     def get_command_config(self, command, *subkeys, datatype=None):
         """ Get configuration for a CLI command. """
@@ -127,11 +144,6 @@ class ConfigParser:
         return self._get_config(
             "streams", stream_type, name, *subkeys, datatype=datatype
         )
-
-    @classmethod
-    def config_dir(cls):
-        """ Directory for user configuration. """
-        return Configuration(APPNAME, "ved_capture").config_dir()
 
     def get_folder(self, command, folder=None, **metadata):
         """ Resolve folder for command. """

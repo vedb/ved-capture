@@ -29,3 +29,10 @@ streams:
       device_uid: t265
     gyro:
       device_uid: t265
+
+profiles:
+  outdoor:
+    video:
+      eye0:
+        controls:
+          Gamma: 10
