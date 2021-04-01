@@ -70,7 +70,7 @@ commands:
       accel: null
       gyro: null
 
-    # Set to true to video windows at the start of the recording.
+    # Set to true to show video windows at the start of the recording.
     show_video: false
 
     # Metadata that is requested from the user at the start of the recording.
@@ -129,13 +129,13 @@ commands:
     # format syntax (see commands.record.folder for available options).
     folder: ~/pupil_capture_settings
 
-    # Name of the world camera stream.
+    # Name of the world camera stream. Has to be defined in streams.video.
     world: world
 
-    # Name of the right eye camera stream.
+    # Name of the right eye camera stream. Has to be defined in streams.video.
     eye0: eye0
 
-    # Name of the left eye camera stream.
+    # Name of the left eye camera stream. Has to be defined in streams.video.
     eye1: eye1
 
   # Configuration for vedc validate.
@@ -148,13 +148,13 @@ commands:
     # Folder creation policy (see commands.record.folder for options).
     policy: here
 
-    # Name of the world camera stream.
+    # Name of the world camera stream. Has to be defined in streams.video.
     world: world
 
-    # Name of the right eye camera stream.
+    # Name of the right eye camera stream. Has to be defined in streams.video.
     eye0: eye0
 
-    # Name of the left eye camera stream.
+    # Name of the left eye camera stream. Has to be defined in streams.video.
     eye1: eye1
 
     # Additional settings passed to processes in the pipeline for each stream.
