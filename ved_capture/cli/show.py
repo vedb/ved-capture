@@ -19,9 +19,16 @@ from ved_capture.config import ConfigParser
     "'<CONFIG_FILE>.yaml' in the app config folder.",
 )
 @click.option(
+    "-p",
+    "--profile",
+    default=None,
+    help="Stream profile to apply. Must be defined in default config or user"
+    "config.",
+)
+@click.option(
     "-v", "--verbose", default=False, help="Verbose output.", count=True,
 )
-def show(streams, config_file, verbose):
+def show(streams, config_file, profile, verbose):
     """ Show video streams. """
     ui = TerminalUI(inspect.stack()[0][3], verbosity=verbose)
 
@@ -30,6 +37,8 @@ def show(streams, config_file, verbose):
 
     # parse config
     with ConfigParser(config_file) as config_parser:
+        if profile is not None:
+            config_parser.set_profile(profile)
         stream_configs = config_parser.get_show_configs(*streams)
 
     # init manager
