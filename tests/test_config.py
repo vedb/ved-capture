@@ -3,35 +3,40 @@ from pathlib import Path
 import pytest
 from confuse import NotFoundError
 
-from ved_capture.config import ConfigParser
+from ved_capture.config import ConfigParser, flatten, save_config
+
+
+@pytest.fixture()
+def config_file(config_dir):
+    """ Path to the test config file. """
+    yield Path(config_dir) / "config.yaml"
+
+
+@pytest.fixture()
+def parser():
+    """ Parser with test config. """
+    yield ConfigParser()
+
+
+@pytest.fixture()
+def parser_default():
+    """ Parser with default config. """
+    yield ConfigParser(ignore_user=True)
+
+
+@pytest.fixture()
+def parser_minimal(config_dir):
+    """ Parser with minimal config (standard user config). """
+    yield ConfigParser(Path(config_dir) / "config_minimal.yaml")
+
+
+@pytest.fixture()
+def parser_override(config_dir):
+    """ Parser with overriding config (e.g. from generate_config). """
+    yield ConfigParser(Path(config_dir) / "config_override.yaml")
 
 
 class TestConfigParser:
-    @pytest.fixture()
-    def config_file(self, config_dir):
-        """ Path to the test config file. """
-        yield Path(config_dir) / "config.yaml"
-
-    @pytest.fixture()
-    def parser(self):
-        """ Parser with test config. """
-        yield ConfigParser()
-
-    @pytest.fixture()
-    def parser_default(self):
-        """ Parser with default config. """
-        yield ConfigParser(ignore_user=True)
-
-    @pytest.fixture()
-    def parser_minimal(self, config_dir):
-        """ Parser with minimal config (standard user config). """
-        yield ConfigParser(Path(config_dir) / "config_minimal.yaml")
-
-    @pytest.fixture()
-    def parser_override(self, config_dir):
-        """ Parser with overriding config (e.g. from generate_config). """
-        yield ConfigParser(Path(config_dir) / "config_override.yaml")
-
     def test_constructor(self, config_dir, config_file):
         """"""
         # path to file
@@ -270,3 +275,31 @@ class TestConfigParser:
 
         assert config_list[1].device_type == "t265"
         assert config_list[1].pipeline[0].process_type == "video_display"
+
+
+class TestMethods:
+    def test_flatten(self, parser, parser_override):
+        """"""
+        config = flatten(parser.config)
+        assert config["streams"]["video"]["eye0"]["fps"] == 200
+
+        config = flatten(parser_override.config)
+        assert set(config["commands"].keys()) == {
+            "override",
+            "record",
+            "estimate_cam_params",
+            "validate",
+            "calibrate",
+        }
+        assert set(config["streams"]["video"].keys()) == {"t265"}
+
+    def test_save_config(self, tmpdir, parser, parser_override):
+        """"""
+        # dict
+        save_config(tmpdir, {})
+
+        # config
+        save_config(tmpdir, parser.config)
+
+        # override config
+        save_config(tmpdir, parser_override.config)

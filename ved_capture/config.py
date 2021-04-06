@@ -14,6 +14,7 @@ from confuse import (
     NotFoundError,
     ConfigTypeError,
     ConfigReadError,
+    Dumper,
 )
 import pupil_recording_interface as pri
 
@@ -451,6 +452,25 @@ def save_metadata(folder, metadata):
         w.writerow(["key", "value"])
         w.writerows(metadata.items())
 
+    logger.debug(f"Saved user_info.csv to {folder}")
+
+
+def flatten(view):
+    """ Flatten config taking into account override flags. """
+    override = "override" in view and view["override"]
+
+    od = OrderedDict()
+    for key, subview in view.items():
+        try:
+            if override:
+                od[key] = subview.get(OrderedDict)
+            else:
+                od[key] = flatten(subview)
+        except ConfigTypeError:
+            od[key] = subview.get()
+
+    return od
+
 
 def default_to_regular(d):
     """ Convert nested defaultdict to nested regular dict. """
@@ -461,22 +481,13 @@ def default_to_regular(d):
 
 def save_config(folder, config, name="config"):
     """ Save configuration to yaml file. """
+    if isinstance(config, Configuration):
+        config = flatten(config)
+    else:
+        config = OrderedDict(default_to_regular(config))
 
-    def ordered_dump(data, stream=None, Dumper=yaml.Dumper, **kwds):
-        class OrderedDumper(Dumper):
-            pass
-
-        def _dict_representer(dumper, data):
-            return dumper.represent_mapping(
-                yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, data.items()
-            )
-
-        OrderedDumper.add_representer(OrderedDict, _dict_representer)
-        return yaml.dump(data, stream, OrderedDumper, **kwds)
-
-    # convert defaultdicts to regular dicts
-    config = default_to_regular(config)
-
-    # save to recording folder
+    # save to folder
     with open(Path(folder) / f"{name}.yaml", "w") as f:
-        ordered_dump(OrderedDict(config), f)
+        yaml.dump(config, f, Dumper)
+
+    logger.debug(f"Saved {name}.yaml to {folder}")

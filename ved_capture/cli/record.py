@@ -16,7 +16,7 @@ from ved_capture.utils import (
     check_disk_space,
     set_profile_from_metadata,
 )
-from ved_capture.config import ConfigParser, save_metadata
+from ved_capture.config import ConfigParser, save_config, save_metadata
 
 
 @click.command("record")
@@ -66,13 +66,10 @@ def record(config_file, verbose):
     check_disk_space(manager.folder)
 
     # write files to recording folder
-    with open(manager.folder / "config.yaml", "w") as f:
-        f.write(config_parser.config.dump(manager.folder / "config.yaml"))
-        ui.logger.debug(f"Saved config.yaml to {manager.folder}")
+    save_config(manager.folder, config_parser.config)
 
     if len(metadata) > 0:
         save_metadata(manager.folder, metadata)
-        ui.logger.debug(f"Saved user_info.csv to {manager.folder}")
 
     copy_cam_params(
         manager.streams,
