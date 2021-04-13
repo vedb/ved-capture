@@ -1,6 +1,7 @@
 import inspect
 import subprocess
 import sys
+from collections import defaultdict
 from pathlib import Path
 
 import click
@@ -74,26 +75,37 @@ def generate_config(folder, name, test_folder, no_metadata, verbose):
             )
             sys.exit(0)
 
-    # get default config
-    with open(Path(__file__).parents[1] / "config_default.yaml") as f:
-        config = yaml.safe_load(f)
+    # create config as defaultdict with arbitrary depth
+    # https://stackoverflow.com/a/8702435/4532781
+    nested_dict = lambda: defaultdict(nested_dict)  # noqa
+    config = nested_dict()
 
-    # overwrite record config
+    # get version from default config
+    with open(Path(__file__).parents[1] / "config_default.yaml") as f:
+        config["version"] = yaml.safe_load(f)["version"]
+
+    # create record config
+    config["commands"]["override"] = True
     config["commands"]["record"]["video"] = {}
     config["commands"]["record"]["motion"] = {}
     if test_folder is not None:
         config["commands"]["record"]["folder"] = test_folder
         config["commands"]["record"]["policy"] = "overwrite"
+    else:
+        config["commands"]["record"][
+            "folder"
+        ] = "~/recordings/{today:%Y_%m_%d_%H_%M_%S}"
+        config["commands"]["record"]["policy"] = "here"
     if no_metadata:
         config["commands"]["record"]["metadata"] = None
 
-    # overwrite estimate_cam_param config
-    config["commands"]["estimate_cam_params"]["streams"] = {}
-
-    # TODO overwrite calibrate, validate with configured streams
+    # create estimate_cam_param config
+    config["commands"]["estimate_cam_params"][
+        "folder"
+    ] = "~/pupil_capture_settings"
 
     # overwrite streams
-    config["streams"] = {"video": {}, "motion": {}}
+    config["streams"] = {"override": True, "video": {}, "motion": {}}
 
     # get connected devices
     pupil_devices = get_pupil_devices()
@@ -117,6 +129,9 @@ def generate_config(folder, name, test_folder, no_metadata, verbose):
 
     for serial in flir_devices:
         config = get_flir_config(config, serial)
+
+    # overwrite profiles
+    config["profiles"] = {"override": True}
 
     # write config
     if len(config["streams"]["video"]) + len(config["streams"]["motion"]) == 0:
@@ -160,9 +175,14 @@ def auto_config(verbose, test_folder, no_metadata):
             logger.info(f"Did not overwrite {filepath}")
             sys.exit(0)
 
-    # get default config
+    # create config as defaultdict with arbitrary depth
+    # https://stackoverflow.com/a/8702435/4532781
+    nested_dict = lambda: defaultdict(nested_dict)  # noqa
+    config = nested_dict()
+
+    # get version from default config
     with open(Path(__file__).parents[1] / "config_default.yaml") as f:
-        config = yaml.safe_load(f)
+        config["version"] = yaml.safe_load(f)["version"]
 
     # set test folder if specified
     if test_folder is not None:

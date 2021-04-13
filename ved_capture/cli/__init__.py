@@ -10,6 +10,7 @@ from ved_capture.cli.config import generate_config, auto_config, edit_config
 from ved_capture.cli.record import record
 from ved_capture.cli.show import show
 from ved_capture.cli.export import export
+from ved_capture.cli.device_info import device_info
 
 
 @click.group("vedc")
@@ -18,6 +19,10 @@ def vedc():
     """ Visual Experience Data Capture.
 
     Command line tool for the Visual Experience Database.
+
+    \b
+    For more information check out the wiki:
+    https://github.com/vedb/ved-capture/wiki
     """
 
 
@@ -34,3 +39,4 @@ vedc.add_command(update)
 vedc.add_command(check_install)
 vedc.add_command(save_logs)
 vedc.add_command(export)
+vedc.add_command(device_info)

@@ -28,8 +28,7 @@ from distutils.version import LooseVersion
 import re
 
 
-__installer_version = "1.4.3"
-__maintainer_email = "peter.hausamann@tum.de"
+__installer_version = "1.4.4"
 
 # -- LOGGING -- #
 logger = logging.getLogger(Path(__file__).stem)
@@ -176,9 +175,9 @@ def handle_process(process, command, error_msg, n_bytes=4096):
                 " ".join([str(c) for c in command])
                 + f" failed with exit code {return_code}. See the output "
                 f"above for more information. If you don't know how to fix "
-                f"this by yourself, please send an email with the "
-                f"'install_ved_capture.log' file located in "
-                f"{Path(__file__).resolve().parent} to {__maintainer_email}.",
+                f"this by yourself, please send a message on the #software "
+                f"Slack channel and attach the 'install_ved_capture.log' "
+                f"file located in {Path(__file__).resolve().parent}.",
             )
         else:
             logger.error(error_msg)
@@ -666,8 +665,8 @@ if __name__ == "__main__":
     if not show_welcome_message(args.yes):
         logger.info(
             f"\nPlease create an account at https://www.github.com and send "
-            f"an email with your user name to {__maintainer_email} to get "
-            f"access.",
+            f"a message with your user name on the #software Slack channel to "
+            f"get access.",
         )
         abort()
 

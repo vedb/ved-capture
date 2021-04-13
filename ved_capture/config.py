@@ -1,12 +1,12 @@
 """"""
-import os
-import datetime
-from collections import OrderedDict
-from ast import literal_eval
-from pathlib import Path
-from copy import deepcopy
 import csv
+import datetime
 import logging
+from ast import literal_eval
+from collections import OrderedDict, defaultdict
+from copy import deepcopy
+from distutils.version import StrictVersion
+from pathlib import Path
 
 import yaml
 from confuse import (
@@ -14,6 +14,7 @@ from confuse import (
     NotFoundError,
     ConfigTypeError,
     ConfigReadError,
+    Dumper,
 )
 import pupil_recording_interface as pri
 
@@ -28,10 +29,10 @@ logger = logging.getLogger(__name__)
 class ConfigParser:
     """ Parser for application config. """
 
-    def __init__(self, config_file=None):
+    def __init__(self, config_file=None, ignore_user=False):
         """ Constructor. """
         try:
-            self.config = Configuration(APPNAME, "ved_capture")
+            self.config = Configuration(APPNAME, "ved_capture", read=False)
         except ConfigReadError as e:
             from ved_capture.cli.utils import raise_error
 
@@ -49,6 +50,22 @@ class ConfigParser:
         else:
             self.config_file = None
 
+        # ignore user config if config file provided or explicitly ignored
+        if config_file is not None or ignore_user:
+            self.config.read(user=False)
+        else:
+            self.config.read()
+
+        # check if legacy format (user-defined config overrides all defaults)
+        self.legacy = (
+            StrictVersion(self.config["version"].get(str)).version[0] < 2
+        )
+        if self.legacy:
+            logger.warning(
+                "You are using an outdated config file format, "
+                "run 'vedc auto_config' to update"
+            )
+
     def __enter__(self):
         return self
 
@@ -64,60 +81,84 @@ class ConfigParser:
                 logger,
             )
 
-    def get_command_config(self, command, *subkeys):
-        """ Get configuration for a CLI command. """
-        # TODO user-defined command configs completely
-        #  override the package default. Is that what we want?
-        try:
-            value = deepcopy(self.config["commands"][command].get(dict))
-            for key in subkeys:
-                value = value[key]
-        except KeyError:
-            raise NotFoundError(
-                f"commands.{command}.{'.'.join(subkeys)} not found"
-            )
-
-        return value
-
-    def get_stream_config(self, stream_type, name, *subkeys):
-        """ Get config for a stream. """
-        # TODO user-defined stream configs completely
-        #  override the package default. Is that what we want?
-        try:
-            value = deepcopy(self.config["streams"][stream_type].get(dict))[
-                name
-            ]
-            for key in subkeys:
-                value = value[key]
-        except KeyError:
-            if len(subkeys):
-                raise NotFoundError(
-                    f"streams.{name}.{'.'.join(subkeys)} not found"
-                )
-            else:
-                raise NotFoundError(f"Stream '{name}' is not defined")
-
-        return value
-
     @classmethod
     def config_dir(cls):
         """ Directory for user configuration. """
         return Configuration(APPNAME, "ved_capture").config_dir()
 
-    def get_folder(self, command, folder, **metadata):
+    def _get_config(self, category, subcategory, *subkeys, datatype=None):
+        """ Get config value. """
+        try:
+            override = self.config[category]["override"].get(bool)
+        except (ConfigTypeError, NotFoundError):
+            override = False
+
+        # override/legacy mode: user-defined config overrides defaults
+        if override or self.legacy:
+            try:
+                value = deepcopy(self.config[category][subcategory].get(dict))
+                for key in subkeys:
+                    value = value[key]
+                return value
+            except KeyError:
+                raise NotFoundError(
+                    f"{'.'.join([category, subcategory] + list(subkeys))} "
+                    f"not found"
+                )
+
+        # new mode: merge data from all config sources
+        value = self.config[category][subcategory]
+        for key in subkeys:
+            value = value[key]
+
+        # raise error if value isn't defined anywhere
+        if not value.exists():
+            raise NotFoundError(
+                f"{'.'.join([category, subcategory] + list(subkeys))} "
+                f"not found"
+            )
+
+        if datatype is None:
+            try:
+                # if dict, merge data from all config sources
+                return value.flatten()
+            except ConfigTypeError:
+                # not a dict, just return the value
+                return value.get()
+        else:
+            return value.get(datatype)
+
+    def set_profile(self, profile):
+        """ Set a stream profile. """
+        settings = self._get_config("profiles", profile)
+        self.config["streams"].set(settings)
+
+    def get_command_config(self, command, *subkeys, datatype=None):
+        """ Get configuration for a CLI command. """
+        return self._get_config(
+            "commands", command, *subkeys, datatype=datatype
+        )
+
+    def get_stream_config(self, stream_type, name, *subkeys, datatype=None):
+        """ Get configuration for a stream. """
+        return self._get_config(
+            "streams", stream_type, name, *subkeys, datatype=datatype
+        )
+
+    def get_folder(self, command, folder=None, **metadata):
         """ Resolve folder for command. """
         if folder is not None:
             return folder
 
         try:
-            folder = self.config["commands"][command].get(dict)["folder"]
+            folder = self.get_command_config(command, "folder", datatype=str)
             if folder is not None:
                 try:
                     folder = folder.format(
-                        cwd=os.getcwd(),
-                        cfgd=os.path.dirname(
+                        cwd=Path.cwd(),
+                        cfgd=Path(
                             self.config_file or self.config.config_dir()
-                        ),
+                        ).parent,
                         today=datetime.datetime.today(),
                         **metadata,
                     )
@@ -129,35 +170,33 @@ class ConfigParser:
                     )
             else:
                 return Path.cwd()
-        except (NotFoundError, ConfigTypeError, KeyError):
-            return os.getcwd()
+        except NotFoundError:
+            return Path.cwd()
 
     def get_policy(self, command, policy=None):
         """ Get policy for command. """
         try:
-            return policy or self.config["commands"][command]["policy"].get(
-                str
+            return policy or self.get_command_config(
+                command, "policy", datatype=str
             )
-        except (NotFoundError, ConfigTypeError):
+        except NotFoundError:
             return "new_folder"
 
     def get_duration(self, command, duration=None):
         """ Get duration for command. """
         try:
-            return duration or self.config["commands"][command][
-                "duration"
-            ].get(float)
-        except (NotFoundError, ConfigTypeError):
+            return duration or self.get_command_config(command, "duration")
+        except NotFoundError:
             return None
 
     def get_show_video(self, show_video=None):
         """ Get show_video flag. """
         if show_video is None:
             try:
-                return self.config["commands"]["record"]["show_video"].get(
-                    bool
+                return self.get_command_config(
+                    "record", "show_video", datatype=bool
                 )
-            except (NotFoundError, ConfigTypeError):
+            except NotFoundError:
                 return False
         else:
             return show_video
@@ -165,17 +204,17 @@ class ConfigParser:
     def get_recording_cam_params(self):
         """ Get video streams for which to copy intrinsics and extrinsics. """
         try:
-            intrinsics = self.config["commands"]["record"]["intrinsics"].get(
-                list
+            intrinsics = self.get_command_config(
+                "record", "intrinsics", datatype=list
             )
-        except (ConfigTypeError, NotFoundError):
+        except NotFoundError:
             intrinsics = []
 
         try:
-            extrinsics = self.config["commands"]["record"]["extrinsics"].get(
-                list
+            extrinsics = self.get_command_config(
+                "record", "extrinsics", datatype=list
             )
-        except (ConfigTypeError, NotFoundError):
+        except NotFoundError:
             extrinsics = []
 
         return intrinsics, extrinsics
@@ -183,7 +222,7 @@ class ConfigParser:
     def get_metadata(self):
         """ Get recording metadata. """
         try:
-            fields = self.config["commands"]["record"]["metadata"].get()
+            fields = self.get_command_config("record", "metadata")
         except NotFoundError:
             return {}
 
@@ -192,7 +231,7 @@ class ConfigParser:
             metadata = {field: input(f"- {field}: ") for field in fields}
             print("")
             return metadata
-        if isinstance(fields, dict):
+        if isinstance(fields, (OrderedDict, dict)):
             print(
                 "Please enter the following metadata (press Enter to accept "
                 "default values in square brackets):"
@@ -257,16 +296,21 @@ class ConfigParser:
 
         return configs
 
-    def _get_validation_pipeline(self, config, cam_type):
-        """ Get validation pipelinqe for stream config. """
+    def _get_validation_pipeline(self, config, cam_type, name):
+        """ Get validation pipeline for stream config. """
         if "pipeline" not in config:
             config["pipeline"] = []
 
         if cam_type == "world":
             try:
-                circle_detector_params = self.get_command_config(
-                    "validate", "settings", "circle_detector"
-                )
+                if self.legacy:
+                    circle_detector_params = self.get_command_config(
+                        "validate", "settings", "circle_detector"
+                    )
+                else:
+                    circle_detector_params = self.get_command_config(
+                        "validate", "settings", name, "circle_detector"
+                    )
             except NotFoundError:
                 circle_detector_params = {}
 
@@ -292,10 +336,12 @@ class ConfigParser:
         configs = []
 
         for cam_type in ("world", "eye0", "eye1"):
-            name = self.get_command_config("validate", cam_type)
+            name = self.get_command_config("validate", cam_type, datatype=str)
             config = self.get_stream_config("video", name)
             config["resolution"] = literal_eval(config["resolution"])
-            config = self._get_validation_pipeline(config or {}, cam_type)
+            config = self._get_validation_pipeline(
+                config or {}, cam_type, name
+            )
             configs.append(pri.VideoStream.Config(name=name, **config))
 
         return configs
@@ -326,7 +372,7 @@ class ConfigParser:
         configs = []
 
         for cam_type in ("world", "eye0", "eye1"):
-            name = self.get_command_config("calibrate", cam_type)
+            name = self.get_command_config("calibrate", cam_type, datatype=str)
             config = self.get_stream_config("video", name)
             config["resolution"] = literal_eval(config["resolution"])
             config = self._get_calibration_pipeline(config or {}, cam_type)
@@ -342,14 +388,22 @@ class ConfigParser:
             config["pipeline"] = []
 
         try:
-            command_config = self.config["commands"]["estimate_cam_params"][
-                "streams"
-            ][name].get(dict)
-        except (ConfigTypeError, NotFoundError):
-            command_config = {}
+            if self.legacy:
+                detector_params = self.get_command_config(
+                    "estimate_cam_params", "streams", name
+                )
+            else:
+                detector_params = self.get_command_config(
+                    "estimate_cam_params",
+                    "settings",
+                    name,
+                    "circle_grid_detector",
+                )
+        except NotFoundError:
+            detector_params = {}
 
         config["pipeline"].append(
-            pri.CircleGridDetector.Config(**command_config)
+            pri.CircleGridDetector.Config(**detector_params)
         )
         if master:
             # first stream gets cam param estimator
@@ -393,27 +447,47 @@ class ConfigParser:
 
 def save_metadata(folder, metadata):
     """ Save metadata to user_info.csv. """
-    with open(os.path.join(folder, "user_info.csv"), "w") as f:
+    with open(Path(folder) / "user_info.csv", "w") as f:
         w = csv.writer(f)
         w.writerow(["key", "value"])
         w.writerows(metadata.items())
 
+    logger.debug(f"Saved user_info.csv to {folder}")
+
+
+def flatten(view):
+    """ Flatten config taking into account override flags. """
+    override = "override" in view and view["override"]
+
+    od = OrderedDict()
+    for key, subview in view.items():
+        try:
+            if override:
+                od[key] = subview.get(OrderedDict)
+            else:
+                od[key] = flatten(subview)
+        except ConfigTypeError:
+            od[key] = subview.get()
+
+    return od
+
+
+def default_to_regular(d):
+    """ Convert nested defaultdict to nested regular dict. """
+    if isinstance(d, defaultdict):
+        d = {k: default_to_regular(v) for k, v in d.items()}
+    return d
+
 
 def save_config(folder, config, name="config"):
     """ Save configuration to yaml file. """
+    if isinstance(config, Configuration):
+        config = flatten(config)
+    else:
+        config = OrderedDict(default_to_regular(config))
 
-    def ordered_dump(data, stream=None, Dumper=yaml.Dumper, **kwds):
-        class OrderedDumper(Dumper):
-            pass
-
-        def _dict_representer(dumper, data):
-            return dumper.represent_mapping(
-                yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, data.items()
-            )
-
-        OrderedDumper.add_representer(OrderedDict, _dict_representer)
-        return yaml.dump(data, stream, OrderedDumper, **kwds)
-
-    # save to recording folder
+    # save to folder
     with open(Path(folder) / f"{name}.yaml", "w") as f:
-        ordered_dump(OrderedDict(config), f)
+        yaml.dump(config, f, Dumper)
+
+    logger.debug(f"Saved {name}.yaml to {folder}")

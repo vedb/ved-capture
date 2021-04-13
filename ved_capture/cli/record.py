@@ -11,8 +11,12 @@ from ved_capture.cli.commands import (
     hide_video_streams,
 )
 from ved_capture.cli.ui import TerminalUI
-from ved_capture.utils import copy_cam_params
-from ved_capture.config import ConfigParser, save_metadata
+from ved_capture.utils import (
+    copy_cam_params,
+    check_disk_space,
+    set_profile,
+)
+from ved_capture.config import ConfigParser, save_config, save_metadata
 
 
 @click.command("record")
@@ -25,9 +29,16 @@ from ved_capture.config import ConfigParser, save_metadata
     "'<CONFIG_FILE>.yaml' in the app config folder.",
 )
 @click.option(
+    "-p",
+    "--profile",
+    default=None,
+    help="Stream profile to apply. Must be defined in default config or user"
+    "config. Overrides automatic selection of profile based on metadata.",
+)
+@click.option(
     "-v", "--verbose", default=False, help="Verbose output.", count=True,
 )
-def record(config_file, verbose):
+def record(config_file, profile, verbose):
     """ Run recording. """
     ui = TerminalUI(
         inspect.stack()[0][3], verbosity=verbose, temp_file_handler=True
@@ -36,6 +47,7 @@ def record(config_file, verbose):
     # parse config
     with ConfigParser(config_file) as config_parser:
         metadata = config_parser.get_metadata()
+        set_profile(config_parser, profile, metadata)
         stream_configs = config_parser.get_recording_configs()
         folder = config_parser.get_folder("record", None, **metadata)
         cam_params_folder = config_parser.get_folder(
@@ -57,14 +69,14 @@ def record(config_file, verbose):
 
     print(f"{ui.term.bold('Started recording')} to {manager.folder}")
 
+    # check free disk space
+    check_disk_space(manager.folder)
+
     # write files to recording folder
-    with open(manager.folder / "config.yaml", "w") as f:
-        f.write(config_parser.config.dump(manager.folder / "config.yaml"))
-        ui.logger.debug(f"Saved config.yaml to {manager.folder}")
+    save_config(manager.folder, config_parser.config)
 
     if len(metadata) > 0:
         save_metadata(manager.folder, metadata)
-        ui.logger.debug(f"Saved user_info.csv to {manager.folder}")
 
     copy_cam_params(
         manager.streams,

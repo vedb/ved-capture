@@ -11,6 +11,7 @@ from select import select
 
 import numpy as np
 import simpleaudio
+from confuse import NotFoundError
 from simpleaudio._simpleaudio import SimpleaudioError
 from pkg_resources import parse_version
 
@@ -410,3 +411,54 @@ def beep(freq=440, fs=44100, seconds=0.1, fade_len=0.01):
         time.sleep(len(freq) * seconds)
     except SimpleaudioError as e:
         logger.error(f"Error playing sound: {e}")
+
+
+def set_profile(config_parser, profile, metadata):
+    """ Set stream profile from metadata value. """
+    if profile is None:
+        # get selector from metadata
+        try:
+            selector = config_parser.get_command_config(
+                "record", "profile_selector"
+            )
+        except NotFoundError:
+            logger.warning(
+                f"commands.record.profile_selector missing from config, "
+                f"cannot auto-select profile"
+            )
+            return
+
+        # get profile from selector
+        if selector in metadata:
+            profile = metadata[selector]
+        else:
+            if selector is not None:
+                logger.warning(
+                    f"'{selector}' missing from metadata, "
+                    f"cannot auto-select profile"
+                )
+            return
+
+    try:
+        config_parser.set_profile(profile)
+        logger.info(f"Using '{profile}' profile")
+        metadata["profile"] = profile
+    except NotFoundError:
+        logger.warning(
+            f"No profile named '{profile}' found, using default profile"
+        )
+
+
+def check_disk_space(folder, min_space_gb=30):
+    """ Check available disk space and emit a warning if low. """
+    try:
+        free_gb = shutil.disk_usage(folder).free / (1024 ** 3)
+    except FileNotFoundError:
+        logger.warning(f"Could not determine disk space for folder {folder}")
+        return
+
+    if free_gb < min_space_gb:
+        logger.warning(
+            f"Available disk space in {folder} is {free_gb:.1f} GB, make sure "
+            f"you have at least {min_space_gb} GB of free space"
+        )
