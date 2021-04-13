@@ -297,24 +297,24 @@ profiles:
       eye0:
         controls:
           Backlight Compensation: 1
-          Brightness: 10
+          Brightness: 0
           Contrast: 65
           Gain: 0
           Hue: 0
           Saturation: 0
           Sharpness: 3
-          Gamma: 120
+          Gamma: 180
           White Balance temperature: 4600
       eye1:
         controls:
           Backlight Compensation: 1
-          Brightness: 10
+          Brightness: 0
           Contrast: 65
           Gain: 0
           Hue: 0
           Saturation: 0
           Sharpness: 3
-          Gamma: 120
+          Gamma: 180
           White Balance temperature: 4600
 
   # Profile for outdoor recordings.
@@ -323,22 +323,22 @@ profiles:
       eye0:
         controls:
           Backlight Compensation: 1
-          Brightness: 10
+          Brightness: -60
           Contrast: 65
           Gain: 0
           Hue: 0
           Saturation: 0
           Sharpness: 3
-          Gamma: 120
+          Gamma: 100
           White Balance temperature: 4600
       eye1:
         controls:
           Backlight Compensation: 1
-          Brightness: 10
+          Brightness: -60
           Contrast: 65
           Gain: 0
           Hue: 0
           Saturation: 0
           Sharpness: 3
-          Gamma: 120
+          Gamma: 100
           White Balance temperature: 4600
