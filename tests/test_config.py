@@ -6,36 +6,6 @@ from confuse import NotFoundError
 from ved_capture.config import ConfigParser, flatten, save_config
 
 
-@pytest.fixture()
-def config_file(config_dir):
-    """ Path to the test config file. """
-    yield Path(config_dir) / "config.yaml"
-
-
-@pytest.fixture()
-def parser():
-    """ Parser with test config. """
-    yield ConfigParser()
-
-
-@pytest.fixture()
-def parser_default():
-    """ Parser with default config. """
-    yield ConfigParser(ignore_user=True)
-
-
-@pytest.fixture()
-def parser_minimal(config_dir):
-    """ Parser with minimal config (standard user config). """
-    yield ConfigParser(Path(config_dir) / "config_minimal.yaml")
-
-
-@pytest.fixture()
-def parser_override(config_dir):
-    """ Parser with overriding config (e.g. from generate_config). """
-    yield ConfigParser(Path(config_dir) / "config_override.yaml")
-
-
 class TestConfigParser:
     def test_constructor(self, config_dir, config_file):
         """"""

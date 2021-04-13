@@ -14,7 +14,7 @@ from ved_capture.cli.ui import TerminalUI
 from ved_capture.utils import (
     copy_cam_params,
     check_disk_space,
-    set_profile_from_metadata,
+    set_profile,
 )
 from ved_capture.config import ConfigParser, save_config, save_metadata
 
@@ -29,9 +29,16 @@ from ved_capture.config import ConfigParser, save_config, save_metadata
     "'<CONFIG_FILE>.yaml' in the app config folder.",
 )
 @click.option(
+    "-p",
+    "--profile",
+    default=None,
+    help="Stream profile to apply. Must be defined in default config or user"
+    "config. Overrides automatic selection of profile based on metadata.",
+)
+@click.option(
     "-v", "--verbose", default=False, help="Verbose output.", count=True,
 )
-def record(config_file, verbose):
+def record(config_file, profile, verbose):
     """ Run recording. """
     ui = TerminalUI(
         inspect.stack()[0][3], verbosity=verbose, temp_file_handler=True
@@ -40,7 +47,7 @@ def record(config_file, verbose):
     # parse config
     with ConfigParser(config_file) as config_parser:
         metadata = config_parser.get_metadata()
-        set_profile_from_metadata(config_parser, metadata)
+        set_profile(config_parser, profile, metadata)
         stream_configs = config_parser.get_recording_configs()
         folder = config_parser.get_folder("record", None, **metadata)
         cam_params_folder = config_parser.get_folder(

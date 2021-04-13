@@ -413,32 +413,39 @@ def beep(freq=440, fs=44100, seconds=0.1, fade_len=0.01):
         logger.error(f"Error playing sound: {e}")
 
 
-def set_profile_from_metadata(config_parser, metadata):
+def set_profile(config_parser, profile, metadata):
     """ Set stream profile from metadata value. """
-    try:
-        selector = config_parser.get_command_config(
-            "record", "profile_selector"
-        )
-    except NotFoundError:
-        logger.warning(
-            f"commands.record.profile_selector missing from config, "
-            f"cannot auto-select profile"
-        )
-        return
-
-    if selector in metadata:
-        profile = metadata[selector]
+    if profile is None:
+        # get selector from metadata
         try:
-            config_parser.set_profile(profile)
-            logger.info(f"Using '{profile}' profile")
+            selector = config_parser.get_command_config(
+                "record", "profile_selector"
+            )
         except NotFoundError:
             logger.warning(
-                f"No profile for {selector} '{profile}' found, "
-                f"using default profile"
+                f"commands.record.profile_selector missing from config, "
+                f"cannot auto-select profile"
             )
-    elif selector is not None:
+            return
+
+        # get profile from selector
+        if selector in metadata:
+            profile = metadata[selector]
+        else:
+            if selector is not None:
+                logger.warning(
+                    f"'{selector}' missing from metadata, "
+                    f"cannot auto-select profile"
+                )
+            return
+
+    try:
+        config_parser.set_profile(profile)
+        logger.info(f"Using '{profile}' profile")
+        metadata["profile"] = profile
+    except NotFoundError:
         logger.warning(
-            f"'{selector}' missing from metadata, cannot auto-select profile"
+            f"No profile named '{profile}' found, using default profile"
         )
 
 
