@@ -93,3 +93,6 @@ def calculate_calibration(ui, stream="world"):
 def acquire_pattern(ui):
     """ Acquire a new calibration pattern. """
     ui.manager.send_notification({"acquire_pattern": True})
+
+def simple_beep(ui):
+    beep([660])

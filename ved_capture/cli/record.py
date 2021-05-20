@@ -9,6 +9,7 @@ from ved_capture.cli.commands import (
     resume_recording,
     show_video_streams,
     hide_video_streams,
+    simple_beep,
 )
 from ved_capture.cli.ui import TerminalUI
 from ved_capture.utils import (
@@ -103,7 +104,21 @@ def record(config_file, profile, verbose):
         alt_fn=resume_recording,
         alt_msg="Resuming video recording",
     )
-
+    ui.add_key(
+        "KEY_LEFT",
+        "pause recording",
+        pause_recording,
+        msg="Pausing video recording",
+        alt_description="resume recording",
+        alt_fn=resume_recording,
+        alt_msg="Resuming video recording",
+    )
+    ui.add_key(
+        "b",
+        "check bluetooth",
+        simple_beep,
+        msg="Verify bluetooth connection",
+    )
     # spin
     with ui, manager:
         ui.spin()
