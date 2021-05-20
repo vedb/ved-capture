@@ -1,5 +1,7 @@
 """ Installation script for ved-capture.
 
+WARNING: THIS INSTALLER IS DEPRECATED AND WILL LIKELY NOT WORK!
+
 This script will set up ved-capture including all of its dependencies as
 well as the `vedc` command line interface.
 
@@ -28,7 +30,7 @@ from distutils.version import LooseVersion
 import re
 
 
-__installer_version = "1.4.4"
+__installer_version = "1.4.5"
 
 # -- LOGGING -- #
 logger = logging.getLogger(Path(__file__).stem)
@@ -70,6 +72,8 @@ def show_welcome_message(yes=False):
             "# Welcome to the VED capture installation script. #\n"
             "###################################################\n"
             "\n"
+            "WARNING: THIS INSTALLER IS DEPRECATED AND WILL LIKELY NOT WORK!\n"
+            "\n"
             "This script will guide you through the setup process for VED "
             "capture.\n"
             "\n"
@@ -91,6 +95,8 @@ def show_welcome_message(yes=False):
             "###################################################\n"
             "#      VED capture installation - auto-mode.      #\n"
             "###################################################"
+            "\n"
+            "WARNING: THIS INSTALLER IS DEPRECATED AND WILL LIKELY NOT WORK!\n"
         )
         return True
 

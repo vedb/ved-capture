@@ -30,7 +30,7 @@ Create alias (replace `~/.bashrc` with `~/.zshrc` if using `zsh` as shell):
 ## Usage
 
 The central tool of this app is the command line tool `vedc`. You can use it
-to generate recording configurations, make recordings, update the app and more.
+to generate recording configurations, make recordings and more.
  
 ### Generating a configuration
 
