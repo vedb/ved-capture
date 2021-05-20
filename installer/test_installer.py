@@ -103,6 +103,7 @@ class TestMethods:
         install_miniconda(prefix=output_folder)
         assert (output_folder / "bin" / "conda").exists()
 
+    @pytest.mark.xfail(reason="environment.devenv.yml was removed")
     def test_get_min_conda_devenv_version(self, local_repo_folder):
         """"""
         version = get_min_conda_devenv_version(local_repo_folder)
