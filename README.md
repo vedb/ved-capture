@@ -22,10 +22,10 @@ Configure system:
 
     $ bash configure.sh
 
-Create alias (replace `~/.bashrc` with `~/.zshrc` if using `zsh` as shell):
-
-    $ echo 'alias vedc="conda run -n vedc vedc"' >> ~/.bashrc 
+Reload `.bashrc` (or the appropriate rc file for your shell) and check installation:
+    
     $ source ~/.bashrc
+    $ vedc check_install
  
 ## Usage
 

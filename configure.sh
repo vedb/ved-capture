@@ -13,4 +13,19 @@ sudo /etc/init.d/udev restart
 
 # increase USBFS memory
 sudo sed -i s/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash usbcore.usbfs_memory_mb=1000"/ /etc/default/grub
-sudo update-grup
+sudo update-grub
+
+# remove old vedc executable
+sudo rm -f /usr/local/bin/vedc
+
+# create alias
+if ! command -v vedc &> /dev/null ; then
+  if [[ "$SHELL" == *bash ]] ; then
+    echo 'alias vedc="conda run -n vedc vedc"' >> "$HOME/.bashrc"
+  elif [[ "$SHELL" == *zsh ]] ; then
+    echo 'alias vedc="conda run -n vedc vedc"' >> "$HOME/.zshrc"
+  else
+    echo "Could not determine shell type, add \'alias vedc=\"conda run -n vedc vedc\"\' to your shell\'s rc file manually"
+    exit 1
+  fi
+fi
