@@ -193,9 +193,15 @@ commands:
         circle_grid_detector:
           stereo: true
           scale: 0.75
+        cam_param_estimator:
+          num_patterns: 15
+          grid_scale: 0.02
       world:
         circle_grid_detector:
           scale: 0.5
+        cam_param_estimator:
+          num_patterns: 15
+          grid_scale: 0.02
 
 ## STREAMS
 # The streams section defines all streams that are used by the CLI commands.

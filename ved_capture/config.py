@@ -387,6 +387,7 @@ class ConfigParser:
         if "pipeline" not in config:
             config["pipeline"] = []
 
+        # circle grid detector
         try:
             if self.legacy:
                 detector_params = self.get_command_config(
@@ -405,13 +406,27 @@ class ConfigParser:
         config["pipeline"].append(
             pri.CircleGridDetector.Config(**detector_params)
         )
+
+        # first stream gets cam param estimator
         if master:
-            # first stream gets cam param estimator
-            config["pipeline"].append(
-                pri.CamParamEstimator.Config(
-                    streams=streams, extrinsics=extrinsics
+            try:
+                estimator_params = self.get_command_config(
+                    "estimate_cam_params",
+                    "settings",
+                    name,
+                    "cam_param_estimator",
                 )
+            except NotFoundError:
+                estimator_params = {}
+
+            estimator_params.update(
+                {"streams": streams, "extrinsics": extrinsics}
             )
+            config["pipeline"].append(
+                pri.CamParamEstimator.Config(**estimator_params)
+            )
+
+        # video display
         config["pipeline"].append(pri.VideoDisplay.Config(max_width=MAX_WIDTH))
 
         return config
