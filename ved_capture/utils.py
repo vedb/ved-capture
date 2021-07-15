@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 def get_pupil_devices():
     """ Get names and UIDs of connected Pupil cameras. """
+    # TODO create a public member for this
     connected_devices = pri.VideoDeviceUVC._get_connected_device_uids()
     pupil_cams = {
         name: uid
