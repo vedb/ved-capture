@@ -180,9 +180,12 @@ def auto_config(verbose, test_folder, no_metadata):
     nested_dict = lambda: defaultdict(nested_dict)  # noqa
     config = nested_dict()
 
-    # get version from default config
+    # load default config
     with open(Path(__file__).parents[1] / "config_default.yaml") as f:
-        config["version"] = yaml.safe_load(f)["version"]
+        default_config = yaml.safe_load(f)
+
+    # set version
+    config["version"] = default_config["version"]
 
     # set test folder if specified
     if test_folder is not None:
@@ -193,6 +196,9 @@ def auto_config(verbose, test_folder, no_metadata):
     if no_metadata:
         config["commands"]["record"]["metadata"] = None
     else:
+        config["commands"]["record"]["metadata"] = default_config["commands"][
+            "record"
+        ]["metadata"]
         config["commands"]["record"]["metadata"]["study_site"] = input(
             "Please enter the study site (UNR, NDSU, Bates, ...): "
         )
