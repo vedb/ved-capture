@@ -4,10 +4,11 @@
 
 # ved-capture
 
-**ved-capture** is the app for simultaneous recording of video, gaze and head
-tracking data for the Visual Experience Database.
+**ved-capture** is the app for simultaneous recording of video, gaze and head tracking data for the Visual Experience Database.
  
 ## Installation
+
+The following instructions assume that you have installed an Anaconda/Miniconda Python distribution and have set up and SSH keypair with GitHub. If you haven't, please refer to the [installation instructions in the wiki](https://github.com/vedb/ved-capture/wiki/Installation).
 
 Clone the repository:
 
@@ -29,8 +30,7 @@ Reload `.bashrc` (or the appropriate rc file for your shell) and check installat
  
 ## Usage
 
-The central tool of this app is the command line tool `vedc`. You can use it
-to generate recording configurations, make recordings and more.
+The central tool of this app is the command line tool `vedc`. You can use it to generate recording configurations, make recordings and more.
  
 ### Generating a configuration
 
@@ -38,8 +38,7 @@ Plug in your hardware (Pupil core system, RealSense T265, FLIR camera) and run:
 
     $ vedc auto_config
     
-This will check your connected devices and auto-generate a configuration for 
-your current setup.
+This will check your connected devices and auto-generate a configuration for your current setup.
 
 ### Streaming video
 
@@ -49,5 +48,4 @@ To show all camera streams, run:
 
 ### Other commands
 
-Check out the [wiki](https://github.com/vedb/ved-capture/wiki) for a 
-comprehensive list of available commands.
+Check out the [wiki](https://github.com/vedb/ved-capture/wiki) for a comprehensive list of available commands.
