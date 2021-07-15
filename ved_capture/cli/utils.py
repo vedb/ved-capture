@@ -197,7 +197,10 @@ def get_uvc_config(config, name, uid):
         )
         modes = {
             idx: mode
-            for idx, mode in enumerate(pri.VideoDeviceUVC(uid).available_modes)
+            for idx, mode in enumerate(
+                # TODO create a public method for this
+                pri.VideoDeviceUVC._get_uvc_capture(uid).avaible_modes  # [sic]
+            )
         }
         selected_mode = mode_prompt(modes)
         config["streams"]["video"][stream_name] = {
