@@ -19,13 +19,24 @@ sudo update-grub
 sudo rm -f /usr/local/bin/vedc
 
 # create alias
-if ! command -v vedc &> /dev/null ; then
-  if [[ "$SHELL" == *bash ]] ; then
-    echo 'alias vedc="conda run -n vedc vedc"' >> "$HOME/.bashrc"
-  elif [[ "$SHELL" == *zsh ]] ; then
-    echo 'alias vedc="conda run -n vedc vedc"' >> "$HOME/.zshrc"
-  else
-    echo "Could not determine shell type, add \'alias vedc=\"conda run -n vedc vedc\"\' to your shell\'s rc file manually"
-    exit 1
-  fi
+CLI_CMD="vedc-cli () { conda activate vedc;  vedc \$@; conda deactivate }"
+ALIAS_CMD="alias vedc=vedc-cli"
+
+if [[ "$SHELL" == *bash ]] ; then
+  RC_FILE="$HOME/.bashrc"
+elif [[ "$SHELL" == *zsh ]] ; then
+  RC_FILE="$HOME/.zshrc"
+else
+  echo "Could not determine shell type, add the following commands to your shell's rc file manually:"
+  echo "${CLI_CMD}"
+  echo "${ALIAS_CMD}"
+  exit 1
+fi
+
+if ! grep -Fxq "${CLI_CMD}" "${RC_FILE}"; then
+  echo "${CLI_CMD}" >> "${RC_FILE}"
+fi
+
+if ! grep -Fxq "${ALIAS_CMD}" "${RC_FILE}"; then
+  echo "${ALIAS_CMD}" >> "${RC_FILE}"
 fi
