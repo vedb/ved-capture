@@ -18,6 +18,9 @@ from confuse import (
 )
 import pupil_recording_interface as pri
 
+from ved_capture.process.circle_detector import CircleDetectorVEDB
+from ved_capture.process.validation import Validation
+
 APPNAME = "vedc"
 
 # maximum width of video windows
@@ -315,9 +318,9 @@ class ConfigParser:
                 circle_detector_params = {}
 
             config["pipeline"].append(
-                pri.CircleDetector.Config(**circle_detector_params)
+                CircleDetectorVEDB.Config(**circle_detector_params)
             )
-            config["pipeline"].append(pri.Validation.Config(save=True))
+            config["pipeline"].append(Validation.Config(save=True))
             config["pipeline"].append(pri.GazeMapper.Config())
             config["pipeline"].append(
                 pri.VideoDisplay.Config(max_width=MAX_WIDTH)

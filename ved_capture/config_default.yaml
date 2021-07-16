@@ -168,7 +168,6 @@ commands:
         circle_detector:
           scale: 0.5
           paused: true
-          detection_method: vedb
           marker_size:
             - 5
             - 300
