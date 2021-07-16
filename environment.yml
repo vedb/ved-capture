@@ -23,8 +23,8 @@ dependencies:
   - libjpeg-turbo=2.0.5
   - pyuvc=0.14
   - msgpack-python=0.6.2
-  - pupil-detectors=1.0.5
-  - pupil_recording_interface=0.4.1
+  - pupil-detectors=1.1.1
+  - pupil_recording_interface=0.5.0
   # realsense
   - librealsense=2.42.0
   - pyrealsense2=2.42.0.2849
