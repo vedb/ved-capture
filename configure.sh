@@ -19,7 +19,7 @@ sudo update-grub
 sudo rm -f /usr/local/bin/vedc
 
 # create alias
-CLI_CMD="vedc-cli () { conda activate vedc;  vedc \$@; conda deactivate }"
+CLI_CMD="vedc-cli () { if [[ \$CONDA_DEFAULT_ENV = vedc ]]; then vedc \$@; else conda activate vedc; vedc \$@; conda deactivate; fi }"
 ALIAS_CMD="alias vedc=vedc-cli"
 
 if [[ "$SHELL" == *bash ]] ; then
