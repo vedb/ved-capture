@@ -4,20 +4,6 @@ on: push
 
 jobs:
 
-  test_installer:
-    runs-on: ubuntu-18.04
-    steps:
-      - uses: actions/checkout@v2
-      - uses: webfactory/ssh-agent@v0.4.1
-        with:
-          ssh-private-key: ${{ secrets.VEDC_PRIVATE_KEY }}
-      - name: Set up Python 3.6
-        uses: actions/setup-python@v1
-        with:
-          python-version: 3.6
-      - name: Run installer
-        run: python installer/install_ved_capture.py -y -v -b ${GITHUB_REF##*/} --no_ssh --no_version_check
-
   test_app:
     runs-on: ubuntu-18.04
     steps:
@@ -30,24 +16,14 @@ jobs:
         run: |
           conda --version
           which python
-      - name: Extract branch name
-        shell: bash
-        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF##*/})"
-        id: extract_branch
       - name: Create environment
-        env:
-          VEDC_DEV: true
-          VEDC_PIN: ${{ steps.extract_branch.outputs.branch }}
         run: |
-          conda install -y -c conda-forge conda-devenv
-          conda devenv
-      - name: Copy paths.json
-        run: |
-          mkdir -p /home/runner/.config/vedc
-          cp tests/test_data/config/paths.json /home/runner/.config/vedc
+          conda install -y -c conda-forge mamba
+          mamba env create
       - name: Run pytest
         run: |
           source activate vedc
+          mamba install -c conda-forge pytest
           pytest
 
   lint:

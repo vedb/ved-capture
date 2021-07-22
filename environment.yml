@@ -1,22 +1,8 @@
-{{ min_conda_devenv_version("2.1.1") }}
-
-# set library version
-{% set pri_version = "0.4.1" %}
-
-# version and config dir can be overridden by env vars
-{% set pri_pin = os.environ.get("PRI_PIN", pri_version) %}
-{% if "VEDCDIR" in os.environ %}
-environment:
-  VEDCDIR: {{ os.environ["VEDCDIR"] }}
-{% endif %}
-
 name: vedc
-
 channels:
   - conda-forge
   - loopbio
   - vedb
-
 dependencies:
   - python=3.6
   - pip=20.1
@@ -29,7 +15,6 @@ dependencies:
   # video
   - opencv=4.2.0
   - ffmpeg=3.4.2=x265_0
-  - av=6.2.0
   - x264=1!152.20180806
   - x265=2.8
   # pupil
@@ -38,7 +23,8 @@ dependencies:
   - libjpeg-turbo=2.0.5
   - pyuvc=0.14
   - msgpack-python=0.6.2
-  - pupil-detectors=1.0.5
+  - pupil-detectors=1.1.1
+  - pupil_recording_interface=0.5.0
   # realsense
   - librealsense=2.42.0
   - pyrealsense2=2.42.0.2849
@@ -52,24 +38,10 @@ dependencies:
   - click=7.1.1
   # other
   - matplotlib=3.1.1
-  - gitpython=3.1.0
   - tqdm=4.46.0
   - simpleaudio=1.0.2
   - blessed=1.17.12
   - multiprocessing-logging=0.3.1
-  # install local editable version of PRI if "PRI_PATH" is set
-  {% if "PRI_PATH" in os.environ %}
-  - pip:
-    - "--editable {{ os.environ['PRI_PATH'] }}"
-  {% else %}
-  - pupil_recording_interface={{ pri_pin }}
-  {% endif %}
   # install local editable version of ved-capture
   - pip:
-    - "--editable {{ root }}"
-  # development
-  {% if "VEDC_DEV" in os.environ %}
-  - pytest
-  - bump2version
-  - setproctitle
-  {% endif %}
+    - -e .

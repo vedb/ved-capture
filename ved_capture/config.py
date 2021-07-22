@@ -18,6 +18,9 @@ from confuse import (
 )
 import pupil_recording_interface as pri
 
+from ved_capture.process.circle_detector import CircleDetectorVEDB
+from ved_capture.process.validation import Validation
+
 APPNAME = "vedc"
 
 # maximum width of video windows
@@ -315,9 +318,9 @@ class ConfigParser:
                 circle_detector_params = {}
 
             config["pipeline"].append(
-                pri.CircleDetector.Config(**circle_detector_params)
+                CircleDetectorVEDB.Config(**circle_detector_params)
             )
-            config["pipeline"].append(pri.Validation.Config(save=True))
+            config["pipeline"].append(Validation.Config(save=True))
             config["pipeline"].append(pri.GazeMapper.Config())
             config["pipeline"].append(
                 pri.VideoDisplay.Config(max_width=MAX_WIDTH)
@@ -387,6 +390,7 @@ class ConfigParser:
         if "pipeline" not in config:
             config["pipeline"] = []
 
+        # circle grid detector
         try:
             if self.legacy:
                 detector_params = self.get_command_config(
@@ -405,13 +409,27 @@ class ConfigParser:
         config["pipeline"].append(
             pri.CircleGridDetector.Config(**detector_params)
         )
+
+        # first stream gets cam param estimator
         if master:
-            # first stream gets cam param estimator
-            config["pipeline"].append(
-                pri.CamParamEstimator.Config(
-                    streams=streams, extrinsics=extrinsics
+            try:
+                estimator_params = self.get_command_config(
+                    "estimate_cam_params",
+                    "settings",
+                    name,
+                    "cam_param_estimator",
                 )
+            except NotFoundError:
+                estimator_params = {}
+
+            estimator_params.update(
+                {"streams": streams, "extrinsics": extrinsics}
             )
+            config["pipeline"].append(
+                pri.CamParamEstimator.Config(**estimator_params)
+            )
+
+        # video display
         config["pipeline"].append(pri.VideoDisplay.Config(max_width=MAX_WIDTH))
 
         return config

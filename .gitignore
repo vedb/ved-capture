@@ -1,4 +1,3 @@
-environment.yml
 **/out/
 tests/test_data/user_config
 scratch

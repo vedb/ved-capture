@@ -1,23 +1,18 @@
-from pathlib import Path
 import inspect
+import json
+from pathlib import Path
 from pprint import pformat
 
 import click
 import pupil_recording_interface as pri
-from pupil_recording_interface.externals.file_methods import load_object
 
 from ved_capture.cli.utils import init_logger, raise_error
 
 
 @click.command("export")
+@click.argument("file-type")
 @click.argument("folder")
 @click.argument("topics", nargs=-1)
-@click.option(
-    "-t",
-    "--file-type",
-    default="pldata",
-    help="File type to export (pldata, intrinsics, extrinsics).",
-)
 @click.option(
     "-f", "--format", default="auto", help="Export format.",
 )
@@ -27,11 +22,18 @@ from ved_capture.cli.utils import init_logger, raise_error
 def export(folder, topics, file_type, format, verbose):
     """ Export recording data.
 
+    This tool will export all topics that match 'file-type', e.g.,
+    'vedc export intrinsics' will export all '.intrinsics' files. You can also
+    specify the topics that you want to export at the end.
+
+    Available file types are 'intrinsics', 'extrinsics' and 'pldata'.
+
     \b
     Note that supported formats depend on file type:
     - auto: auto-determine format for file type.
-    - echo: print export to command line. Not supported for pldata types.
+    - json: json format. Not supported for pldata types.
     - nc, netcdf: netCDF4 format. Supported for pldata types.
+    - echo: print export to command line. Not supported for pldata types.
     """
     logger = init_logger(inspect.stack()[0][3], verbosity=verbose)
 
@@ -45,7 +47,7 @@ def export(folder, topics, file_type, format, verbose):
         supported_formats = ("netcdf", "nc")
         supported_topics = ("gaze", "odometry", "accel", "gyro")  # TODO pupil
     else:
-        supported_formats = ("echo",)
+        supported_formats = ("json", "echo")
         supported_topics = None
 
     # auto-determine format or check if format is supported for file type
@@ -89,14 +91,29 @@ def export(folder, topics, file_type, format, verbose):
             )
         except FileNotFoundError as e:
             raise_error(str(e), logger)
+
+    elif format.lower() == "json":
+        export_folder = folder / "exports"
+        export_folder.mkdir(exist_ok=True)
+        try:
+            for topic in topics:
+                obj = pri.load_object(folder / f"{topic}.{file_type}")
+                with open(
+                    export_folder / f"{topic}.{file_type}.json", "w"
+                ) as f:
+                    f.write(json.dumps(obj, indent=4))
+        except FileNotFoundError as e:
+            raise_error(str(e), logger)
+
     elif format.lower() == "echo":
         try:
             for topic in topics:
-                obj = load_object(folder / f"{topic}.{file_type}")
+                obj = pri.load_object(folder / f"{topic}.{file_type}")
                 filename = f"{topic}.{file_type}"
                 header = f"{filename}\n{'-'*len(filename)}\n"
                 logger.info(f"{header}{pformat(obj)}\n")
         except FileNotFoundError as e:
             raise_error(str(e), logger)
+
     else:
         raise_error(f"Unsupported format: {format}", logger)
