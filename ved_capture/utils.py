@@ -462,3 +462,27 @@ def check_disk_space(folder, min_space_gb=30):
             f"Available disk space in {folder} is {free_gb:.1f} GB, make sure "
             f"you have at least {min_space_gb} GB of free space"
         )
+
+# Show keypress collection (WIP)
+
+# Collect events until released
+def test_keypresses():
+    """Test how keypresses register on your system.
+
+    press escape to quit.
+    """
+    # Lazy imports
+    from pynput.keyboard import Key, Listener
+    def on_press(key):
+        print('{0} pressed'.format(
+            key))
+    def on_release(key):
+        print('{0} release'.format(
+            key))
+        if key == Key.esc:
+            # Stop listener
+            return False
+    with Listener(
+            on_press=on_press,
+            on_release=on_release) as listener:
+        listener.join()
