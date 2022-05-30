@@ -94,7 +94,7 @@ commands:
       subject_id: null
       age: null
       gender: null
-      height(inches): null
+      height_inches: null
       ethnicity: null
       IPD(cm): null
       tilt_angle: null
