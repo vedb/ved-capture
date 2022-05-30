@@ -96,7 +96,7 @@ commands:
       gender: null
       height_inches: null
       ethnicity: null
-      IPD(cm): null
+      IPD_cm: null
       tilt_angle: null
       birth_year: null
       rig_version: null
