@@ -94,10 +94,12 @@ commands:
       subject_id: null
       age: null
       gender: null
-      height: null
+      height_inches: null
       ethnicity: null
-      IPD: null
+      IPD_cm: null
       tilt_angle: null
+      birth_year: null
+      rig_version: null
 
     # Selector to auto-determine a profile at the start of the recording.
     # The selector has to be defined in the metadata and will use the value
